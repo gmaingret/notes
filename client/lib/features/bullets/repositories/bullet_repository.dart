@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -104,9 +105,9 @@ class BulletRepository {
         id: id,
         documentId: documentId,
         parentId: Value(parentId),
-        content: content,
+        content: Value(content),
         position: position,
-        isComplete: isComplete,
+        isComplete: Value(isComplete),
         createdAt: now,
         updatedAt: now,
       ),
@@ -149,9 +150,9 @@ class BulletRepository {
       id: id,
       documentId: documentId,
       parentId: Value(parentId ?? existing.parentId),
-      content: content ?? existing.content,
+      content: Value(content ?? existing.content),
       position: position ?? existing.position,
-      isComplete: isComplete ?? existing.isComplete,
+      isComplete: Value(isComplete ?? existing.isComplete),
       createdAt: existing.createdAt,
       updatedAt: now,
     );

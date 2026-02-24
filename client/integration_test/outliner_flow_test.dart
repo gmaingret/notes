@@ -3,6 +3,7 @@
 // Creates a document, adds bullets, tabs to create a child, zooms, and
 // verifies the breadcrumb.
 
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -50,7 +51,7 @@ void main() {
       await db.documentDao.insertDocument(
         DocumentsTableCompanion.insert(
           id: 'doc1',
-          title: 'Test Document',
+          title: const Value('Test Document'),
           position: FractionalIndex.first(),
           createdAt: now,
           updatedAt: now,
@@ -68,7 +69,7 @@ void main() {
       await db.documentDao.insertDocument(
         DocumentsTableCompanion.insert(
           id: 'doc1',
-          title: 'My Doc',
+          title: const Value('My Doc'),
           position: FractionalIndex.first(),
           createdAt: now,
           updatedAt: now,
@@ -79,9 +80,9 @@ void main() {
           id: 'root',
           documentId: 'doc1',
           parentId: const Value(null),
-          content: 'Root Bullet',
+          content: const Value('Root Bullet'),
           position: FractionalIndex.first(),
-          isComplete: false,
+          isComplete: const Value(false),
           createdAt: now,
           updatedAt: now,
         ),
@@ -91,9 +92,9 @@ void main() {
           id: 'child',
           documentId: 'doc1',
           parentId: const Value('root'),
-          content: 'Child Bullet',
+          content: const Value('Child Bullet'),
           position: FractionalIndex.first(),
-          isComplete: false,
+          isComplete: const Value(false),
           createdAt: now,
           updatedAt: now,
         ),
@@ -126,7 +127,7 @@ void main() {
       await db.documentDao.insertDocument(
         DocumentsTableCompanion.insert(
           id: 'doc1',
-          title: 'Zoom Doc',
+          title: const Value('Zoom Doc'),
           position: FractionalIndex.first(),
           createdAt: now,
           updatedAt: now,
@@ -137,9 +138,9 @@ void main() {
           id: 'root',
           documentId: 'doc1',
           parentId: const Value(null),
-          content: 'Root',
+          content: const Value('Root'),
           position: FractionalIndex.first(),
-          isComplete: false,
+          isComplete: const Value(false),
           createdAt: now,
           updatedAt: now,
         ),
@@ -149,9 +150,9 @@ void main() {
           id: 'child',
           documentId: 'doc1',
           parentId: const Value('root'),
-          content: 'Child',
+          content: const Value('Child'),
           position: FractionalIndex.first(),
-          isComplete: false,
+          isComplete: const Value(false),
           createdAt: now,
           updatedAt: now,
         ),

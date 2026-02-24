@@ -9,8 +9,6 @@
 ///
 /// Raw syntax is shown when the cursor is inside a token span;
 /// formatted output is shown otherwise.
-library markdown_parser;
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 

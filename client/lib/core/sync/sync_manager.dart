@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
@@ -106,7 +107,7 @@ class SyncManager {
         await _db.documentDao.insertDocument(
           DocumentsTableCompanion.insert(
             id: doc['id'] as String,
-            title: doc['title'] as String,
+            title: Value(doc['title'] as String),
             position: doc['position'] as String,
             createdAt: doc['created_at'] as int,
             updatedAt: doc['updated_at'] as int,
@@ -126,9 +127,9 @@ class SyncManager {
               id: b['id'] as String,
               documentId: b['document_id'] as String,
               parentId: Value(b['parent_id'] as String?),
-              content: b['content'] as String,
+              content: Value(b['content'] as String),
               position: b['position'] as String,
-              isComplete: b['is_complete'] as bool,
+              isComplete: Value(b['is_complete'] as bool),
               createdAt: b['created_at'] as int,
               updatedAt: b['updated_at'] as int,
             ),
@@ -157,7 +158,7 @@ class SyncManager {
     }
 
     final deviceId = _deviceIdResolver != null
-        ? await _deviceIdResolver!()
+        ? await _deviceIdResolver()
         : await _getDeviceId();
 
     final operations = pending

@@ -1,7 +1,6 @@
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
-import '../tables/sync_operations_table.dart';
 
 part 'sync_operation_dao.g.dart';
 

@@ -1,7 +1,6 @@
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
-import '../tables/bullets_table.dart';
 
 part 'bullet_dao.g.dart';
 

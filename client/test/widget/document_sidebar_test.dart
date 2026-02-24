@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -46,7 +47,7 @@ void main() {
       await db.documentDao.insertDocument(
         DocumentsTableCompanion.insert(
           id: 'doc1',
-          title: 'First Doc',
+          title: const Value('First Doc'),
           position: FractionalIndex.first(),
           createdAt: now,
           updatedAt: now,

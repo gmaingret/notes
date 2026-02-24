@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,7 +32,7 @@ Future<void> _insertDocAndBullets(AppDatabase db) async {
   await db.documentDao.insertDocument(
     DocumentsTableCompanion.insert(
       id: 'doc1',
-      title: 'Test Doc',
+      title: const Value('Test Doc'),
       position: 'n',
       createdAt: now,
       updatedAt: now,
@@ -44,9 +45,9 @@ Future<void> _insertDocAndBullets(AppDatabase db) async {
       id: 'root',
       documentId: 'doc1',
       parentId: const Value(null),
-      content: 'Root bullet',
+      content: const Value('Root bullet'),
       position: 'a',
-      isComplete: false,
+      isComplete: const Value(false),
       createdAt: now,
       updatedAt: now,
     ),
@@ -56,9 +57,9 @@ Future<void> _insertDocAndBullets(AppDatabase db) async {
       id: 'child',
       documentId: 'doc1',
       parentId: const Value('root'),
-      content: 'Child bullet',
+      content: const Value('Child bullet'),
       position: 'a',
-      isComplete: false,
+      isComplete: const Value(false),
       createdAt: now,
       updatedAt: now,
     ),
@@ -68,9 +69,9 @@ Future<void> _insertDocAndBullets(AppDatabase db) async {
       id: 'grandchild',
       documentId: 'doc1',
       parentId: const Value('child'),
-      content: 'Grandchild bullet',
+      content: const Value('Grandchild bullet'),
       position: 'a',
-      isComplete: false,
+      isComplete: const Value(false),
       createdAt: now,
       updatedAt: now,
     ),

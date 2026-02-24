@@ -5,8 +5,6 @@
 ///
 /// All functions produce non-empty strings and maintain strict lexicographic
 /// ordering for the same inputs as the Python implementation.
-library fractional_index;
-
 class FractionalIndex {
   FractionalIndex._();
 

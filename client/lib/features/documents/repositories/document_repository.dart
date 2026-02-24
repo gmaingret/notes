@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -39,7 +40,7 @@ class DocumentRepository {
 
     final companion = DocumentsTableCompanion.insert(
       id: id,
-      title: title,
+      title: Value(title),
       position: position,
       createdAt: now,
       updatedAt: now,
@@ -72,7 +73,7 @@ class DocumentRepository {
 
     final companion = DocumentsTableCompanion.insert(
       id: id,
-      title: newTitle,
+      title: Value(newTitle),
       position: current.position,
       createdAt: current.createdAt,
       updatedAt: now,

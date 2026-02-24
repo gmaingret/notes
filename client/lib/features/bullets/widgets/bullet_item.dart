@@ -67,7 +67,7 @@ class _BulletItemState extends ConsumerState<BulletItem> {
                     ? Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.4)
+                        .withValues(alpha: 0.4)
                     : Theme.of(context).colorScheme.primary,
                 fontSize: 10,
               ),

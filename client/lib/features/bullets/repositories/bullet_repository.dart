@@ -134,12 +134,16 @@ class BulletRepository {
         .firstWhere((b) => b.id == id);
   }
 
+  /// Update fields on bullet [id].
+  ///
+  /// [parentId] uses [Value<String?>] so callers can distinguish
+  /// "do not change" ([Value.absent()]) from "set to null / root" ([Value(null)]).
   Future<BulletsTableData> updateBullet({
     required String id,
     required String documentId,
     String? content,
     String? position,
-    String? parentId,
+    Value<String?> parentId = const Value.absent(),
     bool? isComplete,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -147,10 +151,14 @@ class BulletRepository {
     final existing = (await _bulletDao.listBulletsForDocument(documentId))
         .firstWhere((b) => b.id == id);
 
+    // Use provided parentId if present; otherwise keep existing.
+    final resolvedParentId =
+        parentId.present ? parentId : Value(existing.parentId);
+
     final updated = BulletsTableCompanion.insert(
       id: id,
       documentId: documentId,
-      parentId: Value(parentId ?? existing.parentId),
+      parentId: resolvedParentId,
       content: Value(content ?? existing.content),
       position: position ?? existing.position,
       isComplete: Value(isComplete ?? existing.isComplete),
@@ -167,7 +175,7 @@ class BulletRepository {
       payload: {
         'id': id,
         'document_id': documentId,
-        'parent_id': parentId ?? existing.parentId,
+        'parent_id': resolvedParentId.value,
         'content': content ?? existing.content,
         'position': position ?? existing.position,
         'is_complete': isComplete ?? existing.isComplete,
@@ -204,7 +212,7 @@ class BulletRepository {
     return updateBullet(
       id: id,
       documentId: documentId,
-      parentId: newParentId,
+      parentId: Value(newParentId),
       position: newPosition,
     );
   }

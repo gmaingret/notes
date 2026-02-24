@@ -19,6 +19,7 @@ Widget _buildMenu(
   VoidCallback? onOutdent,
   VoidCallback? onDuplicate,
   VoidCallback? onDelete,
+  VoidCallback? onAddAttachment,
 }) {
   return ProviderScope(
     overrides: [databaseProvider.overrideWithValue(db)],
@@ -31,6 +32,7 @@ Widget _buildMenu(
           onOutdent: onOutdent,
           onDuplicate: onDuplicate,
           onDelete: onDelete,
+          onAddAttachment: onAddAttachment,
         ),
       ),
     ),
@@ -48,9 +50,10 @@ void main() {
     setUp(() => db = _openInMemory());
     tearDown(() async => db.close());
 
-    testWidgets('all five items render', (tester) async {
+    testWidgets('all six items render', (tester) async {
       await tester.pumpWidget(_buildMenu(db));
 
+      expect(find.text('Add attachment'), findsOneWidget);
       expect(find.text('Indent'), findsOneWidget);
       expect(find.text('Outdent'), findsOneWidget);
       expect(find.text('Move to document'), findsOneWidget);

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/fractional_index.dart';
+import '../../attachments/widgets/attachment_picker.dart';
+import '../../attachments/widgets/attachment_viewer.dart';
 import '../providers/bullet_tree_provider.dart';
 import '../repositories/bullet_repository.dart';
 import 'bullet_editor.dart';
@@ -275,6 +277,7 @@ class _BulletItemState extends ConsumerState<BulletItem> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildRow(context),
+        AttachmentViewer(bulletId: widget.node.data.id),
         if (_hasChildren && _isExpanded)
           Padding(
             padding: const EdgeInsets.only(left: 16),
@@ -328,6 +331,11 @@ class _BulletItemState extends ConsumerState<BulletItem> {
               onOutdent: () => _outdent(context),
               onDuplicate: () => _duplicate(context),
               onDelete: () => _deleteWithConfirm(context),
+              onAddAttachment: () => showAttachmentPicker(
+                context,
+                ref,
+                bulletId: widget.node.data.id,
+              ),
             ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 12, 4, 8),

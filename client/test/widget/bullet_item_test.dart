@@ -49,6 +49,13 @@ Widget _buildItem(AppDatabase db, BulletNode node) {
   );
 }
 
+// Pumps an empty widget tree to dispose the previous one, then pumps again
+// to let Drift stream cleanup timers fire before the test framework checks.
+Future<void> _drainStreams(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox());
+  await tester.pump(Duration.zero);
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -70,6 +77,8 @@ void main() {
         find.widgetWithText(TextField, 'Hello bullet'),
         findsOneWidget,
       );
+
+      await _drainStreams(tester);
     });
 
     testWidgets('renders bullet glyph', (tester) async {
@@ -78,6 +87,8 @@ void main() {
       await tester.pump();
 
       expect(find.text('●'), findsOneWidget);
+
+      await _drainStreams(tester);
     });
 
     testWidgets('no expand/collapse button when no children', (tester) async {
@@ -86,6 +97,8 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(Key('toggle_${node.data.id}')), findsNothing);
+
+      await _drainStreams(tester);
     });
 
     testWidgets('shows expand/collapse button when node has children',
@@ -99,6 +112,8 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(const Key('toggle_parent')), findsOneWidget);
+
+      await _drainStreams(tester);
     });
 
     testWidgets('collapse/expand toggle works', (tester) async {
@@ -133,6 +148,8 @@ void main() {
         find.widgetWithText(TextField, 'Child text'),
         findsOneWidget,
       );
+
+      await _drainStreams(tester);
     });
   });
 }

@@ -13,6 +13,7 @@ Future<void> showBulletContextMenu(
   VoidCallback? onOutdent,
   VoidCallback? onDuplicate,
   VoidCallback? onDelete,
+  VoidCallback? onAddAttachment,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -23,6 +24,7 @@ Future<void> showBulletContextMenu(
       onOutdent: onOutdent,
       onDuplicate: onDuplicate,
       onDelete: onDelete,
+      onAddAttachment: onAddAttachment,
     ),
   );
 }
@@ -42,6 +44,7 @@ class BulletContextMenu extends ConsumerStatefulWidget {
     this.onOutdent,
     this.onDuplicate,
     this.onDelete,
+    this.onAddAttachment,
   });
 
   final String bulletId;
@@ -50,6 +53,7 @@ class BulletContextMenu extends ConsumerStatefulWidget {
   final VoidCallback? onOutdent;
   final VoidCallback? onDuplicate;
   final VoidCallback? onDelete;
+  final VoidCallback? onAddAttachment;
 
   @override
   ConsumerState<BulletContextMenu> createState() => _BulletContextMenuState();
@@ -62,6 +66,15 @@ class _BulletContextMenuState extends ConsumerState<BulletContextMenu> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          ListTile(
+            key: const Key('context_menu_add_attachment'),
+            leading: const Icon(Icons.attach_file),
+            title: const Text('Add attachment'),
+            onTap: () {
+              Navigator.of(context).pop();
+              widget.onAddAttachment?.call();
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.format_indent_increase),
             title: const Text('Indent'),

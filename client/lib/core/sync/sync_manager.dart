@@ -253,7 +253,7 @@ class SyncNotifier extends Notifier<SyncState> {
     _manager = SyncManager(db: db, dio: dio, connectivity: connectivity);
 
     // On startup, trigger sync if online.
-    Future.microtask(_onStartup);
+    unawaited(Future.microtask(_onStartup));
 
     return const SyncState();
   }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -97,12 +99,14 @@ class _BulletEditorState extends ConsumerState<BulletEditor> {
     _undoStack.add(value);
     _redoStack.clear();
 
-    // Write to local DB — SyncManager debounces the server push.
-    ref.read(bulletRepositoryProvider).updateBullet(
-          id: widget.bulletId,
-          documentId: widget.documentId,
-          content: value,
-        );
+    // Write to local DB — fire-and-forget; SyncManager debounces server push.
+    unawaited(
+      ref.read(bulletRepositoryProvider).updateBullet(
+            id: widget.bulletId,
+            documentId: widget.documentId,
+            content: value,
+          ),
+    );
   }
 
   void _handleKey(KeyEvent event) {
@@ -134,11 +138,13 @@ class _BulletEditorState extends ConsumerState<BulletEditor> {
     _redoStack.add(current);
     final prev = _undoStack.last;
     _controller.text = prev;
-    ref.read(bulletRepositoryProvider).updateBullet(
-          id: widget.bulletId,
-          documentId: widget.documentId,
-          content: prev,
-        );
+    unawaited(
+      ref.read(bulletRepositoryProvider).updateBullet(
+            id: widget.bulletId,
+            documentId: widget.documentId,
+            content: prev,
+          ),
+    );
   }
 
   void _redo() {
@@ -146,11 +152,13 @@ class _BulletEditorState extends ConsumerState<BulletEditor> {
     final next = _redoStack.removeLast();
     _undoStack.add(next);
     _controller.text = next;
-    ref.read(bulletRepositoryProvider).updateBullet(
-          id: widget.bulletId,
-          documentId: widget.documentId,
-          content: next,
-        );
+    unawaited(
+      ref.read(bulletRepositoryProvider).updateBullet(
+            id: widget.bulletId,
+            documentId: widget.documentId,
+            content: next,
+          ),
+    );
   }
 }
 

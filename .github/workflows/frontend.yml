@@ -1,0 +1,38 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    paths:
+      - "client/**"
+      - ".github/workflows/frontend.yml"
+
+jobs:
+  analyze-and-test:
+    name: Analyze + Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.x"
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        working-directory: client
+        run: flutter pub get
+
+      - name: Run code generation (drift)
+        working-directory: client
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze
+        working-directory: client
+        run: flutter analyze --fatal-infos
+
+      - name: Run unit + widget tests
+        working-directory: client
+        run: flutter test test/

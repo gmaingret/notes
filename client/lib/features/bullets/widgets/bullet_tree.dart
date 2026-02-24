@@ -4,10 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/bullet_tree_provider.dart';
 import '../repositories/bullet_repository.dart';
 import 'bullet_item.dart';
+import 'swipe_action_wrapper.dart';
 
 /// Renders the bullet tree from the current [zoomedNodeId] down.
 /// Indentation is 16 px per level.  Each level is a [Column] of
-/// [BulletItem] widgets.
+/// [BulletItem] widgets, each wrapped in a [SwipeActionWrapper].
 class BulletTree extends ConsumerWidget {
   const BulletTree({super.key, required this.documentId});
 
@@ -46,6 +47,8 @@ class BulletTree extends ConsumerWidget {
 }
 
 /// Renders a list of sibling [BulletNode]s at the same indent level.
+/// Each [BulletItem] is wrapped in a [SwipeActionWrapper] so that every
+/// visible bullet supports swipe-to-complete and swipe-to-delete gestures.
 class _BulletLevel extends StatelessWidget {
   const _BulletLevel({
     required this.nodes,
@@ -63,11 +66,15 @@ class _BulletLevel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (final node in nodes)
-          BulletItem(
+          SwipeActionWrapper(
             key: ValueKey(node.data.id),
             node: node,
             documentId: documentId,
-            indentLevel: indentLevel,
+            child: BulletItem(
+              node: node,
+              documentId: documentId,
+              indentLevel: indentLevel,
+            ),
           ),
       ],
     );

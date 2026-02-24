@@ -25,6 +25,7 @@ class BulletEditor extends ConsumerStatefulWidget {
     required this.bulletId,
     required this.documentId,
     required this.initialContent,
+    this.isComplete = false,
     this.onEnter,
     this.onTab,
     this.onShiftTab,
@@ -34,6 +35,9 @@ class BulletEditor extends ConsumerStatefulWidget {
   final String bulletId;
   final String documentId;
   final String initialContent;
+
+  /// When true the text is rendered with a strikethrough decoration.
+  final bool isComplete;
 
   /// Called when Enter is pressed (create sibling).
   final VoidCallback? onEnter;
@@ -84,6 +88,9 @@ class _BulletEditorState extends ConsumerState<BulletEditor> {
       child: TextField(
         controller: _controller,
         focusNode: _focusNode,
+        style: widget.isComplete
+            ? const TextStyle(decoration: TextDecoration.lineThrough)
+            : null,
         decoration: const InputDecoration(
           border: InputBorder.none,
           isDense: true,

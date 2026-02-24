@@ -2,66 +2,80 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/api/api_client.dart';
+import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/screens/login_screen.dart';
+import 'features/documents/screens/document_detail_screen.dart';
+import 'features/documents/screens/documents_screen.dart';
 
-// Placeholder screens — replaced with real implementations in Phase 1.
-class _DocumentsScreen extends ConsumerWidget {
-  const _DocumentsScreen();
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return const Scaffold(
-      body: Center(child: Text('Documents — Phase 1')),
-    );
-  }
-}
+final _routerProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authNotifierProvider);
 
-class _DocumentDetailScreen extends ConsumerWidget {
-  final String documentId;
-  const _DocumentDetailScreen({required this.documentId});
+  return GoRouter(
+    initialLocation: '/login',
+    redirect: (context, state) {
+      final status = authState.status;
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(title: Text(documentId)),
-      body: const Center(child: Text('Bullet tree — Phase 1')),
-    );
-  }
-}
+      // Still determining auth state — do not redirect.
+      if (status == AuthStatus.unknown) return null;
 
-final _router = GoRouter(
-  initialLocation: '/login',
-  routes: [
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginScreen(),
-    ),
-    GoRoute(
-      path: '/documents',
-      builder: (context, state) => const _DocumentsScreen(),
-      routes: [
-        GoRoute(
-          path: ':id',
-          builder: (context, state) =>
-              _DocumentDetailScreen(documentId: state.pathParameters['id']!),
-        ),
-      ],
-    ),
-  ],
-);
+      final isLoggedIn = status == AuthStatus.authenticated;
+      final isOnLoginPage = state.matchedLocation == '/login';
 
-class NotesApp extends StatelessWidget {
+      if (!isLoggedIn && !isOnLoginPage) return '/login';
+      if (isLoggedIn && isOnLoginPage) return '/documents';
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/documents',
+        builder: (context, state) => const DocumentsScreen(),
+        routes: [
+          GoRoute(
+            path: ':id',
+            builder: (context, state) => DocumentDetailScreen(
+              documentId: state.pathParameters['id']!,
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+});
+
+// ---------------------------------------------------------------------------
+// App root
+// ---------------------------------------------------------------------------
+
+class NotesApp extends ConsumerWidget {
   const NotesApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Wire up the 401 → logout callback at app startup.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(onUnauthorizedCallbackProvider.notifier).state = () {
+        ref.read(authNotifierProvider.notifier).logout();
+      };
+    });
+
+    final router = ref.watch(_routerProvider);
+
     return MaterialApp.router(
       title: 'Notes',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
       ),
-      routerConfig: _router,
+      routerConfig: router,
     );
   }
 }

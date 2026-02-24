@@ -7,7 +7,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:notes/core/db/app_database.dart';
 import 'package:notes/core/db/database_provider.dart';
 import 'package:notes/features/bullets/providers/bullet_tree_provider.dart';
-import 'package:notes/features/bullets/repositories/bullet_repository.dart';
 import 'package:notes/features/bullets/widgets/breadcrumb_bar.dart';
 
 // ---------------------------------------------------------------------------

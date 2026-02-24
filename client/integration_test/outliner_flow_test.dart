@@ -15,8 +15,6 @@ import 'package:notes/core/db/app_database.dart';
 import 'package:notes/core/db/database_provider.dart';
 import 'package:notes/core/utils/fractional_index.dart';
 import 'package:notes/features/auth/providers/auth_provider.dart';
-import 'package:notes/features/bullets/providers/bullet_tree_provider.dart';
-import 'package:notes/features/bullets/repositories/bullet_repository.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();

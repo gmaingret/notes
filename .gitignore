@@ -1,0 +1,94 @@
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.log
+
+# mypy / ruff
+.mypy_cache/
+.ruff_cache/
+
+# ── Flutter / Dart ───────────────────────────────────────────────────────────
+# Generated files
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# Build outputs
+client/build/
+client/.dart_tool/
+client/.flutter-plugins
+client/.flutter-plugins-dependencies
+client/.packages
+
+# Android
+client/android/.gradle/
+client/android/local.properties
+client/android/key.properties
+client/android/app/google-services.json
+client/android/app/debug.keystore
+
+# iOS (not used but keep for safety)
+client/ios/Pods/
+client/ios/.symlinks/
+
+# Web
+client/web/
+
+# Coverage
+client/coverage/
+
+# IDE
+*.iml
+.idea/
+*.swp
+*.swo
+
+# ── Docker ───────────────────────────────────────────────────────────────────
+.dockerignore
+
+# ── Environment ──────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.env
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V4
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ── Editor ───────────────────────────────────────────────────────────────────
+.vscode/
+*.code-workspace

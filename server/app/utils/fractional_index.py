@@ -158,23 +158,12 @@ def between(a: str, b: str) -> str:
             result.append(_CHARS[mid])
             return "".join(result)
 
-        # ia + 1 == ib (adjacent characters), so no integer midpoint exists
-        # at this position.  Take `ca` and extend into the next position.
-        result.append(ca)
-        # At the next position we need to fit between:
-        #   a_padded[i+1:] (treated as a fractional number close to max)
-        #   b_padded[i+1:] (treated as a fractional number close to min)
-        # Use the mid of ('z', first-char-of-b_remainder) as a single suffix char.
-        next_a_char = _CHARS[-1]  # 'z' — upper end for a's suffix
-        next_b_char = b_padded[i + 1] if i + 1 < max_len else _CHARS[0]
-        ia2 = _CHAR_INDEX[next_a_char]
-        ib2 = _CHAR_INDEX[next_b_char]
-
-        if ib2 > ia2:
-            result.append(_CHARS[(ia2 + ib2 + 1) // 2])
-        else:
-            # Same or lower — just append the mid character to extend.
-            result.append(_MID_CHAR)
+        # Adjacent characters (ia + 1 == ib) — extend beyond a's position.
+        # a_padded[i:] + _MID_CHAR is always:
+        #   > a: appending chars beyond a's end makes it lexicographically greater
+        #   < b: result starts with ca which is < cb = b_padded[i]
+        result.extend(a_padded[i:])
+        result.append(_MID_CHAR)
         return "".join(result)
 
     # a_padded == b_padded for all max_len positions but a < b means b is longer.

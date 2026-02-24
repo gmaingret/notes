@@ -156,8 +156,9 @@ void main() {
     });
 
     test('between("a", "z") matches server midpoint', () {
-      // Python mid = (0 + 35) // 2 = 17 = _chars[17] = 'h'
-      expect(FractionalIndex.between('a', 'z'), 'h');
+      // 'a' is at index 10, 'z' at 35 in the base-36 alphabet.
+      // Python mid = (10 + 35) // 2 = 22 = _chars[22] = 'm'
+      expect(FractionalIndex.between('a', 'z'), 'm');
     });
 
     test('before("n") matches server', () {

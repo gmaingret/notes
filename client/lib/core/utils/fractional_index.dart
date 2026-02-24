@@ -96,19 +96,12 @@ class FractionalIndex {
         return result.join();
       }
 
-      // Adjacent characters (ia + 1 == ib) — extend into next position.
-      result.add(ca);
-
-      final nextAChar = _chars[_base - 1]; // 'z'
-      final nextBChar = (i + 1 < maxLen) ? bPadded[i + 1] : _chars[0];
-      final ia2 = _charIndex[nextAChar]!;
-      final ib2 = _charIndex[nextBChar]!;
-
-      if (ib2 > ia2) {
-        result.add(_chars[(ia2 + ib2 + 1) ~/ 2]);
-      } else {
-        result.add(_midChar);
-      }
+      // Adjacent characters (ia + 1 == ib) — extend beyond a's position.
+      // aPadded[i:] + midChar is always:
+      //   > a: appending chars beyond a's end makes it lexicographically greater
+      //   < b: result starts with ca which is < cb = bPadded[i]
+      result.addAll(aPadded.substring(i).split(''));
+      result.add(_midChar);
       return result.join();
     }
 

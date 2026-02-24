@@ -15,15 +15,16 @@ import 'package:notes/features/bullets/widgets/breadcrumb_bar.dart';
 
 AppDatabase _openInMemory() => AppDatabase(NativeDatabase.memory());
 
-/// Registers a teardown that explicitly disposes the widget tree and pumps a
-/// zero-duration frame.  This drains the FakeTimers that Drift's
-/// StreamQueryStore schedules when stream subscriptions are cancelled during
-/// ProviderScope disposal, preventing the "pending timers" invariant failure.
-void _registerDriftTearDown(WidgetTester tester) {
-  addTearDown(() async {
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump(Duration.zero);
-  });
+/// Drains the FakeTimers that Drift's StreamQueryStore schedules when stream
+/// subscriptions are cancelled during ProviderScope disposal.
+///
+/// MUST be called inside the test body (not in addTearDown) so it executes
+/// within the FakeAsync zone that testWidgets sets up.  addTearDown callbacks
+/// run after binding.runTest() exits, outside FakeAsync, so tester.pump()
+/// there does not advance the fake clock.
+Future<void> _drainDriftTimers(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump(Duration.zero);
 }
 
 Widget _buildUnderTest(AppDatabase db) {
@@ -100,7 +101,6 @@ void main() {
     tearDown(() async => db.close());
 
     testWidgets('shows only document title when at root', (tester) async {
-      _registerDriftTearDown(tester);
       await _insertDocAndBullets(db);
       await tester.pumpWidget(_buildUnderTest(db));
       await tester.pumpAndSettle();
@@ -108,10 +108,11 @@ void main() {
       expect(find.text('Test Doc'), findsOneWidget);
       // No chevron separators.
       expect(find.byIcon(Icons.chevron_right), findsNothing);
+
+      await _drainDriftTimers(tester);
     });
 
     testWidgets('renders correct crumbs for 3-level zoom', (tester) async {
-      _registerDriftTearDown(tester);
       await _insertDocAndBullets(db);
       await tester.pumpWidget(_buildUnderTest(db));
       await tester.pumpAndSettle();
@@ -130,10 +131,11 @@ void main() {
       expect(find.text('Child bullet'), findsOneWidget);
       expect(find.text('Grandchild bullet'), findsOneWidget);
       expect(find.byIcon(Icons.chevron_right), findsNWidgets(3));
+
+      await _drainDriftTimers(tester);
     });
 
     testWidgets('tapping document crumb zooms out to root', (tester) async {
-      _registerDriftTearDown(tester);
       await _insertDocAndBullets(db);
       await tester.pumpWidget(_buildUnderTest(db));
       await tester.pumpAndSettle();
@@ -153,6 +155,8 @@ void main() {
 
       // Should now show no chevrons (back at root).
       expect(find.byIcon(Icons.chevron_right), findsNothing);
+
+      await _drainDriftTimers(tester);
     });
   });
 }

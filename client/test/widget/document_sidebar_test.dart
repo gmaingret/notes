@@ -15,15 +15,16 @@ import 'package:notes/features/documents/widgets/document_sidebar.dart';
 
 AppDatabase _openInMemory() => AppDatabase(NativeDatabase.memory());
 
-/// Registers a teardown that explicitly disposes the widget tree and pumps a
-/// zero-duration frame.  This drains the FakeTimers that Drift's
-/// StreamQueryStore schedules when stream subscriptions are cancelled during
-/// ProviderScope disposal, preventing the "pending timers" invariant failure.
-void _registerDriftTearDown(WidgetTester tester) {
-  addTearDown(() async {
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump(Duration.zero);
-  });
+/// Drains the FakeTimers that Drift's StreamQueryStore schedules when stream
+/// subscriptions are cancelled during ProviderScope disposal.
+///
+/// MUST be called inside the test body (not in addTearDown) so it executes
+/// within the FakeAsync zone that testWidgets sets up.  addTearDown callbacks
+/// run after binding.runTest() exits, outside FakeAsync, so tester.pump()
+/// there does not advance the fake clock.
+Future<void> _drainDriftTimers(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump(Duration.zero);
 }
 
 Widget _buildUnderTest(AppDatabase db) {
@@ -47,15 +48,15 @@ void main() {
     tearDown(() async => db.close());
 
     testWidgets('shows empty state when no documents', (tester) async {
-      _registerDriftTearDown(tester);
       await tester.pumpWidget(_buildUnderTest(db));
       await tester.pumpAndSettle();
 
       expect(find.text('No documents.\nTap + to create one.'), findsOneWidget);
+
+      await _drainDriftTimers(tester);
     });
 
     testWidgets('lists document titles', (tester) async {
-      _registerDriftTearDown(tester);
       final now = DateTime.now().millisecondsSinceEpoch;
       await db.documentDao.insertDocument(
         DocumentsTableCompanion.insert(
@@ -71,10 +72,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('First Doc'), findsOneWidget);
+
+      await _drainDriftTimers(tester);
     });
 
     testWidgets('tapping + button shows create dialog', (tester) async {
-      _registerDriftTearDown(tester);
       await tester.pumpWidget(_buildUnderTest(db));
       await tester.pumpAndSettle();
 
@@ -83,10 +85,11 @@ void main() {
 
       expect(find.byKey(const Key('document_name_field')), findsOneWidget);
       expect(find.text('New Document'), findsOneWidget);
+
+      await _drainDriftTimers(tester);
     });
 
     testWidgets('creating a document adds it to the list', (tester) async {
-      _registerDriftTearDown(tester);
       await tester.pumpWidget(_buildUnderTest(db));
       await tester.pumpAndSettle();
 
@@ -103,6 +106,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('My New Doc'), findsOneWidget);
+
+      await _drainDriftTimers(tester);
     });
   });
 }

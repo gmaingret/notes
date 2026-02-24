@@ -7,14 +7,12 @@ Key fixtures:
   auth_headers — Pre-issued test JWT that bypasses Google OAuth
 """
 
-import time
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from app.config import settings
 from app.db.database import get_db, get_test_db
 from app.main import app
 

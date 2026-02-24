@@ -15,6 +15,17 @@ import 'package:notes/features/bullets/widgets/breadcrumb_bar.dart';
 
 AppDatabase _openInMemory() => AppDatabase(NativeDatabase.memory());
 
+/// Registers a teardown that explicitly disposes the widget tree and pumps a
+/// zero-duration frame.  This drains the FakeTimers that Drift's
+/// StreamQueryStore schedules when stream subscriptions are cancelled during
+/// ProviderScope disposal, preventing the "pending timers" invariant failure.
+void _registerDriftTearDown(WidgetTester tester) {
+  addTearDown(() async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(Duration.zero);
+  });
+}
+
 Widget _buildUnderTest(AppDatabase db) {
   return ProviderScope(
     overrides: [databaseProvider.overrideWithValue(db)],
@@ -89,6 +100,7 @@ void main() {
     tearDown(() async => db.close());
 
     testWidgets('shows only document title when at root', (tester) async {
+      _registerDriftTearDown(tester);
       await _insertDocAndBullets(db);
       await tester.pumpWidget(_buildUnderTest(db));
       await tester.pumpAndSettle();
@@ -99,6 +111,7 @@ void main() {
     });
 
     testWidgets('renders correct crumbs for 3-level zoom', (tester) async {
+      _registerDriftTearDown(tester);
       await _insertDocAndBullets(db);
       await tester.pumpWidget(_buildUnderTest(db));
       await tester.pumpAndSettle();
@@ -120,6 +133,7 @@ void main() {
     });
 
     testWidgets('tapping document crumb zooms out to root', (tester) async {
+      _registerDriftTearDown(tester);
       await _insertDocAndBullets(db);
       await tester.pumpWidget(_buildUnderTest(db));
       await tester.pumpAndSettle();

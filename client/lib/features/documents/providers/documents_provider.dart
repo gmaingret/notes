@@ -10,10 +10,17 @@ import '../repositories/document_repository.dart';
 class DocumentsNotifier extends AsyncNotifier<List<DocumentsTableData>> {
   @override
   Future<List<DocumentsTableData>> build() async {
-    // Subscribe to the Drift stream.  Whenever it emits, Riverpod calls
-    // build() again and the UI rebuilds.
-    ref.watch(_documentsStreamProvider);
-    // Always fetch the current list from the DAO.
+    // Use ref.listen instead of ref.watch to avoid an infinite rebuild
+    // loop: ref.watch invalidates this notifier on every stream event,
+    // which makes Riverpod dispose _documentsStreamProvider (its only
+    // listener is gone), which re-subscribes to Drift, which emits the
+    // initial value again, which triggers another invalidation, etc.
+    ref.listen<AsyncValue<List<DocumentsTableData>>>(
+      _documentsStreamProvider,
+      (_, next) {
+        next.whenData((docs) => state = AsyncData(docs));
+      },
+    );
     return ref.read(documentRepositoryProvider).listDocuments();
   }
 

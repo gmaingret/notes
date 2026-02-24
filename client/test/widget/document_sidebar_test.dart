@@ -15,6 +15,17 @@ import 'package:notes/features/documents/widgets/document_sidebar.dart';
 
 AppDatabase _openInMemory() => AppDatabase(NativeDatabase.memory());
 
+/// Registers a teardown that explicitly disposes the widget tree and pumps a
+/// zero-duration frame.  This drains the FakeTimers that Drift's
+/// StreamQueryStore schedules when stream subscriptions are cancelled during
+/// ProviderScope disposal, preventing the "pending timers" invariant failure.
+void _registerDriftTearDown(WidgetTester tester) {
+  addTearDown(() async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(Duration.zero);
+  });
+}
+
 Widget _buildUnderTest(AppDatabase db) {
   return ProviderScope(
     overrides: [databaseProvider.overrideWithValue(db)],
@@ -36,6 +47,7 @@ void main() {
     tearDown(() async => db.close());
 
     testWidgets('shows empty state when no documents', (tester) async {
+      _registerDriftTearDown(tester);
       await tester.pumpWidget(_buildUnderTest(db));
       await tester.pumpAndSettle();
 
@@ -43,6 +55,7 @@ void main() {
     });
 
     testWidgets('lists document titles', (tester) async {
+      _registerDriftTearDown(tester);
       final now = DateTime.now().millisecondsSinceEpoch;
       await db.documentDao.insertDocument(
         DocumentsTableCompanion.insert(
@@ -61,6 +74,7 @@ void main() {
     });
 
     testWidgets('tapping + button shows create dialog', (tester) async {
+      _registerDriftTearDown(tester);
       await tester.pumpWidget(_buildUnderTest(db));
       await tester.pumpAndSettle();
 
@@ -72,6 +86,7 @@ void main() {
     });
 
     testWidgets('creating a document adds it to the list', (tester) async {
+      _registerDriftTearDown(tester);
       await tester.pumpWidget(_buildUnderTest(db));
       await tester.pumpAndSettle();
 

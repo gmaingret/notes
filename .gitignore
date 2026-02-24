@@ -7,7 +7,7 @@ __pycache__/
 *.egg
 *.egg-info/
 dist/
-build/
+/build/
 eggs/
 parts/
 var/
@@ -41,8 +41,10 @@ htmlcov/
 *.freezed.dart
 *.mocks.dart
 
-# Build outputs
-client/build/
+# Build outputs (ignore everything except the placeholder that makes the Docker COPY work)
+client/build/**
+!client/build/web/
+!client/build/web/.gitkeep
 client/.dart_tool/
 client/.flutter-plugins
 client/.flutter-plugins-dependencies

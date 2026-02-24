@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:notes/features/auth/providers/auth_provider.dart';
 import 'package:notes/features/auth/screens/login_screen.dart';
@@ -91,12 +92,26 @@ void main() {
     testWidgets('tapping sign-in button calls signInWithGoogle', (tester) async {
       final notifier = _FakeSignInNotifier();
 
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, __) => const LoginScreen(),
+          ),
+          GoRoute(
+            path: '/documents',
+            builder: (_, __) => const Scaffold(body: Text('Documents')),
+          ),
+        ],
+      );
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             authNotifierProvider.overrideWith(() => notifier),
           ],
-          child: const MaterialApp(home: LoginScreen()),
+          child: MaterialApp.router(routerConfig: router),
         ),
       );
       await tester.pump();

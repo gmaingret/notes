@@ -1,0 +1,20 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - DB_PATH=/data/notes.db
+      - ATTACHMENTS_PATH=/data/files
+      - WEB_BUILD_PATH=/app/web
+    volumes:
+      - notes_data:/data
+    restart: unless-stopped
+
+volumes:
+  notes_data:

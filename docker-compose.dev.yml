@@ -1,0 +1,21 @@
+# Development overrides — hot reload + local source mount
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+services:
+  app:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    volumes:
+      - notes_data:/data
+      - ./server/app:/app/app  # hot-reload: mount source over the image copy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-change-in-production}
+      - DB_PATH=/data/notes.db
+      - ATTACHMENTS_PATH=/data/files
+      - WEB_BUILD_PATH=/app/web
+
+volumes:
+  notes_data:

@@ -9,15 +9,18 @@ import 'features/documents/screens/document_detail_screen.dart';
 import 'features/documents/screens/documents_screen.dart';
 
 // ---------------------------------------------------------------------------
-// Router
+// Router provider — created once; refreshed when auth state changes
 // ---------------------------------------------------------------------------
 
-final _routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authNotifierProvider);
+final routerProvider = Provider<GoRouter>((ref) {
+  // ChangeNotifier that triggers router.refresh() on auth changes.
+  final authNotifier = _AuthChangeNotifier(ref);
 
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: '/login',
+    refreshListenable: authNotifier,
     redirect: (context, state) {
+      final authState = ref.read(authNotifierProvider);
       final status = authState.status;
 
       // Still determining auth state — do not redirect.
@@ -49,7 +52,31 @@ final _routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  // Dispose notifier when provider is disposed.
+  ref.onDispose(authNotifier.dispose);
+
+  return router;
 });
+
+/// A [ChangeNotifier] that calls [notifyListeners] whenever [authNotifierProvider]
+/// emits a new state.  Used as [GoRouter.refreshListenable].
+class _AuthChangeNotifier extends ChangeNotifier {
+  _AuthChangeNotifier(Ref ref) {
+    _subscription = ref.listen<AuthState>(
+      authNotifierProvider,
+      (_, __) => notifyListeners(),
+    );
+  }
+
+  ProviderSubscription<AuthState>? _subscription;
+
+  @override
+  void dispose() {
+    _subscription?.close();
+    super.dispose();
+  }
+}
 
 // ---------------------------------------------------------------------------
 // App root
@@ -67,7 +94,7 @@ class NotesApp extends ConsumerWidget {
       };
     });
 
-    final router = ref.watch(_routerProvider);
+    final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
       title: 'Notes',

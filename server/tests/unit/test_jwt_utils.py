@@ -3,7 +3,7 @@
 import time
 
 import pytest
-from jose import JWTError, jwt as jose_jwt
+from jose import jwt as jose_jwt, JWTError
 
 from app.config import settings
 from app.utils.jwt_utils import (

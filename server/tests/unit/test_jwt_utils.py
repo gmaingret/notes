@@ -3,7 +3,7 @@
 import time
 
 import pytest
-from jose import jwt as jose_jwt, JWTError
+from jose import JWTError
 
 from app.config import settings
 from app.utils.jwt_utils import (
@@ -58,28 +58,28 @@ def test_decode_access_token_raises_on_tampered_signature():
 
 
 def test_decode_access_token_raises_on_expired_token():
+    from jose import jwt
+
     payload = {
         "sub": "u",
         "iat": int(time.time()) - 7200,
         "exp": int(time.time()) - 3600,
     }
-    expired_token = jose_jwt.encode(
-        payload, settings.jwt_secret, algorithm=settings.jwt_algorithm
-    )
+    expired_token = jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
     with pytest.raises(JWTError):
         decode_access_token(expired_token)
 
 
 def test_is_within_refresh_grace_returns_true_when_expired_within_grace():
     """Token expired 1 second ago — within the grace window."""
+    from jose import jwt
+
     payload = {
         "sub": "u",
         "iat": int(time.time()) - 100,
         "exp": int(time.time()) - 1,
     }
-    token = jose_jwt.encode(
-        payload, settings.jwt_secret, algorithm=settings.jwt_algorithm
-    )
+    token = jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
     assert is_within_refresh_grace(token) is True
 
 
@@ -91,15 +91,15 @@ def test_is_within_refresh_grace_returns_false_when_not_expired():
 
 def test_is_within_refresh_grace_returns_false_when_beyond_grace():
     """Token expired well past the grace window — returns False."""
+    from jose import jwt
+
     grace_hours = settings.jwt_refresh_grace_hours
     payload = {
         "sub": "u",
         "iat": int(time.time()) - (grace_hours + 2) * 3600,
         "exp": int(time.time()) - (grace_hours + 1) * 3600,
     }
-    token = jose_jwt.encode(
-        payload, settings.jwt_secret, algorithm=settings.jwt_algorithm
-    )
+    token = jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
     assert is_within_refresh_grace(token) is False
 
 

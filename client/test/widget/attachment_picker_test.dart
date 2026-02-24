@@ -62,12 +62,24 @@ Widget _buildPickerSheet(AppDatabase db) {
   );
 }
 
-Widget _buildViewer(AppDatabase db, String bulletId) {
+/// Build an [AttachmentViewer] scaffold with [preloaded] attachments injected
+/// directly into [attachmentsForBulletProvider] — no Drift stream is opened,
+/// so no cleanup timer is left pending after the test ends.
+Widget _buildViewer(
+  AppDatabase db,
+  String bulletId, {
+  List<AttachmentModel> preloaded = const [],
+}) {
   return ProviderScope(
     overrides: [
       databaseProvider.overrideWithValue(db),
       attachmentRepositoryProvider.overrideWith(
         (ref) => AttachmentRepository(db, null),
+      ),
+      // Use Stream.value so the provider completes immediately with no
+      // ongoing Drift subscription — avoids the zero-duration cleanup timer.
+      attachmentsForBulletProvider.overrideWith(
+        (ref, id) => Stream.value(preloaded),
       ),
     ],
     child: MaterialApp(
@@ -76,18 +88,6 @@ Widget _buildViewer(AppDatabase db, String bulletId) {
       ),
     ),
   );
-}
-
-/// Disposes the current widget tree and drains any pending Drift stream
-/// cleanup timers before the test framework's invariant check.
-///
-/// 1. Settle all animations first.
-/// 2. Replace tree with empty widget (triggers Drift stream cancellation).
-/// 3. Pump zero to fire the zero-duration cleanup timer.
-Future<void> _drainStreams(WidgetTester tester) async {
-  await tester.pumpAndSettle();
-  await tester.pumpWidget(const SizedBox());
-  await tester.pump(Duration.zero);
 }
 
 // ---------------------------------------------------------------------------
@@ -143,13 +143,12 @@ void main() {
     tearDown(() async => db.close());
 
     testWidgets('shows nothing when no attachments exist', (tester) async {
+      // Empty preloaded list → viewer renders nothing.
       await tester.pumpWidget(_buildViewer(db, 'b1'));
       await tester.pump();
 
       expect(find.byType(Chip), findsNothing);
       expect(find.byType(ActionChip), findsNothing);
-
-      await _drainStreams(tester);
     });
 
     testWidgets('shows file chip after direct repository insert', (tester) async {
@@ -161,16 +160,16 @@ void main() {
         filename: 'test.pdf',
         mimeType: 'application/pdf',
       );
+      // Fetch the stored attachments and inject them as preloaded data.
+      final attachments = await repo.listForBullet(bulletId);
 
-      await tester.pumpWidget(_buildViewer(db, bulletId));
-      // Allow stream to emit.
+      await tester.pumpWidget(
+        _buildViewer(db, bulletId, preloaded: attachments),
+      );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
 
       // Verify file chip rendered: look for the filename text.
       expect(find.text('test.pdf'), findsOneWidget);
-
-      await _drainStreams(tester);
     });
 
     testWidgets('does not show deleted attachments', (tester) async {
@@ -182,16 +181,16 @@ void main() {
         mimeType: 'application/pdf',
       );
 
-      // Soft-delete.
+      // Soft-delete, then fetch remaining (should be empty).
       await repo.deleteAttachment(attachment.id);
+      final attachments = await repo.listForBullet(bulletId);
 
-      await tester.pumpWidget(_buildViewer(db, bulletId));
+      await tester.pumpWidget(
+        _buildViewer(db, bulletId, preloaded: attachments),
+      );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('old.pdf'), findsNothing);
-
-      await _drainStreams(tester);
     });
 
     testWidgets('shows multiple attachments for the same bullet', (tester) async {
@@ -208,15 +207,15 @@ void main() {
         filename: 'b.pdf',
         mimeType: 'application/pdf',
       );
+      final attachments = await repo.listForBullet(bulletId);
 
-      await tester.pumpWidget(_buildViewer(db, bulletId));
+      await tester.pumpWidget(
+        _buildViewer(db, bulletId, preloaded: attachments),
+      );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('a.pdf'), findsOneWidget);
       expect(find.text('b.pdf'), findsOneWidget);
-
-      await _drainStreams(tester);
     });
 
     testWidgets('AttachmentModel.isImage returns true for image/* mimeType',

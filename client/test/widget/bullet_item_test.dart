@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:notes/core/db/app_database.dart';
 import 'package:notes/core/db/database_provider.dart';
+import 'package:notes/features/attachments/providers/attachment_provider.dart';
 import 'package:notes/features/bullets/repositories/bullet_repository.dart';
 import 'package:notes/features/bullets/widgets/bullet_item.dart';
 
@@ -36,7 +37,15 @@ BulletsTableData _bullet({
 
 Widget _buildItem(AppDatabase db, BulletNode node) {
   return ProviderScope(
-    overrides: [databaseProvider.overrideWithValue(db)],
+    overrides: [
+      databaseProvider.overrideWithValue(db),
+      // Override StreamProvider so no Drift stream is opened during tests.
+      // This prevents the zero-duration cleanup timer that Drift posts on
+      // stream cancellation, which would otherwise cause "pending timers" failures.
+      attachmentsForBulletProvider.overrideWith(
+        (ref, bulletId) => Stream.value(<AttachmentModel>[]),
+      ),
+    ],
     child: MaterialApp(
       home: Scaffold(
         body: BulletItem(
@@ -47,13 +56,6 @@ Widget _buildItem(AppDatabase db, BulletNode node) {
       ),
     ),
   );
-}
-
-// Pumps an empty widget tree to dispose the previous one, then pumps again
-// to let Drift stream cleanup timers fire before the test framework checks.
-Future<void> _drainStreams(WidgetTester tester) async {
-  await tester.pumpWidget(const SizedBox());
-  await tester.pump(Duration.zero);
 }
 
 // ---------------------------------------------------------------------------
@@ -78,7 +80,6 @@ void main() {
         findsOneWidget,
       );
 
-      await _drainStreams(tester);
     });
 
     testWidgets('renders bullet glyph', (tester) async {
@@ -88,7 +89,6 @@ void main() {
 
       expect(find.text('●'), findsOneWidget);
 
-      await _drainStreams(tester);
     });
 
     testWidgets('no expand/collapse button when no children', (tester) async {
@@ -98,7 +98,6 @@ void main() {
 
       expect(find.byKey(Key('toggle_${node.data.id}')), findsNothing);
 
-      await _drainStreams(tester);
     });
 
     testWidgets('shows expand/collapse button when node has children',
@@ -113,7 +112,6 @@ void main() {
 
       expect(find.byKey(const Key('toggle_parent')), findsOneWidget);
 
-      await _drainStreams(tester);
     });
 
     testWidgets('collapse/expand toggle works', (tester) async {
@@ -149,7 +147,6 @@ void main() {
         findsOneWidget,
       );
 
-      await _drainStreams(tester);
     });
   });
 }

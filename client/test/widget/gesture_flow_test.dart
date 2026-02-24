@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:notes/core/db/app_database.dart';
 import 'package:notes/core/db/database_provider.dart';
+import 'package:notes/features/attachments/providers/attachment_provider.dart';
 import 'package:notes/features/bullets/repositories/bullet_repository.dart';
 import 'package:notes/features/bullets/widgets/bullet_item.dart';
 import 'package:notes/features/bullets/widgets/swipe_action_wrapper.dart';
@@ -15,10 +16,16 @@ import 'package:notes/features/bullets/widgets/swipe_action_wrapper.dart';
 
 AppDatabase _openInMemory() => AppDatabase(NativeDatabase.memory());
 
+// Shared override: suppress the Drift StreamProvider in BulletItem/AttachmentViewer
+// so no real Drift stream is opened and no cleanup timer is left pending after teardown.
+final _noAttachmentOverride = attachmentsForBulletProvider.overrideWith(
+  (ref, bulletId) => Stream.value(<AttachmentModel>[]),
+);
+
 /// Builds a [SwipeActionWrapper] with a fixed 400x800 screen.
 Widget _buildSwipeWrapper(AppDatabase db, BulletNode node) {
   return ProviderScope(
-    overrides: [databaseProvider.overrideWithValue(db)],
+    overrides: [databaseProvider.overrideWithValue(db), _noAttachmentOverride],
     child: MediaQuery(
       data: const MediaQueryData(size: Size(400, 800)),
       child: MaterialApp(
@@ -42,7 +49,7 @@ Widget _buildSwipeWrapper(AppDatabase db, BulletNode node) {
 /// Builds a [DraggableSiblingList] wrapped in a fixed-size scaffold.
 Widget _buildDraggableList(AppDatabase db, List<BulletNode> nodes) {
   return ProviderScope(
-    overrides: [databaseProvider.overrideWithValue(db)],
+    overrides: [databaseProvider.overrideWithValue(db), _noAttachmentOverride],
     child: MaterialApp(
       home: Scaffold(
         body: SingleChildScrollView(
@@ -56,13 +63,6 @@ Widget _buildDraggableList(AppDatabase db, List<BulletNode> nodes) {
       ),
     ),
   );
-}
-
-/// Disposes the current widget tree and drains any pending Drift stream
-/// cleanup timers before the test framework's invariant check.
-Future<void> _drainStreams(WidgetTester tester) async {
-  await tester.pumpWidget(const SizedBox());
-  await tester.pump(Duration.zero);
 }
 
 // ---------------------------------------------------------------------------
@@ -220,9 +220,6 @@ void main() {
 
       expect(find.text('Alpha'), findsOneWidget);
       expect(find.text('Beta'), findsOneWidget);
-
-      // Dispose old tree to cancel Drift streams, then drain pending timers.
-      await _drainStreams(tester);
     });
 
     testWidgets('both bullets are rendered in the sibling list', (tester) async {
@@ -244,8 +241,6 @@ void main() {
       // Both bullet content strings should be visible in the sibling list.
       expect(find.text('Alpha'), findsOneWidget);
       expect(find.text('Beta'), findsOneWidget);
-
-      await _drainStreams(tester);
     });
 
     testWidgets('long-press drag starts on a bullet', (tester) async {
@@ -268,9 +263,6 @@ void main() {
       // After long-press threshold, the LongPressDraggable activates.
       await gesture.up();
       await tester.pumpAndSettle();
-
-      // Dispose old tree to cancel Drift streams, then drain pending timers.
-      await _drainStreams(tester);
     });
   });
 }

@@ -11,7 +11,9 @@ RUN flutter pub get && \
          -o web/sqlite3.wasm && \
     curl -fL https://github.com/simolus3/drift/releases/download/drift-2.28.2/drift_worker.js \
          -o web/drift_worker.js && \
-    flutter build web --release --dart-define=GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+    flutter build web --release \
+      --dart-define=GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID} \
+      --dart-define=API_BASE_URL=
 
 # ── Stage 2: Python / FastAPI backend ─────────────────────────────────────────
 FROM python:3.12-slim

@@ -33,7 +33,11 @@ class AuthState {
 // ---------------------------------------------------------------------------
 
 final _googleSignIn = GoogleSignIn(
-  scopes: ['email', 'profile'],
+  // On web, GIS uses the credential (ID token) flow when no scopes are
+  // requested. Requesting OAuth scopes forces the token flow, which returns
+  // an access token but NOT an id_token. Email/name/picture are still
+  // present as JWT claims in the credential.
+  scopes: kIsWeb ? const [] : const ['email', 'profile'],
   clientId: kIsWeb ? const String.fromEnvironment('GOOGLE_CLIENT_ID') : null,
 );
 
@@ -60,6 +64,15 @@ class AuthNotifier extends Notifier<AuthState> {
 
   /// Sign in with Google, exchange the ID token for a server JWT.
   Future<void> signInWithGoogle() async {
+    if (kIsWeb &&
+        const String.fromEnvironment('GOOGLE_CLIENT_ID').isEmpty) {
+      state = const AuthState(
+        status: AuthStatus.unauthenticated,
+        errorMessage:
+            'Google Sign-In is not configured. Set GOOGLE_CLIENT_ID in .env and rebuild the Docker image.',
+      );
+      return;
+    }
     state = const AuthState(status: AuthStatus.unknown);
     try {
       final account = await _googleSignIn.signIn();

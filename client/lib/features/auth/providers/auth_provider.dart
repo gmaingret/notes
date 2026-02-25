@@ -89,9 +89,12 @@ class AuthNotifier extends Notifier<AuthState> {
       final auth = await account.authentication;
       final idToken = auth.idToken;
       if (idToken == null) {
-        state = const AuthState(
+        // DEBUG: show what tokens are available to diagnose the null idToken
+        state = AuthState(
           status: AuthStatus.unauthenticated,
-          errorMessage: 'Could not obtain Google ID token.',
+          errorMessage: 'DEBUG — idToken: null'
+              ' | accessToken: ${auth.accessToken != null ? "present" : "null"}'
+              ' | serverAuthCode: ${account.serverAuthCode != null ? "present" : "null"}',
         );
         return;
       }

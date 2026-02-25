@@ -123,6 +123,19 @@ class _BulletEditorState extends ConsumerState<BulletEditor> {
   }
 
   void _onChanged(String value) {
+    // Enter key inserts a newline into the text. Intercept it here so it works
+    // reliably on all platforms (web, mobile, desktop) without relying solely
+    // on KeyboardListener, which can miss events on Flutter web.
+    if (value.contains('\n')) {
+      final stripped = value.replaceAll('\n', '');
+      _controller.value = _controller.value.copyWith(
+        text: stripped,
+        selection: TextSelection.collapsed(offset: stripped.length),
+      );
+      widget.onEnter?.call();
+      return;
+    }
+
     _undoStack.add(value);
     _redoStack.clear();
 
@@ -144,9 +157,8 @@ class _BulletEditorState extends ConsumerState<BulletEditor> {
     final ctrl = HardwareKeyboard.instance.isControlPressed ||
         HardwareKeyboard.instance.isMetaPressed;
 
-    if (key == LogicalKeyboardKey.enter && !shift) {
-      widget.onEnter?.call();
-    } else if (key == LogicalKeyboardKey.tab) {
+    // Enter is handled in _onChanged (strips the newline and fires onEnter).
+    if (key == LogicalKeyboardKey.tab) {
       if (shift) {
         widget.onShiftTab?.call();
       } else {

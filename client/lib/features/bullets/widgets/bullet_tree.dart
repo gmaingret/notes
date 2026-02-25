@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/fractional_index.dart';
 import '../providers/bullet_tree_provider.dart';
+import '../repositories/bullet_repository.dart';
 import 'bullet_item.dart';
 
 /// Renders the bullet tree from the current [zoomedNodeId] down.
@@ -23,10 +27,40 @@ class BulletTree extends ConsumerWidget {
         final visible = treeState.visibleRoots;
 
         if (visible.isEmpty) {
-          return const Center(
-            child: Text(
-              'No bullets yet.\nStart typing to add one.',
-              textAlign: TextAlign.center,
+          return InkWell(
+            onTap: () => unawaited(
+              ref.read(bulletRepositoryProvider).createBullet(
+                    documentId: documentId,
+                    content: '',
+                    position: FractionalIndex.first(),
+                  ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+              child: Row(
+                children: [
+                  Text(
+                    '●',
+                    style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.3),
+                      fontSize: 10,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Click to add a bullet',
+                    style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.3),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }

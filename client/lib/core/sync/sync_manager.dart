@@ -267,6 +267,7 @@ class SyncNotifier extends Notifier<SyncState> {
         .currentStatus();
     if (status == ConnectivityStatus.online) {
       await sync();
+      await _manager.initialPull();
     }
   }
 

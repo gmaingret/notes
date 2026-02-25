@@ -316,14 +316,16 @@ class _BulletItemState extends ConsumerState<BulletItem> {
             ),
           ),
 
-          // Bullet glyph — double-tap to zoom; long-press for context menu.
+          // Bullet glyph — double-tap to zoom; tap for context menu.
+          // Using onTap (not onLongPress) avoids conflict with the parent
+          // LongPressDraggable, which would otherwise capture the gesture.
           GestureDetector(
             onDoubleTap: () {
               ref
                   .read(bulletTreeNotifierProvider(widget.documentId).notifier)
                   .zoomTo(widget.node.data.id);
             },
-            onLongPress: () => showBulletContextMenu(
+            onTap: () => showBulletContextMenu(
               context,
               bulletId: widget.node.data.id,
               documentId: widget.documentId,

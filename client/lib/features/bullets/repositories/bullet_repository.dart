@@ -307,6 +307,38 @@ class BulletRepository {
     );
   }
 
+  /// Create an empty bullet immediately after [bulletId] (same parent).
+  Future<BulletsTableData> createEmptySiblingAfter({
+    required String bulletId,
+    required String documentId,
+  }) async {
+    final existing = (await _bulletDao.listBulletsForDocument(documentId))
+        .firstWhere((b) => b.id == bulletId);
+
+    final siblings = (await _bulletDao.listBulletsForDocument(documentId))
+        .where((b) => b.parentId == existing.parentId)
+        .toList()
+      ..sort((a, b) => a.position.compareTo(b.position));
+
+    final idx = siblings.indexWhere((b) => b.id == bulletId);
+    final String newPosition;
+    if (idx >= 0 && idx < siblings.length - 1) {
+      newPosition = FractionalIndex.between(
+        existing.position,
+        siblings[idx + 1].position,
+      );
+    } else {
+      newPosition = FractionalIndex.after(existing.position);
+    }
+
+    return createBullet(
+      documentId: documentId,
+      parentId: existing.parentId,
+      content: '',
+      position: newPosition,
+    );
+  }
+
   /// Create a copy of [bulletId] placed immediately after the original.
   Future<BulletsTableData> duplicateBullet({
     required String bulletId,

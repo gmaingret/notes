@@ -392,7 +392,12 @@ class _BulletItemState extends ConsumerState<BulletItem> {
   // -------------------------------------------------------------------------
 
   void _createSiblingBelow(BuildContext context) {
-    // TODO(1.7): implement via BulletRepository + fractional index.
+    unawaited(
+      ref.read(bulletRepositoryProvider).createEmptySiblingAfter(
+            bulletId: widget.node.data.id,
+            documentId: widget.documentId,
+          ),
+    );
   }
 
   void _indent(BuildContext context) {

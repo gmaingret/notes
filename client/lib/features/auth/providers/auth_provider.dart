@@ -39,6 +39,11 @@ final _googleSignIn = GoogleSignIn(
   // present as JWT claims in the credential.
   scopes: kIsWeb ? const [] : const ['email', 'profile'],
   clientId: kIsWeb ? const String.fromEnvironment('GOOGLE_CLIENT_ID') : null,
+  // On Android, serverClientId tells Google which server will verify the token.
+  // The issued ID token's `aud` will match this value, which the backend
+  // must also be configured with (GOOGLE_CLIENT_ID in .env).
+  serverClientId:
+      kIsWeb ? null : const String.fromEnvironment('GOOGLE_CLIENT_ID'),
 );
 
 // ---------------------------------------------------------------------------

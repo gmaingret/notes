@@ -61,8 +61,6 @@ client/android/app/debug.keystore
 client/ios/Pods/
 client/ios/.symlinks/
 
-# Web
-client/web/
 
 # Coverage
 client/coverage/

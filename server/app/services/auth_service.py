@@ -3,6 +3,7 @@
 import time
 
 import aiosqlite
+import requests as http_requests
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
@@ -35,6 +36,36 @@ async def verify_google_token(token: str) -> dict:
         "email": id_info["email"],
         "name": id_info.get("name", ""),
         "avatar_url": id_info.get("picture", ""),
+    }
+
+
+async def verify_access_token(access_token: str) -> dict:
+    """
+    Verify a Google OAuth access token by calling the userinfo endpoint.
+    Used on web where google_sign_in returns an access token instead of an ID token.
+    Raises AuthError on any failure.
+    """
+    try:
+        response = http_requests.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10,
+        )
+    except http_requests.RequestException as exc:
+        raise AuthError(f"Failed to reach Google userinfo endpoint: {exc}") from exc
+
+    if response.status_code != 200:
+        raise AuthError(f"Invalid access token: HTTP {response.status_code}")
+
+    data = response.json()
+    if "sub" not in data or "email" not in data:
+        raise AuthError("Access token missing required user fields")
+
+    return {
+        "sub": data["sub"],
+        "email": data["email"],
+        "name": data.get("name", ""),
+        "avatar_url": data.get("picture", ""),
     }
 
 

@@ -88,20 +88,21 @@ class AuthNotifier extends Notifier<AuthState> {
 
       final auth = await account.authentication;
       final idToken = auth.idToken;
-      if (idToken == null) {
-        // DEBUG: show what tokens are available to diagnose the null idToken
-        state = AuthState(
+      final googleAccessToken = auth.accessToken;
+
+      if (idToken == null && googleAccessToken == null) {
+        state = const AuthState(
           status: AuthStatus.unauthenticated,
-          errorMessage: 'DEBUG — idToken: null'
-              ' | accessToken: ${auth.accessToken != null ? "present" : "null"}'
-              ' | serverAuthCode: ${account.serverAuthCode != null ? "present" : "null"}',
+          errorMessage: 'Could not obtain Google credentials.',
         );
         return;
       }
 
       final response = await _dio.post<Map<String, dynamic>>(
         '/auth/google',
-        data: {'id_token': idToken},
+        data: idToken != null
+            ? {'id_token': idToken}
+            : {'access_token': googleAccessToken!},
       );
 
       final accessToken = response.data!['access_token'] as String;

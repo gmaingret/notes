@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,13 +26,20 @@ class BulletTree extends ConsumerWidget {
 
         if (visible.isEmpty) {
           return InkWell(
-            onTap: () => unawaited(
-              ref.read(bulletRepositoryProvider).createBullet(
+            onTap: () {
+              ref
+                  .read(bulletRepositoryProvider)
+                  .createBullet(
                     documentId: documentId,
                     content: '',
                     position: FractionalIndex.first(),
-                  ),
-            ),
+                  )
+                  .then((newBullet) {
+                ref
+                    .read(bulletTreeNotifierProvider(documentId).notifier)
+                    .requestFocus(newBullet.id);
+              });
+            },
             child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
               child: Row(

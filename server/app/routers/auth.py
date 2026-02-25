@@ -10,7 +10,12 @@ from jose import jwt as jose_jwt
 from app.config import settings
 from app.db.database import get_db
 from app.models.auth import GoogleAuthRequest, RefreshRequest, TokenResponse
-from app.services.auth_service import AuthError, upsert_user, verify_google_token
+from app.services.auth_service import (
+    AuthError,
+    upsert_user,
+    verify_access_token,
+    verify_google_token,
+)
 from app.utils.jwt_utils import create_access_token, is_within_refresh_grace
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -33,7 +38,15 @@ async def auth_google(
     Upserts the user into the database on first login.
     """
     try:
-        user_info = await verify_google_token(body.id_token)
+        if body.id_token:
+            user_info = await verify_google_token(body.id_token)
+        elif body.access_token:
+            user_info = await verify_access_token(body.access_token)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Either id_token or access_token is required",
+            )
     except AuthError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc))
 

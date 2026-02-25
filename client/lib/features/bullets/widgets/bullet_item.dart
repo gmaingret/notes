@@ -371,16 +371,19 @@ class _BulletItemState extends ConsumerState<BulletItem> {
           ),
 
           // Expand/collapse toggle — only shown when there are children.
+          // ExcludeFocus prevents Tab/arrow traversal from landing here.
           if (_hasChildren)
-            IconButton(
-              key: Key('toggle_${widget.node.data.id}'),
-              icon: Icon(
-                _isExpanded ? Icons.expand_less : Icons.expand_more,
-                size: 16,
+            ExcludeFocus(
+              child: IconButton(
+                key: Key('toggle_${widget.node.data.id}'),
+                icon: Icon(
+                  _isExpanded ? Icons.expand_less : Icons.expand_more,
+                  size: 16,
+                ),
+                onPressed: () => setState(() => _isExpanded = !_isExpanded),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               ),
-              onPressed: () => setState(() => _isExpanded = !_isExpanded),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             ),
         ],
       ),
@@ -392,7 +395,17 @@ class _BulletItemState extends ConsumerState<BulletItem> {
   // -------------------------------------------------------------------------
 
   void _createSiblingBelow(BuildContext context) {
-    // TODO(1.7): implement via BulletRepository + fractional index.
+    ref
+        .read(bulletRepositoryProvider)
+        .createEmptySiblingAfter(
+          bulletId: widget.node.data.id,
+          documentId: widget.documentId,
+        )
+        .then((newBullet) {
+      ref
+          .read(bulletTreeNotifierProvider(widget.documentId).notifier)
+          .requestFocus(newBullet.id);
+    });
   }
 
   void _indent(BuildContext context) {

@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/bullet_tree_provider.dart';
-import '../repositories/bullet_repository.dart';
 import 'bullet_item.dart';
 
 /// Renders the bullet tree from the current [zoomedNodeId] down.
-/// Indentation is 16 px per level.  Each level is a [Column] of
-/// [BulletItem] widgets.
+/// Indentation is 16 px per level.  Each level is a [DraggableSiblingList]
+/// that supports drag-to-reorder within the sibling group.
 class BulletTree extends ConsumerWidget {
   const BulletTree({super.key, required this.documentId});
 
@@ -34,42 +33,14 @@ class BulletTree extends ConsumerWidget {
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(8),
-          child: _BulletLevel(
+          child: DraggableSiblingList(
             nodes: visible,
             documentId: documentId,
+            parentId: null,
             indentLevel: 0,
           ),
         );
       },
-    );
-  }
-}
-
-/// Renders a list of sibling [BulletNode]s at the same indent level.
-class _BulletLevel extends StatelessWidget {
-  const _BulletLevel({
-    required this.nodes,
-    required this.documentId,
-    required this.indentLevel,
-  });
-
-  final List<BulletNode> nodes;
-  final String documentId;
-  final int indentLevel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final node in nodes)
-          BulletItem(
-            key: ValueKey(node.data.id),
-            node: node,
-            documentId: documentId,
-            indentLevel: indentLevel,
-          ),
-      ],
     );
   }
 }

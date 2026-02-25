@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:notes/core/db/app_database.dart';
 import 'package:notes/core/db/database_provider.dart';
+import 'package:notes/features/attachments/providers/attachment_provider.dart';
 import 'package:notes/features/bullets/repositories/bullet_repository.dart';
 import 'package:notes/features/bullets/widgets/bullet_item.dart';
 
@@ -36,7 +37,15 @@ BulletsTableData _bullet({
 
 Widget _buildItem(AppDatabase db, BulletNode node) {
   return ProviderScope(
-    overrides: [databaseProvider.overrideWithValue(db)],
+    overrides: [
+      databaseProvider.overrideWithValue(db),
+      // Override StreamProvider so no Drift stream is opened during tests.
+      // This prevents the zero-duration cleanup timer that Drift posts on
+      // stream cancellation, which would otherwise cause "pending timers" failures.
+      attachmentsForBulletProvider.overrideWith(
+        (ref, bulletId) => Stream.value(<AttachmentModel>[]),
+      ),
+    ],
     child: MaterialApp(
       home: Scaffold(
         body: BulletItem(
@@ -70,6 +79,7 @@ void main() {
         find.widgetWithText(TextField, 'Hello bullet'),
         findsOneWidget,
       );
+
     });
 
     testWidgets('renders bullet glyph', (tester) async {
@@ -78,6 +88,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('●'), findsOneWidget);
+
     });
 
     testWidgets('no expand/collapse button when no children', (tester) async {
@@ -86,6 +97,7 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(Key('toggle_${node.data.id}')), findsNothing);
+
     });
 
     testWidgets('shows expand/collapse button when node has children',
@@ -99,6 +111,7 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(const Key('toggle_parent')), findsOneWidget);
+
     });
 
     testWidgets('collapse/expand toggle works', (tester) async {
@@ -133,6 +146,7 @@ void main() {
         find.widgetWithText(TextField, 'Child text'),
         findsOneWidget,
       );
+
     });
   });
 }

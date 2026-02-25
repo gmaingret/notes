@@ -75,6 +75,10 @@ class AuthNotifier extends Notifier<AuthState> {
     }
     state = const AuthState(status: AuthStatus.unknown);
     try {
+      // On web, clear any stale GIS token-flow session before signing in.
+      // Without this, GIS may reuse a cached session that has an accessToken
+      // but no idToken, causing the credential flow to be skipped entirely.
+      if (kIsWeb) await _googleSignIn.signOut();
       final account = await _googleSignIn.signIn();
       if (account == null) {
         // User cancelled.

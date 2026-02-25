@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/markdown_parser.dart';
+import '../providers/bullet_tree_provider.dart';
 import '../repositories/bullet_repository.dart';
 
 // ---------------------------------------------------------------------------
@@ -17,23 +19,37 @@ import '../repositories/bullet_repository.dart';
 /// - Enter → create sibling bullet below (callback)
 /// - Tab → indent bullet (callback)
 /// - Shift+Tab → outdent bullet (callback)
-/// - Ctrl+Z → undo (web — via HardwareKeyboard)
-/// - Ctrl+Y → redo (web — via HardwareKeyboard)
+/// - Ctrl+Z → undo
+/// - Ctrl+Y → redo
+///
+/// Web-only keyboard shortcuts:
+/// - Ctrl+[ → collapse current node (callback)
+/// - Ctrl+] → expand current node (callback)
+/// - ArrowUp → move focus to previous bullet
+/// - ArrowDown → move focus to next bullet
+/// - Backspace on empty content → delete bullet (callback)
 class BulletEditor extends ConsumerStatefulWidget {
   const BulletEditor({
     super.key,
     required this.bulletId,
     required this.documentId,
     required this.initialContent,
+    this.isComplete = false,
     this.onEnter,
     this.onTab,
     this.onShiftTab,
+    this.onCollapse,
+    this.onExpand,
+    this.onDeleteEmpty,
     this.focusNode,
   });
 
   final String bulletId;
   final String documentId;
   final String initialContent;
+
+  /// When true the text is rendered with a strikethrough decoration.
+  final bool isComplete;
 
   /// Called when Enter is pressed (create sibling).
   final VoidCallback? onEnter;
@@ -43,6 +59,15 @@ class BulletEditor extends ConsumerStatefulWidget {
 
   /// Called when Shift+Tab is pressed (outdent).
   final VoidCallback? onShiftTab;
+
+  /// Called when Ctrl+[ is pressed on web (collapse node).
+  final VoidCallback? onCollapse;
+
+  /// Called when Ctrl+] is pressed on web (expand node).
+  final VoidCallback? onExpand;
+
+  /// Called when Backspace is pressed on web with empty content (delete bullet).
+  final VoidCallback? onDeleteEmpty;
 
   final FocusNode? focusNode;
 
@@ -63,9 +88,30 @@ class _BulletEditorState extends ConsumerState<BulletEditor> {
   void initState() {
     super.initState();
     _focusNode = widget.focusNode ?? FocusNode();
-    _keyboardListenerNode = FocusNode(debugLabel: 'BulletEditorKeyboard');
+    // skipTraversal: true so Tab/arrow traversal skips this wrapper node and
+    // lands directly on the TextField's focus node (_focusNode).
+    _keyboardListenerNode = FocusNode(
+      debugLabel: 'BulletEditorKeyboard',
+      skipTraversal: true,
+    );
     _controller = _MarkdownTextController(widget.initialContent);
     _undoStack.add(widget.initialContent);
+
+    // Case A: pendingFocusBulletId was set before this widget was built.
+    // Check state after the first frame so the TextField is fully laid out.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(bulletTreeNotifierProvider(widget.documentId))
+          .whenData((treeState) {
+        if (treeState.pendingFocusBulletId == widget.bulletId) {
+          _focusNode.requestFocus();
+          ref
+              .read(bulletTreeNotifierProvider(widget.documentId).notifier)
+              .clearPendingFocus();
+        }
+      });
+    });
   }
 
   @override
@@ -78,12 +124,31 @@ class _BulletEditorState extends ConsumerState<BulletEditor> {
 
   @override
   Widget build(BuildContext context) {
+    // Case B: pendingFocusBulletId was set after this widget was already built.
+    ref.listen(bulletTreeNotifierProvider(widget.documentId), (_, next) {
+      next.whenData((treeState) {
+        if (treeState.pendingFocusBulletId == widget.bulletId) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _focusNode.requestFocus();
+              ref
+                  .read(bulletTreeNotifierProvider(widget.documentId).notifier)
+                  .clearPendingFocus();
+            }
+          });
+        }
+      });
+    });
+
     return KeyboardListener(
       focusNode: _keyboardListenerNode,
       onKeyEvent: _handleKey,
       child: TextField(
         controller: _controller,
         focusNode: _focusNode,
+        style: widget.isComplete
+            ? const TextStyle(decoration: TextDecoration.lineThrough)
+            : null,
         decoration: const InputDecoration(
           border: InputBorder.none,
           isDense: true,
@@ -96,6 +161,19 @@ class _BulletEditorState extends ConsumerState<BulletEditor> {
   }
 
   void _onChanged(String value) {
+    // Enter key inserts a newline into the text. Intercept it here so it works
+    // reliably on all platforms (web, mobile, desktop) without relying solely
+    // on KeyboardListener, which can miss events on Flutter web.
+    if (value.contains('\n')) {
+      final stripped = value.replaceAll('\n', '');
+      _controller.value = _controller.value.copyWith(
+        text: stripped,
+        selection: TextSelection.collapsed(offset: stripped.length),
+      );
+      widget.onEnter?.call();
+      return;
+    }
+
     _undoStack.add(value);
     _redoStack.clear();
 
@@ -117,9 +195,8 @@ class _BulletEditorState extends ConsumerState<BulletEditor> {
     final ctrl = HardwareKeyboard.instance.isControlPressed ||
         HardwareKeyboard.instance.isMetaPressed;
 
-    if (key == LogicalKeyboardKey.enter && !shift) {
-      widget.onEnter?.call();
-    } else if (key == LogicalKeyboardKey.tab) {
+    // Enter is handled in _onChanged (strips the newline and fires onEnter).
+    if (key == LogicalKeyboardKey.tab) {
       if (shift) {
         widget.onShiftTab?.call();
       } else {
@@ -129,6 +206,32 @@ class _BulletEditorState extends ConsumerState<BulletEditor> {
       _undo();
     } else if (ctrl && key == LogicalKeyboardKey.keyY) {
       _redo();
+    } else if (kIsWeb) {
+      _handleWebKey(key, ctrl);
+    }
+  }
+
+  void _handleWebKey(LogicalKeyboardKey key, bool ctrl) {
+    if (ctrl && key == LogicalKeyboardKey.bracketLeft) {
+      widget.onCollapse?.call();
+    } else if (ctrl && key == LogicalKeyboardKey.bracketRight) {
+      widget.onExpand?.call();
+    } else if (key == LogicalKeyboardKey.arrowUp) {
+      // Only move focus to the previous bullet when the cursor is already
+      // at the very start of this bullet's text.
+      if (_controller.selection.isValid &&
+          _controller.selection.baseOffset == 0) {
+        FocusScope.of(context).previousFocus();
+      }
+    } else if (key == LogicalKeyboardKey.arrowDown) {
+      // Only move focus to the next bullet when the cursor is at the end.
+      if (_controller.selection.isValid &&
+          _controller.selection.baseOffset == _controller.text.length) {
+        FocusScope.of(context).nextFocus();
+      }
+    } else if (key == LogicalKeyboardKey.backspace &&
+        _controller.text.isEmpty) {
+      widget.onDeleteEmpty?.call();
     }
   }
 

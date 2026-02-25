@@ -13,6 +13,7 @@ class BulletTreeState {
     required this.flatList,
     required this.roots,
     this.zoomedNodeId,
+    this.pendingFocusBulletId,
   });
 
   final String documentId;
@@ -23,17 +24,26 @@ class BulletTreeState {
   /// document root.
   final String? zoomedNodeId;
 
+  /// ID of the bullet that should steal keyboard focus on its next build.
+  /// Cleared by [BulletEditor] once focus is granted.
+  final String? pendingFocusBulletId;
+
   BulletTreeState copyWith({
     List<BulletsTableData>? flatList,
     List<BulletNode>? roots,
     String? zoomedNodeId,
     bool clearZoom = false,
+    String? pendingFocusBulletId,
+    bool clearPendingFocus = false,
   }) {
     return BulletTreeState(
       documentId: documentId,
       flatList: flatList ?? this.flatList,
       roots: roots ?? this.roots,
       zoomedNodeId: clearZoom ? null : (zoomedNodeId ?? this.zoomedNodeId),
+      pendingFocusBulletId: clearPendingFocus
+          ? null
+          : (pendingFocusBulletId ?? this.pendingFocusBulletId),
     );
   }
 
@@ -111,6 +121,21 @@ class BulletTreeNotifier
       documentId: documentId,
       flatList: flat,
       roots: roots,
+    );
+  }
+
+  /// Request that the [BulletEditor] with [bulletId] steals focus on its
+  /// next build (or immediately if it is already built).
+  void requestFocus(String bulletId) {
+    state = state.whenData(
+      (prev) => prev.copyWith(pendingFocusBulletId: bulletId),
+    );
+  }
+
+  /// Clear the pending focus request (called by [BulletEditor] after focusing).
+  void clearPendingFocus() {
+    state = state.whenData(
+      (prev) => prev.copyWith(clearPendingFocus: true),
     );
   }
 

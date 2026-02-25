@@ -193,6 +193,94 @@ void main() {
         0,
       );
     });
+
+    testWidgets(
+        'drag reorder: move first bullet below second updates positions in DB',
+        (tester) async {
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      await db.documentDao.insertDocument(
+        DocumentsTableCompanion.insert(
+          id: 'doc_drag',
+          title: const Value('Drag Doc'),
+          position: FractionalIndex.first(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+
+      final posA = FractionalIndex.first();
+      final posB = FractionalIndex.after(posA);
+
+      await db.bulletDao.insertBullet(
+        BulletsTableCompanion.insert(
+          id: 'bullet_a',
+          documentId: 'doc_drag',
+          parentId: const Value(null),
+          content: const Value('Bullet A'),
+          position: posA,
+          isComplete: const Value(false),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await db.bulletDao.insertBullet(
+        BulletsTableCompanion.insert(
+          id: 'bullet_b',
+          documentId: 'doc_drag',
+          parentId: const Value(null),
+          content: const Value('Bullet B'),
+          position: posB,
+          isComplete: const Value(false),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            authNotifierProvider.overrideWith(_AuthedNotifier.new),
+          ],
+          child: const NotesApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Navigate to document.
+      await tester.tap(find.text('Drag Doc'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bullet A'), findsOneWidget);
+      expect(find.text('Bullet B'), findsOneWidget);
+
+      // Long-press on Bullet A text to initiate drag, then drag below Bullet B.
+      final bulletACenter = tester.getCenter(find.text('Bullet A'));
+      final bulletBRect = tester.getRect(find.text('Bullet B'));
+      final bulletBBottom = Offset(bulletBRect.center.dx, bulletBRect.bottom);
+
+      final gesture = await tester.startGesture(bulletACenter);
+      // Wait for the long-press delay to trigger LongPressDraggable.
+      await tester.pump(const Duration(milliseconds: 600));
+      // Drag the pointer to just below Bullet B (into the drop slot).
+      await gesture.moveTo(Offset(bulletACenter.dx, bulletBBottom.dy + 4));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
+
+      // Verify Bullet A is now positioned after Bullet B in the DB.
+      final bullets =
+          await db.bulletDao.listBulletsForDocument('doc_drag');
+      final a = bullets.firstWhere((b) => b.id == 'bullet_a');
+      final b = bullets.firstWhere((b) => b.id == 'bullet_b');
+      expect(
+        a.position.compareTo(b.position),
+        greaterThan(0),
+        reason: 'Bullet A should have a position after Bullet B after reorder',
+      );
+    });
   });
 }
 

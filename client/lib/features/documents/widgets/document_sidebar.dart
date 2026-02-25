@@ -148,6 +148,12 @@ class _DocumentTile extends ConsumerWidget {
         overflow: TextOverflow.ellipsis,
       ),
       selected: isSelected,
+      trailing: IconButton(
+        icon: const Icon(Icons.more_vert, size: 18),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        onPressed: () => _showOptionsMenu(context, ref),
+      ),
       onTap: () {
         if (onDocumentSelected != null) {
           onDocumentSelected!(doc.id);

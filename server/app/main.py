@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.db.database import close_db, get_db, init_db
-from app.routers import auth, bullets, documents, sync
+from app.routers import attachments, auth, bullets, documents, sync
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +78,7 @@ app.include_router(auth.router)
 app.include_router(documents.router)
 app.include_router(bullets.router)
 app.include_router(sync.router)
+app.include_router(attachments.router)
 
 
 @app.get("/health")

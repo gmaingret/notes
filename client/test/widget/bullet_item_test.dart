@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:notes/core/db/app_database.dart';
 import 'package:notes/core/db/database_provider.dart';
 import 'package:notes/features/attachments/providers/attachment_provider.dart';
+import 'package:notes/features/bullets/providers/bullet_tree_provider.dart';
 import 'package:notes/features/bullets/repositories/bullet_repository.dart';
 import 'package:notes/features/bullets/widgets/bullet_item.dart';
 
@@ -14,6 +15,21 @@ import 'package:notes/features/bullets/widgets/bullet_item.dart';
 // ---------------------------------------------------------------------------
 
 AppDatabase _openInMemory() => AppDatabase(NativeDatabase.memory());
+
+/// Fake notifier that returns an empty tree without subscribing to any Drift
+/// stream. This prevents the zero-duration cleanup timer that
+/// StreamQueryStore posts on cancellation from triggering the
+/// "pending timers" assertion in widget tests.
+class _FakeBulletTreeNotifier extends BulletTreeNotifier {
+  @override
+  Future<BulletTreeState> build(String documentId) async {
+    return BulletTreeState(
+      documentId: documentId,
+      flatList: const [],
+      roots: const [],
+    );
+  }
+}
 
 BulletsTableData _bullet({
   String id = 'b1',
@@ -39,9 +55,11 @@ Widget _buildItem(AppDatabase db, BulletNode node) {
   return ProviderScope(
     overrides: [
       databaseProvider.overrideWithValue(db),
-      // Override StreamProvider so no Drift stream is opened during tests.
-      // This prevents the zero-duration cleanup timer that Drift posts on
-      // stream cancellation, which would otherwise cause "pending timers" failures.
+      // Override the bullet-tree notifier so it never subscribes to a Drift
+      // stream — avoids the zero-duration StreamQueryStore cleanup timer that
+      // triggers "pending timers" failures after widget disposal.
+      bulletTreeNotifierProvider.overrideWith(_FakeBulletTreeNotifier.new),
+      // Same reason: keep the attachment stream out of Drift.
       attachmentsForBulletProvider.overrideWith(
         (ref, bulletId) => Stream.value(<AttachmentModel>[]),
       ),

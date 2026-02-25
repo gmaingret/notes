@@ -4,7 +4,11 @@ FROM ghcr.io/cirruslabs/flutter:stable AS flutter-builder
 WORKDIR /client
 COPY client/ .
 RUN flutter pub get && \
-    dart run drift_dev web-build && \
+    dart run build_runner build --delete-conflicting-outputs && \
+    curl -fL https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-2.9.4/sqlite3.wasm \
+         -o web/sqlite3.wasm && \
+    curl -fL https://github.com/simolus3/drift/releases/download/drift-2.28.2/drift_worker.js \
+         -o web/drift_worker.js && \
     flutter build web --release
 
 # ── Stage 2: Python / FastAPI backend ─────────────────────────────────────────

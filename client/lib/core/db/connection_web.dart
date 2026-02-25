@@ -5,7 +5,7 @@ Future<QueryExecutor> openConnection() async {
   final db = await WasmDatabase.open(
     databaseName: 'notes',
     sqlite3Uri: Uri.parse('sqlite3.wasm'),
-    driftWorkerUri: Uri.parse('drift_worker.dart.js'),
+    driftWorkerUri: Uri.parse('drift_worker.js'),
   );
   return db.resolvedExecutor;
 }

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:notes/core/db/app_database.dart';
 import 'package:notes/core/db/database_provider.dart';
 import 'package:notes/features/attachments/providers/attachment_provider.dart';
+import 'package:notes/features/bullets/providers/bullet_tree_provider.dart';
 import 'package:notes/features/bullets/repositories/bullet_repository.dart';
 import 'package:notes/features/bullets/widgets/bullet_item.dart';
 import 'package:notes/features/bullets/widgets/swipe_action_wrapper.dart';
@@ -16,11 +17,27 @@ import 'package:notes/features/bullets/widgets/swipe_action_wrapper.dart';
 
 AppDatabase _openInMemory() => AppDatabase(NativeDatabase.memory());
 
-// Shared override: suppress the Drift StreamProvider in BulletItem/AttachmentViewer
-// so no real Drift stream is opened and no cleanup timer is left pending after teardown.
+/// Fake notifier: returns empty tree without subscribing to any Drift stream,
+/// preventing the zero-duration StreamQueryStore cleanup timer from triggering
+/// the 'pending timers' assertion in widget tests.
+class _FakeBulletTreeNotifier extends BulletTreeNotifier {
+  @override
+  Future<BulletTreeState> build(String documentId) async {
+    return BulletTreeState(
+      documentId: documentId,
+      flatList: const [],
+      roots: const [],
+    );
+  }
+}
+
+// Shared overrides: suppress Drift streams opened by BulletItem so no
+// cleanup timer is left pending after the widget tree is disposed.
 final _noAttachmentOverride = attachmentsForBulletProvider.overrideWith(
   (ref, bulletId) => Stream.value(<AttachmentModel>[]),
 );
+final _noBulletTreeOverride =
+    bulletTreeNotifierProvider.overrideWith(_FakeBulletTreeNotifier.new);
 
 /// Builds a [SwipeActionWrapper] with a fixed 400x800 screen.
 Widget _buildSwipeWrapper(AppDatabase db, BulletNode node) {
@@ -49,7 +66,11 @@ Widget _buildSwipeWrapper(AppDatabase db, BulletNode node) {
 /// Builds a [DraggableSiblingList] wrapped in a fixed-size scaffold.
 Widget _buildDraggableList(AppDatabase db, List<BulletNode> nodes) {
   return ProviderScope(
-    overrides: [databaseProvider.overrideWithValue(db), _noAttachmentOverride],
+    overrides: [
+      databaseProvider.overrideWithValue(db),
+      _noAttachmentOverride,
+      _noBulletTreeOverride,
+    ],
     child: MaterialApp(
       home: Scaffold(
         body: SingleChildScrollView(

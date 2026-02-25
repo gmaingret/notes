@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -31,7 +32,10 @@ class AuthState {
 // Google Sign-In instance
 // ---------------------------------------------------------------------------
 
-final _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+final _googleSignIn = GoogleSignIn(
+  scopes: ['email', 'profile'],
+  clientId: kIsWeb ? const String.fromEnvironment('GOOGLE_CLIENT_ID') : null,
+);
 
 // ---------------------------------------------------------------------------
 // AuthNotifier

@@ -1,6 +1,8 @@
 # ── Stage 1: Build Flutter web ────────────────────────────────────────────────
 FROM ghcr.io/cirruslabs/flutter:stable AS flutter-builder
 
+ARG GOOGLE_CLIENT_ID
+
 WORKDIR /client
 COPY client/ .
 RUN flutter pub get && \
@@ -9,7 +11,7 @@ RUN flutter pub get && \
          -o web/sqlite3.wasm && \
     curl -fL https://github.com/simolus3/drift/releases/download/drift-2.28.2/drift_worker.js \
          -o web/drift_worker.js && \
-    flutter build web --release
+    flutter build web --release --dart-define=GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
 
 # ── Stage 2: Python / FastAPI backend ─────────────────────────────────────────
 FROM python:3.12-slim

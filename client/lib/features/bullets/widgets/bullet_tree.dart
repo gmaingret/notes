@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/fractional_index.dart';
 import '../providers/bullet_tree_provider.dart';
+import '../repositories/bullet_repository.dart';
 import 'bullet_item.dart';
 
 /// Renders the bullet tree from the current [zoomedNodeId] down.

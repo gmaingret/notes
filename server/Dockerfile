@@ -3,7 +3,9 @@ FROM ghcr.io/cirruslabs/flutter:stable AS flutter-builder
 
 WORKDIR /client
 COPY client/ .
-RUN flutter pub get && flutter build web --release
+RUN flutter pub get && \
+    dart run drift_dev web-build && \
+    flutter build web --release
 
 # ── Stage 2: Python / FastAPI backend ─────────────────────────────────────────
 FROM python:3.12-slim

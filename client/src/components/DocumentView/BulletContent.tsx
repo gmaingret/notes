@@ -1,4 +1,6 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import type { FlatBullet, BulletMap } from './BulletTree';
 import { getChildren } from './BulletTree';
 import {
@@ -10,6 +12,7 @@ import {
   useMoveBullet,
   useBulletUndoCheckpoint,
 } from '../../hooks/useBullets';
+import { apiClient } from '../../api/client';
 
 // ─── Cursor helpers ────────────────────────────────────────────────────────────
 
@@ -98,9 +101,12 @@ type Props = {
   bullet: FlatBullet;
   bulletMap: BulletMap;
   onFocus?: () => void;
+  isDragOverlay?: boolean;
 };
 
-export function BulletContent({ bullet, bulletMap, onFocus }: Props) {
+export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = false }: Props) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const divRef = useRef<HTMLDivElement>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [localContent, setLocalContent] = useState(bullet.content);
@@ -113,6 +119,17 @@ export function BulletContent({ bullet, bulletMap, onFocus }: Props) {
   const outdentBullet = useOutdentBullet();
   const moveBullet = useMoveBullet();
   const undoCheckpoint = useBulletUndoCheckpoint();
+
+  // Undo/redo handlers — call API and invalidate all bullet queries (global scope per UNDO-02)
+  const handleUndo = useCallback(async () => {
+    await apiClient.post('/api/undo', {});
+    await queryClient.invalidateQueries({ queryKey: ['bullets'] });
+  }, [queryClient]);
+
+  const handleRedo = useCallback(async () => {
+    await apiClient.post('/api/redo', {});
+    await queryClient.invalidateQueries({ queryKey: ['bullets'] });
+  }, [queryClient]);
 
   // Sync from props only when not focused
   useEffect(() => {
@@ -170,6 +187,38 @@ export function BulletContent({ bullet, bulletMap, onFocus }: Props) {
     if (isMeta && e.key === 'i') {
       e.preventDefault();
       wrapSelection('*');
+      return;
+    }
+
+    // ── Ctrl/Cmd+Z: undo ──────────────────────────────────────────────────
+    if (isMeta && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault(); // block browser native undo on contenteditable
+      void handleUndo();
+      return;
+    }
+
+    // ── Ctrl/Cmd+Y: redo ──────────────────────────────────────────────────
+    if (isMeta && e.key === 'y') {
+      e.preventDefault();
+      void handleRedo();
+      return;
+    }
+
+    // ── Ctrl/Cmd+]: zoom into focused bullet ──────────────────────────────
+    if (isMeta && e.key === ']') {
+      e.preventDefault();
+      navigate(`#bullet/${bullet.id}`);
+      return;
+    }
+
+    // ── Ctrl/Cmd+[: zoom out one level ────────────────────────────────────
+    if (isMeta && e.key === '[') {
+      e.preventDefault();
+      if (bullet.parentId) {
+        navigate(`#bullet/${bullet.parentId}`);
+      } else {
+        navigate('', { relative: 'path' });
+      }
       return;
     }
 
@@ -382,6 +431,24 @@ export function BulletContent({ bullet, bulletMap, onFocus }: Props) {
     saveTimerRef.current = setTimeout(() => {
       patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: newContent });
     }, 1000);
+  }
+
+  if (isDragOverlay) {
+    return (
+      <div
+        style={{
+          flex: 1,
+          fontSize: '0.9375rem',
+          color: '#333',
+          lineHeight: 1.6,
+          minHeight: '1.6em',
+          wordBreak: 'break-word',
+          userSelect: 'none',
+        }}
+      >
+        {bullet.content}
+      </div>
+    );
   }
 
   return (

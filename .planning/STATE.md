@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-rich-content-09-PLAN.md
-last_updated: "2026-03-09T19:30:21.738Z"
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-03-09T20:18:49.617Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 23
-  completed_plans: 23
+  total_plans: 31
+  completed_plans: 24
   percent: 100
 ---
 
@@ -107,6 +107,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03-rich-content P06 | 3min | 2 tasks | 5 files |
 | Phase 03-rich-content P08 | 2min | 2 tasks | 4 files |
 | Phase 03-rich-content P09 | 5 | 3 tasks | 1 files |
+| Phase 04-attachments-comments-and-mobile P01 | 2min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -174,6 +175,8 @@ Recent decisions affecting current work:
 - [Phase 03-rich-content]: BookmarkRow.id is the bullet ID (not the bookmark record ID) — getUserBookmarks returns bullets.id per service JOIN
 - [Phase 03-rich-content]: ContextMenu calls useBookmarks() directly to determine isBookmarked state per bullet, not passed as prop
 - [Phase 03-rich-content]: Server tests run locally via node_modules/.bin/vitest — Docker container only has dist/, not source/tests
+- [Phase 04-attachments-comments-and-mobile]: Placeholder local functions used instead of top-level imports for not-yet-created modules — avoids import crashes while keeping tests runnable
+- [Phase 04-attachments-comments-and-mobile]: pdfjs-dist mocked with vi.mock() at module level so pdfThumbnail test runs even before pdfjs-dist is installed
 
 ### Pending Todos
 
@@ -187,6 +190,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T19:25:20.059Z
-Stopped at: Completed 03-rich-content-09-PLAN.md
+Last session: 2026-03-09T20:18:43.012Z
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None

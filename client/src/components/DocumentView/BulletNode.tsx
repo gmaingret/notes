@@ -230,6 +230,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
         )}
 
         {/* Dot — drag handle + click to zoom */}
+        {/* MOB-04: touch drag handled by dnd-kit PointerSensor; touch-action:none on dot enables drag without text selection */}
         <div
           style={{
             width: 16,

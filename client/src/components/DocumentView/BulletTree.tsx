@@ -1,10 +1,22 @@
-import { useMemo } from 'react';
-import { useDocumentBullets } from '../../hooks/useBullets';
+import { useMemo, useState } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from '@dnd-kit/core';
+import type { DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useDocumentBullets, useMoveBullet } from '../../hooks/useBullets';
 import type { Bullet } from '../../hooks/useBullets';
 import { BulletNode } from './BulletNode';
 
 export type BulletMap = Record<string, Bullet>;
 export type FlatBullet = Bullet & { depth: number };
+
+const INDENTATION_WIDTH = 24;
 
 export function buildBulletMap(flat: Bullet[]): BulletMap {
   return Object.fromEntries(flat.map(b => [b.id, b]));
@@ -27,6 +39,26 @@ export function flattenTree(
   ]);
 }
 
+function getProjectedDepth(
+  flatItems: FlatBullet[],
+  activeId: string,
+  overId: string,
+  dragOffset: number
+): number {
+  const activeIndex = flatItems.findIndex(f => f.id === activeId);
+  const overIndex = flatItems.findIndex(f => f.id === overId);
+  if (activeIndex === -1 || overIndex === -1) return 0;
+
+  const dragDepth = flatItems[activeIndex].depth;
+  const projectedDepth = dragDepth + Math.round(dragOffset / INDENTATION_WIDTH);
+
+  const prevItem = flatItems[overIndex - 1];
+  const maxDepth = prevItem ? prevItem.depth + 1 : 0;
+  const minDepth = flatItems[overIndex + 1]?.depth ?? 0;
+
+  return Math.min(Math.max(projectedDepth, minDepth), maxDepth);
+}
+
 export function BulletTree({
   documentId,
   zoomedBulletId,
@@ -35,20 +67,173 @@ export function BulletTree({
   zoomedBulletId?: string | null;
 }) {
   const { data: flatBullets = [] } = useDocumentBullets(documentId);
+  const moveBullet = useMoveBullet();
+
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [dragOffsetX, setDragOffsetX] = useState(0);
+  const [overId, setOverId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
   const bulletMap = useMemo(() => buildBulletMap(flatBullets), [flatBullets]);
   const rootId = zoomedBulletId ?? null;
   const flatItems = useMemo(() => flattenTree(bulletMap, rootId), [bulletMap, rootId]);
 
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as string);
+    setDragOffsetX(0);
+    setOverId(null);
+  }
+
+  function handleDragMove(event: DragMoveEvent) {
+    setDragOffsetX(event.delta.x);
+    if (event.over) {
+      setOverId(event.over.id as string);
+    }
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (!over || !active) {
+      setActiveId(null);
+      setDragOffsetX(0);
+      setOverId(null);
+      return;
+    }
+
+    const currentActiveId = active.id as string;
+    const currentOverId = over.id as string;
+
+    const activeBullet = bulletMap[currentActiveId];
+    if (!activeBullet) {
+      setActiveId(null);
+      setDragOffsetX(0);
+      setOverId(null);
+      return;
+    }
+
+    const overIndex = flatItems.findIndex(f => f.id === currentOverId);
+    const projectedDepth = getProjectedDepth(flatItems, currentActiveId, currentOverId, dragOffsetX);
+
+    // Determine newParentId: find last item before overIndex with depth === projectedDepth - 1
+    let newParentId: string | null = null;
+    if (projectedDepth > 0) {
+      for (let i = overIndex - 1; i >= 0; i--) {
+        if (flatItems[i].depth === projectedDepth - 1) {
+          newParentId = flatItems[i].id;
+          break;
+        }
+      }
+    }
+
+    // Determine afterId: the item at overIndex - 1 that shares the same new parentId
+    let afterId: string | null = null;
+    if (overIndex > 0) {
+      const candidateAfter = flatItems[overIndex - 1];
+      // If the item before overIndex has the same parent as the new position, use it as afterId
+      if (candidateAfter.id !== currentActiveId) {
+        afterId = candidateAfter.id;
+      }
+    }
+
+    // Only mutate if something actually changed
+    if (
+      activeBullet.parentId !== newParentId ||
+      currentActiveId !== currentOverId
+    ) {
+      moveBullet.mutate({
+        id: currentActiveId,
+        documentId,
+        newParentId,
+        afterId,
+      });
+    }
+
+    setActiveId(null);
+    setDragOffsetX(0);
+    setOverId(null);
+  }
+
+  function handleDragCancel() {
+    setActiveId(null);
+    setDragOffsetX(0);
+    setOverId(null);
+  }
+
+  // Compute drop indicator index: insert position within flatItems
+  const dropIndicatorIndex = useMemo(() => {
+    if (!activeId || !overId) return null;
+    const overIndex = flatItems.findIndex(f => f.id === overId);
+    if (overIndex === -1) return null;
+    return overIndex;
+  }, [activeId, overId, flatItems]);
+
+  const projectedDropDepth = useMemo(() => {
+    if (!activeId || !overId) return 0;
+    return getProjectedDepth(flatItems, activeId, overId, dragOffsetX);
+  }, [activeId, overId, flatItems, dragOffsetX]);
+
+  const activeBulletForOverlay = activeId ? bulletMap[activeId] : null;
+
   return (
-    <div>
-      {flatItems.map(b => (
-        <BulletNode
-          key={b.id}
-          bullet={b}
-          bulletMap={bulletMap}
-          depth={b.depth}
-        />
-      ))}
-    </div>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <SortableContext
+        items={flatItems.map(f => f.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        <div style={{ position: 'relative' }}>
+          {flatItems.map((b, idx) => (
+            <div key={b.id}>
+              {dropIndicatorIndex === idx && activeId && b.id !== activeId && (
+                <DropIndicator depth={projectedDropDepth} />
+              )}
+              <BulletNode
+                bullet={b}
+                bulletMap={bulletMap}
+                depth={b.depth}
+              />
+            </div>
+          ))}
+          {/* Drop indicator at end of list */}
+          {dropIndicatorIndex === flatItems.length && activeId && (
+            <DropIndicator depth={projectedDropDepth} />
+          )}
+        </div>
+      </SortableContext>
+      <DragOverlay>
+        {activeBulletForOverlay ? (
+          <BulletNode
+            bullet={{ ...activeBulletForOverlay, depth: 0 }}
+            bulletMap={bulletMap}
+            depth={0}
+            isDragOverlay
+          />
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+function DropIndicator({ depth }: { depth: number }) {
+  return (
+    <div
+      style={{
+        height: 2,
+        backgroundColor: '#4A90E2',
+        marginLeft: depth * INDENTATION_WIDTH + 32, // 32 = chevron (16) + dot (16)
+        borderRadius: 1,
+        pointerEvents: 'none',
+      }}
+    />
   );
 }

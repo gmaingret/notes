@@ -31,7 +31,6 @@ export function isCursorAtEnd(el: HTMLDivElement): boolean {
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) return false;
   const range = sel.getRangeAt(0);
-  const text = el.textContent ?? '';
   if (!range.collapsed) return false;
   // At end of text node
   if (range.startContainer === el) {
@@ -228,7 +227,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       const siblings = getChildren(bulletMap, bullet.parentId);
       const myIdx = siblings.findIndex(s => s.id === bullet.id);
       if (myIdx <= 0) return; // already first
-      const prevSibling = siblings[myIdx - 1];
       // Move bullet to before the previous sibling: afterId = the one before prevSibling
       const afterId = myIdx >= 2 ? siblings[myIdx - 2].id : null;
       moveBullet.mutate({

@@ -67,9 +67,9 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
         display: 'flex',
         alignItems: 'flex-start',
         paddingLeft: depth * 24,
-        opacity: bullet.isComplete ? 0.5 : 1,
         textDecoration: bullet.isComplete ? 'line-through' : 'none',
         ...style,
+        opacity: bullet.isComplete ? 0.5 : style.opacity,
       }}
       onContextMenu={isDragOverlay ? undefined : (e) => {
         e.preventDefault();

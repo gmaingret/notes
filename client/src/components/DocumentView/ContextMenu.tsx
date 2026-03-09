@@ -54,7 +54,6 @@ export function ContextMenu({ bullet, bulletMap, position, onClose }: Props) {
   const hasNextSibling = siblingIndex < siblings.length - 1;
   const isRootLevel = bullet.parentId === null;
 
-  const previousSibling = hasPreviousSibling ? siblings[siblingIndex - 1] : null;
   const nextSibling = hasNextSibling ? siblings[siblingIndex + 1] : null;
 
   function handleIndent() {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { flattenTree, buildBulletMap } from '../components/DocumentView/BulletTree';
-import { isCursorAtStart, isCursorAtEnd, splitAtCursor } from '../components/DocumentView/BulletContent';
+import { isCursorAtStart, splitAtCursor } from '../components/DocumentView/BulletContent';
 import type { Bullet } from '../hooks/useBullets';
 
 function makeBullet(overrides: Partial<Bullet> & { id: string }): Bullet {

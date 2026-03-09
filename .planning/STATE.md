@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-core-outliner-05-PLAN.md
-last_updated: "2026-03-09T11:12:34.927Z"
+stopped_at: Completed 02-core-outliner-06-PLAN.md
+last_updated: "2026-03-09T11:13:51.231Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 14
-  completed_plans: 11
+  completed_plans: 12
   percent: 50
 ---
 
@@ -64,6 +64,7 @@ Progress: [█████░░░░░] 50%
 | Phase 02-core-outliner P03 | 4min | 2 tasks | 5 files |
 | Phase 02-core-outliner P04 | 5min | 2 tasks | 6 files |
 | Phase 02-core-outliner P05 | 2min | 2 tasks | 4 files |
+| Phase 02-core-outliner P06 | 4min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,8 @@ Recent decisions affecting current work:
 - [Phase 02-core-outliner]: Single flat SortableContext over entire tree — nested SortableContexts block cross-level drag
 - [Phase 02-core-outliner]: isDragOverlay prop skips BulletContent interactivity — renders plain text div in DragOverlay
 - [Phase 02-core-outliner]: Click-vs-drag on dot: onPointerDown/Up with distance<5px check — 5px threshold matches PointerSensor activationConstraint
+- [Phase 02-core-outliner]: GlobalKeyboard skips Ctrl+Z/Y when contenteditable has focus — BulletContent handles to prevent double-API-call
+- [Phase 02-core-outliner]: invalidateQueries uses queryKey ['bullets'] prefix (no docId) for global per-user undo scope (UNDO-02)
 
 ### Pending Todos
 
@@ -120,6 +123,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T11:12:34.924Z
-Stopped at: Completed 02-core-outliner-05-PLAN.md
+Last session: 2026-03-09T11:13:51.228Z
+Stopped at: Completed 02-core-outliner-06-PLAN.md
 Resume file: None

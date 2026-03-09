@@ -125,11 +125,12 @@ export function BulletTree({
     const overIndex = visibleItems.findIndex(f => f.id === currentOverId);
     const projectedDepth = getProjectedDepth(visibleItems, currentActiveId, currentOverId, dragOffsetX);
 
-    // Determine newParentId: find last item before overIndex with depth === projectedDepth - 1
-    // Skip the active bullet itself to avoid self-parenting cycles
+    // Determine newParentId: find the nearest item at depth === projectedDepth - 1
+    // Search from overIndex inclusive (the hovered item can itself be the parent)
+    // Skip the active bullet to avoid self-parenting cycles
     let newParentId: string | null = null;
     if (projectedDepth > 0) {
-      for (let i = overIndex - 1; i >= 0; i--) {
+      for (let i = overIndex; i >= 0; i--) {
         if (visibleItems[i].id === currentActiveId) continue;
         if (visibleItems[i].depth === projectedDepth - 1) {
           newParentId = visibleItems[i].id;

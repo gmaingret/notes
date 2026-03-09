@@ -29,6 +29,9 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
     isDragging,
   } = useSortable({ id: bullet.id });
 
+  // Extract dnd-kit's onPointerDown so we can merge it with our click-disambiguation handler
+  const { onPointerDown: dndPointerDown, ...listenersWithoutPointerDown } = listeners ?? {};
+
   const style = isDragOverlay
     ? { opacity: 0.5 }
     : {
@@ -113,9 +116,12 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
           lineHeight: '1.6rem',
           touchAction: 'none',
         }}
-        {...(isDragOverlay ? {} : listeners)}
         {...(isDragOverlay ? {} : attributes)}
-        onPointerDown={isDragOverlay ? undefined : handleDotPointerDown}
+        {...(isDragOverlay ? {} : listenersWithoutPointerDown)}
+        onPointerDown={isDragOverlay ? undefined : (e) => {
+          dndPointerDown?.(e);
+          handleDotPointerDown(e);
+        }}
         onPointerUp={isDragOverlay ? undefined : handleDotPointerUp}
       >
         •

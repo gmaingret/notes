@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-core-outliner-07-PLAN.md
-last_updated: "2026-03-09T11:18:13.846Z"
+stopped_at: Completed 02-core-outliner-08-PLAN.md
+last_updated: "2026-03-09T11:22:14.702Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 14
-  completed_plans: 13
+  completed_plans: 14
   percent: 50
 ---
 
@@ -66,6 +66,7 @@ Progress: [█████░░░░░] 50%
 | Phase 02-core-outliner P05 | 2min | 2 tasks | 4 files |
 | Phase 02-core-outliner P06 | 4min | 2 tasks | 5 files |
 | Phase 02-core-outliner P07 | 3min | 2 tasks | 4 files |
+| Phase 02-core-outliner P08 | 3min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -113,6 +114,7 @@ Recent decisions affecting current work:
 - [Phase 02-core-outliner]: invalidateQueries uses queryKey ['bullets'] prefix (no docId) for global per-user undo scope (UNDO-02)
 - [Phase 02-core-outliner]: DocumentToolbar rendered outside SortableContext — dnd-kit would capture toolbar pointer events inside SortableContext
 - [Phase 02-core-outliner]: BulletTree DnD logic uses visibleItems (not flatItems) when hide-completed active — prevents stale index lookups with hidden bullets
+- [Phase 02-core-outliner]: RED scaffold tests implemented as pure logic tests without React mounting
 
 ### Pending Todos
 
@@ -126,6 +128,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T11:18:13.844Z
-Stopped at: Completed 02-core-outliner-07-PLAN.md
+Last session: 2026-03-09T11:22:14.700Z
+Stopped at: Completed 02-core-outliner-08-PLAN.md
 Resume file: None

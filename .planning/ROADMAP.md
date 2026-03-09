@@ -13,7 +13,7 @@ Four phases deliver a complete self-hosted infinite outliner. Phase 1 lays the a
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Authenticated app with document management and correct DB schema (completed 2026-03-09)
-- [ ] **Phase 2: Core Outliner** - Bullet CRUD, nesting, keyboard shortcuts, collapse/zoom, and server-persisted undo
+- [x] **Phase 2: Core Outliner** - Bullet CRUD, nesting, keyboard shortcuts, collapse/zoom, and server-persisted undo (completed 2026-03-09)
 - [ ] **Phase 3: Rich Content** - Markdown rendering, full-text search, tag/mention/date chips, and bookmarks
 - [ ] **Phase 4: Attachments, Comments, and Mobile** - File attachments, comments, and mobile touch gestures
 
@@ -93,6 +93,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 6/6 | Complete   | 2026-03-09 |
-| 2. Core Outliner | 7/8 | In Progress|  |
+| 2. Core Outliner | 8/8 | Complete   | 2026-03-09 |
 | 3. Rich Content | 0/TBD | Not started | - |
 | 4. Attachments, Comments, and Mobile | 0/TBD | Not started | - |

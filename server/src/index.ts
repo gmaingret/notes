@@ -9,6 +9,7 @@ import { undoRouter } from './routes/undo.js';
 import { bookmarksRouter } from './routes/bookmarks.js';
 import { tagsRouter } from './routes/tags.js';
 import { searchRouter } from './routes/search.js';
+import { attachmentsRouter } from './routes/attachments.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
@@ -26,6 +27,7 @@ app.use('/api', undoRouter);
 app.use('/api/bookmarks', bookmarksRouter);
 app.use('/api/tags', tagsRouter);
 app.use('/api/search', searchRouter);
+app.use('/api/attachments', attachmentsRouter);
 
 // Serve React static files in production
 if (process.env.NODE_ENV === 'production') {

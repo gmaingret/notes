@@ -1,2 +1,12 @@
 *, *::before, *::after { box-sizing: border-box; }
 body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+/* Sidebar document row — 3-dot menu reveals on hover/focus only (locked UX decision) */
+.document-row .row-menu-trigger { opacity: 0; }
+.document-row:hover .row-menu-trigger,
+.document-row:focus-within .row-menu-trigger { opacity: 1; }
+
+/* Mobile sidebar overlay */
+@media (max-width: 768px) {
+  .mobile-overlay { display: block !important; }
+}

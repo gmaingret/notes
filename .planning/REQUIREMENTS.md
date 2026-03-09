@@ -25,18 +25,18 @@
 
 ### Bullet Editing
 
-- [ ] **BULL-01**: User can create a new bullet by pressing Enter
-- [ ] **BULL-02**: User can indent a bullet (Tab / toolbar / context menu)
-- [ ] **BULL-03**: User can outdent a bullet (Shift+Tab / toolbar / context menu)
-- [ ] **BULL-04**: User can move a bullet up or down (toolbar / keyboard shortcuts / context menu)
-- [ ] **BULL-05**: User can reorder bullets via drag-and-drop (maintains children; desktop + mobile)
-- [ ] **BULL-06**: User can collapse a bullet with children (chevron glyph; persisted per user)
+- [x] **BULL-01**: User can create a new bullet by pressing Enter
+- [x] **BULL-02**: User can indent a bullet (Tab / toolbar / context menu)
+- [x] **BULL-03**: User can outdent a bullet (Shift+Tab / toolbar / context menu)
+- [x] **BULL-04**: User can move a bullet up or down (toolbar / keyboard shortcuts / context menu)
+- [x] **BULL-05**: User can reorder bullets via drag-and-drop (maintains children; desktop + mobile)
+- [x] **BULL-06**: User can collapse a bullet with children (chevron glyph; persisted per user)
 - [ ] **BULL-07**: User can zoom into a bullet to view it as the full-screen root
 - [ ] **BULL-08**: User can navigate back out via breadcrumb bar (click any ancestor to zoom to that level)
 - [ ] **BULL-09**: Bullet text supports inline markdown: **bold**, *italic*, ~~strikethrough~~, [links](url), ![image](url)
 - [ ] **BULL-10**: Markdown renders on blur/Enter/Esc; raw markdown shows while editing (Dynalist-style live toggle)
-- [ ] **BULL-11**: User can soft-delete a bullet (undo restores it with all children)
-- [ ] **BULL-12**: User can mark a bullet complete (strikethrough + 50% opacity, stays in position)
+- [x] **BULL-11**: User can soft-delete a bullet (undo restores it with all children)
+- [x] **BULL-12**: User can mark a bullet complete (strikethrough + 50% opacity, stays in position)
 - [ ] **BULL-13**: User can hide completed bullets via "Hide completed" toolbar toggle
 - [ ] **BULL-14**: User can bulk delete all completed bullets (irreversible; permanently purges)
 - [ ] **BULL-15**: Desktop: right-click bullet → context menu (indent, outdent, move, complete, delete, bookmark, attachment, comment)
@@ -44,13 +44,13 @@
 
 ### Keyboard Shortcuts (Desktop)
 
-- [ ] **KB-01**: Enter = new bullet below current
-- [ ] **KB-02**: Tab = indent; Shift+Tab = outdent
-- [ ] **KB-03**: Ctrl/Cmd+↑↓ = move bullet up/down
+- [x] **KB-01**: Enter = new bullet below current
+- [x] **KB-02**: Tab = indent; Shift+Tab = outdent
+- [x] **KB-03**: Ctrl/Cmd+↑↓ = move bullet up/down
 - [ ] **KB-04**: Ctrl/Cmd+] = zoom in; Ctrl/Cmd+[ = zoom out to parent
-- [ ] **KB-05**: Ctrl/Cmd+Z = undo; Ctrl/Cmd+Y = redo
-- [ ] **KB-06**: Ctrl/Cmd+B = bold; Ctrl/Cmd+I = italic
-- [ ] **KB-07**: Ctrl/Cmd+P = open search; Ctrl/Cmd+* = bookmarks; Ctrl/Cmd+E = toggle sidebar
+- [x] **KB-05**: Ctrl/Cmd+Z = undo; Ctrl/Cmd+Y = redo
+- [x] **KB-06**: Ctrl/Cmd+B = bold; Ctrl/Cmd+I = italic
+- [x] **KB-07**: Ctrl/Cmd+P = open search; Ctrl/Cmd+* = bookmarks; Ctrl/Cmd+E = toggle sidebar
 
 ### Mobile Touch (Responsive)
 
@@ -99,10 +99,10 @@
 
 ### Undo / Redo
 
-- [ ] **UNDO-01**: User can undo the last action (text edits + structural changes: indent, reorder, delete)
-- [ ] **UNDO-02**: Undo history is 50 levels deep, global per user (not per document)
-- [ ] **UNDO-03**: Undo history is server-side and persists across page refresh and app restart
-- [ ] **UNDO-04**: Undoing a bullet deletion restores the bullet and all its children
+- [x] **UNDO-01**: User can undo the last action (text edits + structural changes: indent, reorder, delete)
+- [x] **UNDO-02**: Undo history is 50 levels deep, global per user (not per document)
+- [x] **UNDO-03**: Undo history is server-side and persists across page refresh and app restart
+- [x] **UNDO-04**: Undoing a bullet deletion restores the bullet and all its children
 
 ## v2 Requirements
 
@@ -151,29 +151,29 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DOC-05 | Phase 1 | Complete |
 | DOC-06 | Phase 1 | Complete |
 | DOC-07 | Phase 1 | Complete |
-| BULL-01 | Phase 2 | Pending |
-| BULL-02 | Phase 2 | Pending |
-| BULL-03 | Phase 2 | Pending |
-| BULL-04 | Phase 2 | Pending |
-| BULL-05 | Phase 2 | Pending |
-| BULL-06 | Phase 2 | Pending |
+| BULL-01 | Phase 2 | Complete |
+| BULL-02 | Phase 2 | Complete |
+| BULL-03 | Phase 2 | Complete |
+| BULL-04 | Phase 2 | Complete |
+| BULL-05 | Phase 2 | Complete |
+| BULL-06 | Phase 2 | Complete |
 | BULL-07 | Phase 2 | Pending |
 | BULL-08 | Phase 2 | Pending |
 | BULL-09 | Phase 3 | Pending |
 | BULL-10 | Phase 3 | Pending |
-| BULL-11 | Phase 2 | Pending |
-| BULL-12 | Phase 2 | Pending |
+| BULL-11 | Phase 2 | Complete |
+| BULL-12 | Phase 2 | Complete |
 | BULL-13 | Phase 2 | Pending |
 | BULL-14 | Phase 2 | Pending |
 | BULL-15 | Phase 2 | Pending |
 | BULL-16 | Phase 4 | Pending |
-| KB-01 | Phase 2 | Pending |
-| KB-02 | Phase 2 | Pending |
-| KB-03 | Phase 2 | Pending |
+| KB-01 | Phase 2 | Complete |
+| KB-02 | Phase 2 | Complete |
+| KB-03 | Phase 2 | Complete |
 | KB-04 | Phase 2 | Pending |
-| KB-05 | Phase 2 | Pending |
-| KB-06 | Phase 2 | Pending |
-| KB-07 | Phase 2 | Pending |
+| KB-05 | Phase 2 | Complete |
+| KB-06 | Phase 2 | Complete |
+| KB-07 | Phase 2 | Complete |
 | MOB-01 | Phase 4 | Pending |
 | MOB-02 | Phase 4 | Pending |
 | MOB-03 | Phase 4 | Pending |
@@ -201,10 +201,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ATT-04 | Phase 4 | Pending |
 | ATT-05 | Phase 4 | Pending |
 | ATT-06 | Phase 4 | Pending |
-| UNDO-01 | Phase 2 | Pending |
-| UNDO-02 | Phase 2 | Pending |
-| UNDO-03 | Phase 2 | Pending |
-| UNDO-04 | Phase 2 | Pending |
+| UNDO-01 | Phase 2 | Complete |
+| UNDO-02 | Phase 2 | Complete |
+| UNDO-03 | Phase 2 | Complete |
+| UNDO-04 | Phase 2 | Complete |
 
 **Coverage:**
 - v1 requirements: 66 total

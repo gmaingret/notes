@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 2 context gathered
-last_updated: "2026-03-09T09:36:49.584Z"
+stopped_at: Completed 02-core-outliner-01-PLAN.md
+last_updated: "2026-03-09T10:46:40.357Z"
 last_activity: 2026-03-09 — Plan 06 complete (production deployment, all API endpoints verified)
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 14
+  completed_plans: 7
   percent: 67
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 2 — Core Outliner
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation)
-Plan: 6 of 6 in current phase (all plans complete)
-Status: Phase 1 complete — production verified at https://notes.gregorymaingret.fr
-Last activity: 2026-03-09 — Plan 06 complete (production deployment, all API endpoints verified)
+Phase: 2 of 4 (Core Outliner)
+Plan: 1 of 8 in current phase (02-01 complete — test scaffolds)
+Status: Phase 2 in progress — Wave 0 RED scaffolds complete, ready for implementation plans
+Last activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 
-Progress: [███████░░░] 67%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [███████░░░] 67%
 | Phase 01-foundation P03 | 17 | 2 tasks | 3 files |
 | Phase 01-foundation P05 | 2min | 2 tasks | 9 files |
 | Phase 01-foundation P06 | 35min | 1 tasks | 8 files |
+| Phase 02-core-outliner P01 | 8min | 4 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,8 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: Dockerfile CMD path is server/dist/src/index.js — TypeScript rootDir='.' emits src/ and db/ to dist/src/ and dist/db/
 - [Phase 01-foundation]: Nginx proxy must target port 8000 on Docker host — port 3000 is occupied by outlinergod-backend-1 container
 - [Phase 01-foundation]: vite.config.ts must use defineConfig from vitest/config to support the 'test' property without TS error
+- [Phase 02-core-outliner]: Route test mock paths use ../../src/... relative from tests/routes/ — consistent with project import convention
+- [Phase 02-core-outliner]: Client test imports flattenTree from ../components/DocumentView/BulletTree — establishes expected export path for implementation
 
 ### Pending Todos
 
@@ -101,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T09:36:49.580Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-core-outliner/02-CONTEXT.md
+Last session: 2026-03-09T10:46:40.354Z
+Stopped at: Completed 02-core-outliner-01-PLAN.md
+Resume file: None

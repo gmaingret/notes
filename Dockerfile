@@ -31,4 +31,4 @@ COPY --from=base /app/client/dist ./public
 
 EXPOSE 3000
 
-CMD ["node", "server/dist/index.js"]
+CMD ["node", "server/dist/src/index.js"]

@@ -71,7 +71,18 @@ Plans:
   3. The Tag Browser (sidebar tab) lists all unique #tags, @mentions, and !!dates across the user's documents with bullet counts; clicking one opens a filtered bullet list
   4. User can search across all documents using free text and tag/mention/date query syntax; clicking a result opens the bullet in zoomed focus view
   5. User can bookmark any bullet and view all bookmarks in a dedicated screen; clicking a bookmark opens the bullet in zoomed focus view
-**Plans**: TBD
+**Plans**: 9 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Wave 0: test scaffolds (markdown, chips, routes), bookmarks schema + migration, install marked+dompurify
+- [ ] 03-02-PLAN.md — Server services: bookmarkService, tagService, searchService
+- [ ] 03-03-PLAN.md — uiStore expansion (sidebarTab, canvasView, searchOpen) + FilteredBulletList shared component
+- [ ] 03-04-PLAN.md — BulletContent markdown toggle + chip rendering + !! date picker
+- [ ] 03-05-PLAN.md — Server routes: bookmarks, tags, search + register in index.ts
+- [ ] 03-06-PLAN.md — Sidebar tab bar + TagBrowser component + filtered view in DocumentView
+- [ ] 03-07-PLAN.md — SearchModal + Ctrl+F handler + toolbar search icon
+- [ ] 03-08-PLAN.md — Bookmarks canvas view + toolbar icon + context menu bookmark toggle
+- [ ] 03-09-PLAN.md — Deploy to production + human verification checkpoint
 
 ### Phase 4: Attachments, Comments, and Mobile
 **Goal**: Users can attach files and leave comments on bullets, and the full feature set works on mobile browsers via swipe and long-press gestures
@@ -94,5 +105,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 6/6 | Complete   | 2026-03-09 |
 | 2. Core Outliner | 8/8 | Complete   | 2026-03-09 |
-| 3. Rich Content | 0/TBD | Not started | - |
+| 3. Rich Content | 0/9 | Not started | - |
 | 4. Attachments, Comments, and Mobile | 0/TBD | Not started | - |

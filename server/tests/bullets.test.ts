@@ -7,6 +7,7 @@ import {
   softDeleteBullet,
   markComplete,
   setCollapsed,
+  patchBullet,
   computeBulletInsertPosition,
 } from '../src/services/bulletService.js';
 
@@ -87,6 +88,7 @@ function makeBulletRow(overrides: Record<string, unknown> = {}) {
     position: 1.0,
     isComplete: false,
     isCollapsed: false,
+    note: null,
     deletedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -584,14 +586,36 @@ describe('bulletService.markComplete', () => {
 // ─── note patch (CMT-03) ──────────────────────────────────────────────────────
 
 describe('bulletService.patchBullet (note field)', () => {
-  it('PATCH with note text persists note', () => {
+  it('PATCH with note text persists note', async () => {
     // CMT-03: patchBullet(userId, bulletId, {note: 'some text'}) stores note in DB
-    throw new Error('not implemented — implement in 04-02');
+    const db = makeDb();
+    const noteText = 'This is a note';
+    const updatedBullet = makeBulletRow({ id: BULLET_A, note: noteText });
+    (db._updateReturning as ReturnType<typeof vi.fn>).mockResolvedValue([updatedBullet]);
+
+    const result = await patchBullet(USER_ID, BULLET_A, { note: noteText }, db as never);
+
+    expect(result).not.toBeNull();
+    expect(db.update).toHaveBeenCalled();
+    const setCall = (db._updateSet as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(setCall).toHaveProperty('note', noteText);
+    // No undo event recording for note updates
+    expect(db.insert).not.toHaveBeenCalled();
   });
 
-  it('PATCH with empty note stores null', () => {
-    // CMT-03: patchBullet(userId, bulletId, {note: ''}) stores null in DB
-    throw new Error('not implemented — implement in 04-02');
+  it('PATCH with empty note stores null', async () => {
+    // CMT-03: patchBullet(userId, bulletId, {note: null}) stores null in DB
+    // (caller normalizes '' to null before calling service)
+    const db = makeDb();
+    const updatedBullet = makeBulletRow({ id: BULLET_A, note: null });
+    (db._updateReturning as ReturnType<typeof vi.fn>).mockResolvedValue([updatedBullet]);
+
+    const result = await patchBullet(USER_ID, BULLET_A, { note: null }, db as never);
+
+    expect(result).not.toBeNull();
+    const setCall = (db._updateSet as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(setCall).toHaveProperty('note', null);
+    expect(db.insert).not.toHaveBeenCalled();
   });
 });
 

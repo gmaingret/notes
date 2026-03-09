@@ -15,6 +15,7 @@ export type Bullet = {
   position: number;
   isComplete: boolean;
   isCollapsed: boolean;
+  note: string | null;
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -465,4 +466,30 @@ export async function setCollapsed(
   });
 
   return updated ?? null;
+}
+
+/**
+ * Patch a bullet's note field.
+ * Accepts note: string | null. Empty string should be normalized to null before calling.
+ * No undo recording — note updates are lightweight metadata changes.
+ */
+export async function patchBullet(
+  userId: string,
+  bulletId: string,
+  fields: { note?: string | null },
+  dbInstance: DB = defaultDb
+): Promise<Bullet | null> {
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+
+  if (fields.note !== undefined) {
+    updates.note = fields.note ?? null;
+  }
+
+  const rows = await dbInstance
+    .update(bullets)
+    .set(updates)
+    .where(and(eq(bullets.id, bulletId), eq(bullets.userId, userId)))
+    .returning();
+
+  return (rows[0] as Bullet) ?? null;
 }

@@ -129,7 +129,12 @@ function triggerDatePicker(onDate: (date: string) => void) {
   input.addEventListener('blur', () => {
     if (document.body.contains(input)) document.body.removeChild(input);
   });
-  input.click();
+  // Use showPicker() for modern browsers; fall back to click()
+  try {
+    (input as HTMLInputElement & { showPicker?: () => void }).showPicker?.();
+  } catch {
+    input.click();
+  }
 }
 
 // ─── BulletContent component ───────────────────────────────────────────────────
@@ -149,6 +154,10 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   const [localContent, setLocalContent] = useState(bullet.content);
   const [isShaking, setIsShaking] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  // Guard: set to true before programmatic mode switches so handleBlur ignores them
+  const isSwitchingModeRef = useRef(false);
+  // Chip pending from mousedown — checked on focus to prevent edit mode during chip clicks
+  const pendingChipRef = useRef<{ chipType: string; chipValue: string } | null>(null);
 
   const createBullet = useCreateBullet();
   const patchBullet = usePatchBullet();
@@ -175,17 +184,12 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   useEffect(() => {
     if (!isEditing) {
       setLocalContent(bullet.content);
-      if (divRef.current) divRef.current.textContent = bullet.content;
+      if (divRef.current) {
+        // In view mode the div holds rendered HTML; update localContent only (re-render handles HTML)
+        // We do NOT set textContent here — the render effect below handles it
+      }
     }
   }, [bullet.content, isEditing]);
-
-  // Set initial textContent
-  useEffect(() => {
-    if (divRef.current && divRef.current.textContent !== localContent) {
-      divRef.current.textContent = localContent;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Inject shake + chip styles once
   useEffect(() => {
@@ -193,17 +197,47 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     ensureChipStyle();
   }, []);
 
-  // When entering edit mode, set textContent and focus the div
+  // Sync div content based on editing mode
   useLayoutEffect(() => {
-    if (isEditing && divRef.current) {
-      divRef.current.textContent = localContent;
-      divRef.current.focus();
+    const el = divRef.current;
+    if (!el) return;
+    if (isEditing) {
+      // Switch to edit mode: set plain text and focus
+      el.textContent = localContent;
+      el.focus();
+    } else {
+      // Switch to view mode: set rendered HTML
+      el.innerHTML = renderWithChips(renderBulletMarkdown(localContent));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing]);
+
+  // Keep view-mode HTML in sync when localContent changes (and not editing)
+  useLayoutEffect(() => {
+    const el = divRef.current;
+    if (!el || isEditing) return;
+    el.innerHTML = renderWithChips(renderBulletMarkdown(localContent));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localContent]);
 
   function triggerShake() {
     setIsShaking(true);
     setTimeout(() => setIsShaking(false), 400);
+  }
+
+  function enterEditMode() {
+    if (isEditing) return;
+    isSwitchingModeRef.current = false; // entering edit is not a "leaving" switch
+    setIsEditing(true);
+  }
+
+  function leaveEditMode() {
+    isSwitchingModeRef.current = true;
+    setIsEditing(false);
+    // Clear the flag after the blur fires (which happens synchronously during unmount/mode switch)
+    requestAnimationFrame(() => {
+      isSwitchingModeRef.current = false;
+    });
   }
 
   function handleInput() {
@@ -228,45 +262,70 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
       patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content });
       undoCheckpoint.mutate({ id: bullet.id, content });
     }, 1000);
   }
 
   function handleBlur() {
+    // If we triggered the blur ourselves (mode switch), do not save — content already handled
+    if (isSwitchingModeRef.current) {
+      isSwitchingModeRef.current = false;
+      return;
+    }
+
     // Flush any pending save timer immediately
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
-      const content = divRef.current?.textContent ?? '';
-      if (content !== bullet.content) {
-        patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content });
-      }
-      setLocalContent(content);
+      saveTimerRef.current = null;
     }
-    setIsEditing(false);
+    const content = divRef.current?.textContent ?? '';
+    if (content !== bullet.content) {
+      patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content });
+    }
+    setLocalContent(content);
+    leaveEditMode();
   }
 
-  function handleRenderedClick(e: React.MouseEvent<HTMLSpanElement>) {
+  function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    // Detect chip clicks before focus fires so we can suppress entering edit mode
     const target = e.target as HTMLElement;
-    const chipType = target.dataset.chipType as 'tag' | 'mention' | 'date' | undefined;
+    const chipType = target.dataset.chipType;
     const chipValue = target.dataset.chipValue;
     if (chipType && chipValue) {
-      e.stopPropagation();
-      if (chipType === 'tag' || chipType === 'mention') {
+      pendingChipRef.current = { chipType, chipValue };
+    } else {
+      pendingChipRef.current = null;
+    }
+  }
+
+  function handleFocus() {
+    const chip = pendingChipRef.current;
+    pendingChipRef.current = null;
+
+    if (chip) {
+      // Chip was clicked — handle the chip action, do NOT enter edit mode
+      if (chip.chipType === 'tag' || chip.chipType === 'mention') {
         setSidebarTab('tags');
-        setCanvasView({ type: 'filtered', chipType, chipValue });
-      } else if (chipType === 'date') {
-        // Open date picker to edit the date
+        setCanvasView({ type: 'filtered', chipType: chip.chipType as 'tag' | 'mention', chipValue: chip.chipValue });
+      } else if (chip.chipType === 'date') {
         triggerDatePicker((newDate: string) => {
-          const updated = localContent.replace(`!![${chipValue}]`, `!![${newDate}]`);
+          const updated = localContent.replace(`!![${chip.chipValue}]`, `!![${newDate}]`);
           setLocalContent(updated);
           patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: updated });
         });
       }
+      // Blur the div so it doesn't receive further input
+      divRef.current?.blur();
       return;
     }
-    // Not a chip — switch to edit mode
-    setIsEditing(true);
+
+    // Normal focus (click on text, programmatic focus from arrow keys / Enter)
+    if (!isEditing) {
+      enterEditMode();
+    }
+    if (onFocus) onFocus();
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
@@ -276,6 +335,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     // ── Escape: exit edit mode ─────────────────────────────────────────────
     if (e.key === 'Escape') {
       e.preventDefault();
+      leaveEditMode();
       divRef.current?.blur();
       return;
     }
@@ -398,14 +458,16 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
 
       if (currentContent === '' && bullet.parentId === null) {
         // Empty root bullet — create blank sibling
-        setIsEditing(false);
+        leaveEditMode();
         createBullet.mutate(
           { documentId: bullet.documentId, parentId: null, afterId: bullet.id, content: '' },
           {
             onSuccess: (data) => {
               setTimeout(() => {
                 const newEl = document.getElementById(`bullet-${data.id}`) as HTMLDivElement | null;
-                if (newEl) newEl.focus();
+                if (newEl) {
+                  newEl.focus();
+                }
               }, 50);
             },
           }
@@ -417,9 +479,14 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       const children = getChildren(bulletMap, bullet.id).filter(b => !b.deletedAt);
 
       // Flush debounce immediately to save 'before' content
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
       patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: before });
-      setIsEditing(false);
+      // Update localContent so view mode shows 'before'
+      setLocalContent(before);
+      leaveEditMode();
 
       if (children.length > 0) {
         // Has children: create as first child
@@ -429,7 +496,9 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
             onSuccess: (data) => {
               setTimeout(() => {
                 const newEl = document.getElementById(`bullet-${data.id}`) as HTMLDivElement | null;
-                if (newEl) newEl.focus();
+                if (newEl) {
+                  newEl.focus();
+                }
               }, 50);
             },
           }
@@ -442,7 +511,9 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
             onSuccess: (data) => {
               setTimeout(() => {
                 const newEl = document.getElementById(`bullet-${data.id}`) as HTMLDivElement | null;
-                if (newEl) newEl.focus();
+                if (newEl) {
+                  newEl.focus();
+                }
               }, 50);
             },
           }
@@ -512,6 +583,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       setTimeout(() => {
         const prevEl = document.getElementById(`bullet-${prevBullet!.id}`) as HTMLDivElement | null;
         if (prevEl) {
+          prevEl.focus();
           setCursorAtPosition(prevEl, joinOffset);
         }
       }, 50);
@@ -576,6 +648,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     // Trigger save
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
       patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: newContent });
     }, 1000);
   }
@@ -598,41 +671,23 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     );
   }
 
-  // Compute rendered HTML for view mode
-  const renderedHtml = !isEditing
-    ? renderWithChips(renderBulletMarkdown(localContent))
-    : '';
-
-  if (!isEditing) {
-    return (
-      <span
-        dangerouslySetInnerHTML={{ __html: renderedHtml }}
-        onClick={handleRenderedClick}
-        style={{
-          flex: 1,
-          fontSize: '0.9375rem',
-          color: '#333',
-          lineHeight: 1.6,
-          minHeight: '1.6em',
-          wordBreak: 'break-word',
-          cursor: 'text',
-          display: 'block',
-        }}
-      />
-    );
-  }
-
+  // Single persistent div — always in DOM with stable id for focus navigation.
+  // View mode: non-editable, shows rendered HTML.
+  // Edit mode: contentEditable, shows plain text.
+  // tabIndex=0 ensures the div is focusable in both modes so arrow-key navigation works.
   return (
     <div
       id={`bullet-${bullet.id}`}
       ref={divRef}
-      contentEditable
+      contentEditable={isEditing}
       suppressContentEditableWarning
       className={isShaking ? 'bullet-shake' : undefined}
-      onInput={handleInput}
-      onKeyDown={handleKeyDown}
-      onFocus={onFocus}
-      onBlur={handleBlur}
+      onInput={isEditing ? handleInput : undefined}
+      onKeyDown={isEditing ? handleKeyDown : undefined}
+      onMouseDown={handleMouseDown}
+      onFocus={handleFocus}
+      onBlur={isEditing ? handleBlur : undefined}
+      tabIndex={0}
       style={{
         flex: 1,
         outline: 'none',
@@ -641,6 +696,8 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         lineHeight: 1.6,
         minHeight: '1.6em',
         wordBreak: 'break-word',
+        cursor: 'text',
+        userSelect: 'text',
       }}
     />
   );

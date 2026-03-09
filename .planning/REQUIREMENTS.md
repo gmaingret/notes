@@ -50,7 +50,7 @@
 - [x] **KB-04**: Ctrl/Cmd+] = zoom in; Ctrl/Cmd+[ = zoom out to parent
 - [x] **KB-05**: Ctrl/Cmd+Z = undo; Ctrl/Cmd+Y = redo
 - [x] **KB-06**: Ctrl/Cmd+B = bold; Ctrl/Cmd+I = italic
-- [x] **KB-07**: Ctrl/Cmd+P = open search; Ctrl/Cmd+* = bookmarks; Ctrl/Cmd+E = toggle sidebar
+- [x] **KB-07**: Ctrl/Cmd+F = open search; Ctrl/Cmd+* = bookmarks; Ctrl/Cmd+E = toggle sidebar
 
 ### Mobile Touch (Responsive)
 
@@ -73,7 +73,7 @@
 - [ ] **SRCH-01**: User can search across all personal documents (full-text)
 - [ ] **SRCH-02**: Search supports #tag, @mention, and !!date query syntax
 - [ ] **SRCH-03**: Search results show matching bullets; clicking a result opens it in zoomed focus view
-- [ ] **SRCH-04**: Search accessible via no-focus toolbar button and Ctrl/Cmd+P keyboard shortcut
+- [ ] **SRCH-04**: Search accessible via no-focus toolbar button and Ctrl/Cmd+F keyboard shortcut
 
 ### Bookmarks
 

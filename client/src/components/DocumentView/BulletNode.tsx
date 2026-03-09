@@ -133,6 +133,14 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
     [],
   );
 
+  // React-typed wrappers for gesture handler functions so they satisfy TouchEventHandler
+  const handleLongPressTouchStart: React.TouchEventHandler<HTMLDivElement> = (e) =>
+    longPressHandler.handleTouchStart(e as unknown as { touches: { clientX: number; clientY: number }[] });
+  const handleLongPressTouchMove: React.TouchEventHandler<HTMLDivElement> = (e) =>
+    longPressHandler.handleTouchMove(e as unknown as { touches: { clientX: number; clientY: number }[] });
+  const handleLongPressTouchEnd: React.TouchEventHandler<HTMLDivElement> = (e) =>
+    longPressHandler.handleTouchEnd(e as unknown as { preventDefault?: () => void });
+
   // Background color for swipe reveal
   const swipeBackground = swipeX > 0
     ? '#4caf50'  // green for complete
@@ -167,9 +175,9 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
       onPointerDown={isDragOverlay ? undefined : handleRowPointerDown}
       onPointerMove={isDragOverlay ? undefined : handleRowPointerMove}
       onPointerUp={isDragOverlay ? undefined : handleRowPointerUp}
-      onTouchStart={isDragOverlay ? undefined : longPressHandler.handleTouchStart as React.TouchEventHandler}
-      onTouchMove={isDragOverlay ? undefined : longPressHandler.handleTouchMove as React.TouchEventHandler}
-      onTouchEnd={isDragOverlay ? undefined : longPressHandler.handleTouchEnd as React.TouchEventHandler}
+      onTouchStart={isDragOverlay ? undefined : handleLongPressTouchStart}
+      onTouchMove={isDragOverlay ? undefined : handleLongPressTouchMove}
+      onTouchEnd={isDragOverlay ? undefined : handleLongPressTouchEnd}
     >
       {/* Swipe background reveal layer */}
       {swipeX !== 0 && (

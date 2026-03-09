@@ -574,7 +574,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       e.preventDefault();
       const children = getChildren(bulletMap, bullet.id).filter(b => !b.deletedAt);
       if (children.length > 0) {
-        triggerShake();
         return;
       }
 
@@ -625,6 +624,8 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     // ── Delete at end ─────────────────────────────────────────────────────
     if (e.key === 'Delete' && isCursorAtEnd(el)) {
       e.preventDefault();
+      const ownChildren = getChildren(bulletMap, bullet.id).filter(b => !b.deletedAt);
+      if (ownChildren.length > 0) return;
       // Find next sibling
       const siblings = getChildren(bulletMap, bullet.parentId);
       const myIdx = siblings.findIndex(s => s.id === bullet.id);

@@ -590,7 +590,15 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         }
         prevBullet = candidate;
       } else if (bullet.parentId !== null) {
-        // First child — ignore backspace rather than merging into parent
+        // First child — if the node is empty, soft-delete it and focus the parent.
+        // If it has content, ignore backspace (merging into parent is not supported).
+        if ((el.textContent ?? '') === '') {
+          softDeleteBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
+          setTimeout(() => {
+            const parentEl = document.getElementById(`bullet-${bullet.parentId}`) as HTMLDivElement | null;
+            if (parentEl) parentEl.focus();
+          }, 50);
+        }
         return;
       }
 

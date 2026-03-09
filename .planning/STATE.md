@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-07-PLAN.md
-last_updated: "2026-03-09T20:48:52.498Z"
-last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
+stopped_at: Completed 04-08-PLAN.md
+last_updated: "2026-03-09T20:58:54Z"
+last_activity: 2026-03-09 — Plan 04-08 complete (Phase 4 deployed, migrated, PR merged to main)
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 31
-  completed_plans: 30
+  completed_plans: 31
   percent: 100
 ---
 
@@ -52,16 +52,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
-**Current focus:** Phase 2 — Core Outliner
+**Current focus:** Phase 4 — Attachments, Comments, and Mobile (COMPLETE)
 
 ## Current Position
 
-Phase: 2 of 4 (Core Outliner)
-Plan: 1 of 8 in current phase (02-01 complete — test scaffolds)
-Status: Phase 2 in progress — Wave 0 RED scaffolds complete, ready for implementation plans
-Last activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
+Phase: 4 of 4 (Attachments, Comments, and Mobile) — COMPLETE
+Plan: 8 of 8 in Phase 4 (04-08 complete — deploy, migrate, PR merge)
+Status: ALL PHASES COMPLETE — milestone v1.0 achieved
+Last activity: 2026-03-09 — Plan 04-08 complete (Phase 4 deployed, DB migrated, PR merged to main)
 
-Progress: [█████░░░░░] 50%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -114,6 +114,7 @@ Progress: [█████░░░░░] 50%
 | Phase 04-attachments-comments-and-mobile P05 | 8min | 2 tasks | 5 files |
 | Phase 04-attachments-comments-and-mobile P06 | 8min | 2 tasks | 5 files |
 | Phase 04-attachments-comments-and-mobile P07 | 8min | 2 tasks | 4 files |
+| Phase 04-attachments-comments-and-mobile P08 | 9min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -196,6 +197,9 @@ Recent decisions affecting current work:
 - [Phase 04-attachments-comments-and-mobile]: Swipe handlers on outer row div only; dot div retains touchAction:none for dnd-kit PointerSensor
 - [Phase 04-attachments-comments-and-mobile]: computeKeyboardOffset exported from FocusToolbar.tsx (not a separate utils file) — co-located with its only consumer
 - [Phase 04-attachments-comments-and-mobile]: MOB-04 requires no new code — dnd-kit PointerSensor + touchAction:none on dot was already in place from Phase 2
+- [Phase 04-attachments-comments-and-mobile]: Drizzle _journal.json must contain ALL migration entries — migrate() uses the journal to discover SQL files; missing entries means SQL is silently skipped
+- [Phase 04-attachments-comments-and-mobile]: Docker tsc -b (composite) is stricter than tsc --noEmit — includes test files and rejects TS2352 overlapping casts; use wrapper functions instead
+- [Phase 04-attachments-comments-and-mobile]: gh pr merge --squash diverges local branch from main — switch to main and git pull to sync after remote PR merge
 
 ### Pending Todos
 
@@ -209,6 +213,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T20:48:52.495Z
-Stopped at: Completed 04-07-PLAN.md
+Last session: 2026-03-09T20:58:54Z
+Stopped at: Completed 04-08-PLAN.md (ALL PHASES COMPLETE — milestone v1.0)
 Resume file: None

@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - Authenticated app with document management and correct DB schema (completed 2026-03-09)
 - [x] **Phase 2: Core Outliner** - Bullet CRUD, nesting, keyboard shortcuts, collapse/zoom, and server-persisted undo (completed 2026-03-09)
 - [x] **Phase 3: Rich Content** - Markdown rendering, full-text search, tag/mention/date chips, and bookmarks (completed 2026-03-09)
-- [ ] **Phase 4: Attachments, Comments, and Mobile** - File attachments, comments, and mobile touch gestures
+- [x] **Phase 4: Attachments, Comments, and Mobile** - File attachments, comments, and mobile touch gestures (completed 2026-03-09)
 
 ## Phase Details
 
@@ -97,14 +97,14 @@ Plans:
 **Plans**: 8 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Wave 0: Nyquist test scaffolds (RED stubs for all 16 requirements)
-- [ ] 04-02-PLAN.md — DB migration (note column + attachments table) + PATCH /bullets/:id note extension
-- [ ] 04-03-PLAN.md — Attachment backend: multer, attachmentService, Express routes, apiClient.upload()
-- [ ] 04-04-PLAN.md — BulletNode inline UI: NoteRow + AttachmentRow (image/PDF/other) + Lightbox + useAttachments hook
-- [ ] 04-05-PLAN.md — FocusToolbar: uiStore focusedBulletId + 11-action toolbar + visualViewport positioning + ContextMenu additions
-- [ ] 04-06-PLAN.md — Mobile gestures: swipe right/left (complete/delete + UndoToast) + long-press context menu
-- [ ] 04-07-PLAN.md — computeKeyboardOffset pure function + MOB-04 touch drag confirmation
-- [ ] 04-08-PLAN.md — Deploy to production + human verification checkpoint + PR merge
+- [x] 04-01-PLAN.md — Wave 0: Nyquist test scaffolds (RED stubs for all 16 requirements)
+- [x] 04-02-PLAN.md — DB migration (note column + attachments table) + PATCH /bullets/:id note extension
+- [x] 04-03-PLAN.md — Attachment backend: multer, attachmentService, Express routes, apiClient.upload()
+- [x] 04-04-PLAN.md — BulletNode inline UI: NoteRow + AttachmentRow (image/PDF/other) + Lightbox + useAttachments hook
+- [x] 04-05-PLAN.md — FocusToolbar: uiStore focusedBulletId + 11-action toolbar + visualViewport positioning + ContextMenu additions
+- [x] 04-06-PLAN.md — Mobile gestures: swipe right/left (complete/delete + UndoToast) + long-press context menu
+- [x] 04-07-PLAN.md — computeKeyboardOffset pure function + MOB-04 touch drag confirmation
+- [x] 04-08-PLAN.md — Deploy to production + human verification checkpoint + PR merge
 
 ## Progress
 
@@ -116,4 +116,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Foundation | 6/6 | Complete   | 2026-03-09 |
 | 2. Core Outliner | 8/8 | Complete   | 2026-03-09 |
 | 3. Rich Content | 9/9 | Complete    | 2026-03-09 |
-| 4. Attachments, Comments, and Mobile | 7/8 | In Progress|  |
+| 4. Attachments, Comments, and Mobile | 8/8 | Complete | 2026-03-09 |

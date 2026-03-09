@@ -161,7 +161,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   const divRef = useRef<HTMLDivElement>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [localContent, setLocalContent] = useState(bullet.content);
-  const [isShaking, setIsShaking] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   // Guard: set to true before programmatic mode switches so handleBlur ignores them
   const isSwitchingModeRef = useRef(false);
@@ -249,11 +248,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     el.innerHTML = renderWithChips(renderBulletMarkdown(localContent));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localContent]);
-
-  function triggerShake() {
-    setIsShaking(true);
-    setTimeout(() => setIsShaking(false), 400);
-  }
 
   function enterEditMode() {
     if (isEditing) return;
@@ -714,7 +708,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       ref={divRef}
       contentEditable={isEditing}
       suppressContentEditableWarning
-      className={isShaking ? 'bullet-shake' : undefined}
+      className={undefined}
       onInput={isEditing ? handleInput : undefined}
       onKeyDown={handleKeyDown}
       onMouseDown={handleMouseDown}

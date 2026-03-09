@@ -1,5 +1,15 @@
 import { useRef, useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+
+// MOB-05: pure function to calculate keyboard bottom offset from visualViewport values
+// Exported for unit testing
+export function computeKeyboardOffset(
+  windowInnerHeight: number,
+  vvOffsetTop: number,
+  vvHeight: number,
+): number {
+  return Math.max(0, windowInnerHeight - vvOffsetTop - vvHeight);
+}
 import { apiClient } from '../../api/client';
 import {
   useIndentBullet,
@@ -39,8 +49,7 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
     const vv = window.visualViewport;
     if (!vv) return;
     function update() {
-      const offset = window.innerHeight - vv!.offsetTop - vv!.height;
-      setKeyboardOffset(Math.max(0, offset));
+      setKeyboardOffset(computeKeyboardOffset(window.innerHeight, vv!.offsetTop, vv!.height));
     }
     vv.addEventListener('resize', update);
     vv.addEventListener('scroll', update);

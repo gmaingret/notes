@@ -200,8 +200,10 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   // Auto-focus when this bullet is the pending focus target (e.g. after Enter creates it)
   useEffect(() => {
     if (pendingFocusBulletId === bullet.id) {
+      console.log('[pendingFocus] Match for bullet', bullet.id, '— calling focus. divRef.current:', !!divRef.current);
       setPendingFocusBulletId(null);
       divRef.current?.focus();
+      console.log('[pendingFocus] After focus call. activeElement id:', document.activeElement?.id);
     }
   }, [pendingFocusBulletId, bullet.id, setPendingFocusBulletId]);
 
@@ -213,12 +215,15 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       // Switch to edit mode: set plain text, then focus only if not already focused.
       // Calling el.focus() on an already-focused element (e.g. after a click) can
       // trigger another blur+focus cycle in browsers when contentEditable changes.
+      console.log('[useLayoutEffect isEditing→true] bullet', bullet.id, 'activeElement:', document.activeElement?.id, 'el===active:', document.activeElement === el);
       el.textContent = localContent;
       if (document.activeElement !== el) {
+        console.log('[useLayoutEffect isEditing→true] calling el.focus() for bullet', bullet.id);
         el.focus();
       }
     } else {
       // Switch to view mode: set rendered HTML
+      console.log('[useLayoutEffect isEditing→false] bullet', bullet.id);
       el.innerHTML = renderWithChips(renderBulletMarkdown(localContent));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -239,6 +244,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
 
   function enterEditMode() {
     if (isEditing) return;
+    console.log('[enterEditMode] bullet', bullet.id, '— setting isEditing=true. activeElement:', document.activeElement?.id);
     // Guard against the spurious blur that browsers fire when contentEditable changes on a
     // focused element. Without this, handleBlur fires immediately after setIsEditing(true)
     // and calls leaveEditMode(), causing isEditing to flicker true→false on every click.
@@ -287,6 +293,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   }
 
   function handleBlur() {
+    console.log('[handleBlur] bullet', bullet.id, 'isSwitchingMode:', isSwitchingModeRef.current, 'isEditing:', isEditing);
     // If we triggered the blur ourselves (mode switch), do not save — content already handled
     if (isSwitchingModeRef.current) {
       isSwitchingModeRef.current = false;
@@ -299,6 +306,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       saveTimerRef.current = null;
     }
     const content = divRef.current?.textContent ?? '';
+    console.log('[handleBlur] saving content:', JSON.stringify(content), 'bullet.content:', JSON.stringify(bullet.content));
     if (content !== bullet.content) {
       patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content });
     }
@@ -321,6 +329,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   function handleFocus() {
     const chip = pendingChipRef.current;
     pendingChipRef.current = null;
+    console.log('[handleFocus] bullet', bullet.id, 'isEditing:', isEditing, 'chip:', chip);
 
     if (chip) {
       // Chip was clicked — handle the chip action, do NOT enter edit mode
@@ -365,9 +374,13 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]')
       );
       const myIdx = allBulletEls.indexOf(divRef.current!);
+      console.log('[ArrowUp] bullet', bullet.id, 'myIdx:', myIdx, 'total:', allBulletEls.length, 'isEditing:', isEditing);
       if (myIdx > 0) {
         e.preventDefault();
-        allBulletEls[myIdx - 1].focus();
+        const target = allBulletEls[myIdx - 1];
+        console.log('[ArrowUp] focusing target:', target.id);
+        target.focus();
+        console.log('[ArrowUp] after focus. activeElement:', document.activeElement?.id);
       }
       return;
     }
@@ -379,9 +392,13 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]')
       );
       const myIdx = allBulletEls.indexOf(divRef.current!);
+      console.log('[ArrowDown] bullet', bullet.id, 'myIdx:', myIdx, 'total:', allBulletEls.length, 'isEditing:', isEditing);
       if (myIdx < allBulletEls.length - 1) {
         e.preventDefault();
-        allBulletEls[myIdx + 1].focus();
+        const target = allBulletEls[myIdx + 1];
+        console.log('[ArrowDown] focusing target:', target.id);
+        target.focus();
+        console.log('[ArrowDown] after focus. activeElement:', document.activeElement?.id);
       }
       return;
     }

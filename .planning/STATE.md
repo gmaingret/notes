@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-09T20:18:49.617Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-09T20:23:20.637Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 31
-  completed_plans: 24
+  completed_plans: 25
   percent: 100
 ---
 
@@ -108,6 +108,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03-rich-content P08 | 2min | 2 tasks | 4 files |
 | Phase 03-rich-content P09 | 5 | 3 tasks | 1 files |
 | Phase 04-attachments-comments-and-mobile P01 | 2min | 3 tasks | 8 files |
+| Phase 04-attachments-comments-and-mobile P02 | 8min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -177,6 +178,8 @@ Recent decisions affecting current work:
 - [Phase 03-rich-content]: Server tests run locally via node_modules/.bin/vitest — Docker container only has dist/, not source/tests
 - [Phase 04-attachments-comments-and-mobile]: Placeholder local functions used instead of top-level imports for not-yet-created modules — avoids import crashes while keeping tests runnable
 - [Phase 04-attachments-comments-and-mobile]: pdfjs-dist mocked with vi.mock() at module level so pdfThumbnail test runs even before pdfjs-dist is installed
+- [Phase 04-attachments-comments-and-mobile]: patchBullet has no undo recording — note updates are lightweight metadata, not structural ops
+- [Phase 04-attachments-comments-and-mobile]: empty string normalized to null at route layer, not service layer — keeps service pure
 
 ### Pending Todos
 
@@ -190,6 +193,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T20:18:43.012Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-03-09T20:23:20.633Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None

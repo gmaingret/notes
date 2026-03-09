@@ -12,6 +12,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useDocumentBullets, useMoveBullet } from '../../hooks/useBullets';
 import type { Bullet } from '../../hooks/useBullets';
 import { BulletNode } from './BulletNode';
+import { DocumentToolbar } from './DocumentToolbar';
 
 export type BulletMap = Record<string, Bullet>;
 export type FlatBullet = Bullet & { depth: number };
@@ -72,6 +73,7 @@ export function BulletTree({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragOffsetX, setDragOffsetX] = useState(0);
   const [overId, setOverId] = useState<string | null>(null);
+  const [hideCompleted, setHideCompleted] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -80,6 +82,10 @@ export function BulletTree({
   const bulletMap = useMemo(() => buildBulletMap(flatBullets), [flatBullets]);
   const rootId = zoomedBulletId ?? null;
   const flatItems = useMemo(() => flattenTree(bulletMap, rootId), [bulletMap, rootId]);
+  const visibleItems = useMemo(
+    () => (hideCompleted ? flatItems.filter(b => !b.isComplete) : flatItems),
+    [flatItems, hideCompleted]
+  );
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(event.active.id as string);
@@ -115,15 +121,15 @@ export function BulletTree({
       return;
     }
 
-    const overIndex = flatItems.findIndex(f => f.id === currentOverId);
-    const projectedDepth = getProjectedDepth(flatItems, currentActiveId, currentOverId, dragOffsetX);
+    const overIndex = visibleItems.findIndex(f => f.id === currentOverId);
+    const projectedDepth = getProjectedDepth(visibleItems, currentActiveId, currentOverId, dragOffsetX);
 
     // Determine newParentId: find last item before overIndex with depth === projectedDepth - 1
     let newParentId: string | null = null;
     if (projectedDepth > 0) {
       for (let i = overIndex - 1; i >= 0; i--) {
-        if (flatItems[i].depth === projectedDepth - 1) {
-          newParentId = flatItems[i].id;
+        if (visibleItems[i].depth === projectedDepth - 1) {
+          newParentId = visibleItems[i].id;
           break;
         }
       }
@@ -132,7 +138,7 @@ export function BulletTree({
     // Determine afterId: the item at overIndex - 1 that shares the same new parentId
     let afterId: string | null = null;
     if (overIndex > 0) {
-      const candidateAfter = flatItems[overIndex - 1];
+      const candidateAfter = visibleItems[overIndex - 1];
       // If the item before overIndex has the same parent as the new position, use it as afterId
       if (candidateAfter.id !== currentActiveId) {
         afterId = candidateAfter.id;
@@ -163,20 +169,20 @@ export function BulletTree({
     setOverId(null);
   }
 
-  // Compute drop indicator index: insert position within flatItems
+  // Compute drop indicator index: insert position within visibleItems
   const dropIndicatorIndex = useMemo(() => {
     if (!activeId || !overId) return null;
-    const overIndex = flatItems.findIndex(f => f.id === overId);
+    const overIndex = visibleItems.findIndex(f => f.id === overId);
     if (overIndex === -1) return null;
     return overIndex;
-  }, [activeId, overId, flatItems]);
+  }, [activeId, overId, visibleItems]);
 
   const projectedDropDepth = useMemo(() => {
     if (!activeId || !overId) return 0;
-    return getProjectedDepth(flatItems, activeId, overId, dragOffsetX);
-  }, [activeId, overId, flatItems, dragOffsetX]);
+    return getProjectedDepth(visibleItems, activeId, overId, dragOffsetX);
+  }, [activeId, overId, visibleItems, dragOffsetX]);
 
-  const activeBulletForOverlay = activeId ? bulletMap[activeId] : null;
+  const activeBulletForOverlay = activeId ? (bulletMap[activeId] ?? null) : null;
 
   return (
     <DndContext
@@ -187,12 +193,17 @@ export function BulletTree({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
+      <DocumentToolbar
+        documentId={documentId}
+        hideCompleted={hideCompleted}
+        onToggleHideCompleted={() => setHideCompleted(h => !h)}
+      />
       <SortableContext
-        items={flatItems.map(f => f.id)}
+        items={visibleItems.map(f => f.id)}
         strategy={verticalListSortingStrategy}
       >
         <div style={{ position: 'relative' }}>
-          {flatItems.map((b, idx) => (
+          {visibleItems.map((b, idx) => (
             <div key={b.id}>
               {dropIndicatorIndex === idx && activeId && b.id !== activeId && (
                 <DropIndicator depth={projectedDropDepth} />
@@ -205,7 +216,7 @@ export function BulletTree({
             </div>
           ))}
           {/* Drop indicator at end of list */}
-          {dropIndicatorIndex === flatItems.length && activeId && (
+          {dropIndicatorIndex === visibleItems.length && activeId && (
             <DropIndicator depth={projectedDropDepth} />
           )}
         </div>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCreateDocument, useExportAllDocuments } from '../../hooks/useDocuments';
 import { DocumentList } from './DocumentList';
+import { TagBrowser } from './TagBrowser';
 import { useUiStore } from '../../store/uiStore';
 
 type SidebarProps = {
@@ -12,7 +13,7 @@ export function Sidebar({ activeDocId }: SidebarProps) {
   const { logout } = useAuth();
   const { mutate: createDocument } = useCreateDocument();
   const { mutate: exportAll } = useExportAllDocuments();
-  const { sidebarOpen, setSidebarOpen } = useUiStore();
+  const { sidebarOpen, setSidebarOpen, sidebarTab, setSidebarTab } = useUiStore();
   const [showSidebarMenu, setShowSidebarMenu] = useState(false);
 
   const handleCreate = () => {
@@ -81,9 +82,26 @@ export function Sidebar({ activeDocId }: SidebarProps) {
           </button>
         </div>
 
-        {/* Document list */}
+        {/* Tab bar */}
+        <div style={{ display: 'flex', borderBottom: '1px solid #e0e0e0' }}>
+          {(['docs', 'tags'] as const).map(tab => (
+            <button key={tab} onClick={() => setSidebarTab(tab)}
+              style={{
+                flex: 1, padding: '0.5rem', border: 'none', background: 'none', cursor: 'pointer',
+                fontSize: '0.8rem',
+                fontWeight: sidebarTab === tab ? 600 : 400,
+                borderBottom: sidebarTab === tab ? '2px solid #333' : '2px solid transparent',
+                color: sidebarTab === tab ? '#111' : '#666',
+              }}>
+              {tab === 'docs' ? 'Docs' : 'Tags'}
+            </button>
+          ))}
+        </div>
+        {/* Tab content */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          <DocumentList activeDocId={activeDocId} />
+          {sidebarTab === 'docs'
+            ? <DocumentList activeDocId={activeDocId} />
+            : <TagBrowser />}
         </div>
       </aside>
     </>

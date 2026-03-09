@@ -33,8 +33,8 @@
 - [x] **BULL-06**: User can collapse a bullet with children (chevron glyph; persisted per user)
 - [x] **BULL-07**: User can zoom into a bullet to view it as the full-screen root
 - [x] **BULL-08**: User can navigate back out via breadcrumb bar (click any ancestor to zoom to that level)
-- [ ] **BULL-09**: Bullet text supports inline markdown: **bold**, *italic*, ~~strikethrough~~, [links](url), ![image](url)
-- [ ] **BULL-10**: Markdown renders on blur/Enter/Esc; raw markdown shows while editing (Dynalist-style live toggle)
+- [x] **BULL-09**: Bullet text supports inline markdown: **bold**, *italic*, ~~strikethrough~~, [links](url), ![image](url)
+- [x] **BULL-10**: Markdown renders on blur/Enter/Esc; raw markdown shows while editing (Dynalist-style live toggle)
 - [x] **BULL-11**: User can soft-delete a bullet (undo restores it with all children)
 - [x] **BULL-12**: User can mark a bullet complete (strikethrough + 50% opacity, stays in position)
 - [x] **BULL-13**: User can hide completed bullets via "Hide completed" toolbar toggle
@@ -50,7 +50,7 @@
 - [x] **KB-04**: Ctrl/Cmd+] = zoom in; Ctrl/Cmd+[ = zoom out to parent
 - [x] **KB-05**: Ctrl/Cmd+Z = undo; Ctrl/Cmd+Y = redo
 - [x] **KB-06**: Ctrl/Cmd+B = bold; Ctrl/Cmd+I = italic
-- [x] **KB-07**: Ctrl/Cmd+P = open search; Ctrl/Cmd+* = bookmarks; Ctrl/Cmd+E = toggle sidebar
+- [x] **KB-07**: Ctrl/Cmd+F = open search; Ctrl/Cmd+* = bookmarks; Ctrl/Cmd+E = toggle sidebar
 
 ### Mobile Touch (Responsive)
 
@@ -62,24 +62,24 @@
 
 ### Special Syntax & Tags
 
-- [ ] **TAG-01**: `#tag` syntax creates a tag, renders as a clickable chip in bullet text
-- [ ] **TAG-02**: `@mention` syntax renders as a clickable chip (personal label)
-- [ ] **TAG-03**: `!!` syntax opens a date/time picker; renders as a 📅 date chip
-- [ ] **TAG-04**: Sidebar Tab 2: Tag Browser lists all unique #tags, @mentions, !!dates across user's documents with bullet counts
-- [ ] **TAG-05**: Clicking a tag in the Tag Browser opens a filtered view of all matching bullets
+- [x] **TAG-01**: `#tag` syntax creates a tag, renders as a clickable chip in bullet text
+- [x] **TAG-02**: `@mention` syntax renders as a clickable chip (personal label)
+- [x] **TAG-03**: `!!` syntax opens a date/time picker; renders as a 📅 date chip
+- [x] **TAG-04**: Sidebar Tab 2: Tag Browser lists all unique #tags, @mentions, !!dates across user's documents with bullet counts
+- [x] **TAG-05**: Clicking a tag in the Tag Browser opens a filtered view of all matching bullets
 
 ### Search
 
-- [ ] **SRCH-01**: User can search across all personal documents (full-text)
-- [ ] **SRCH-02**: Search supports #tag, @mention, and !!date query syntax
-- [ ] **SRCH-03**: Search results show matching bullets; clicking a result opens it in zoomed focus view
-- [ ] **SRCH-04**: Search accessible via no-focus toolbar button and Ctrl/Cmd+P keyboard shortcut
+- [x] **SRCH-01**: User can search across all personal documents (full-text)
+- [x] **SRCH-02**: Search supports #tag, @mention, and !!date query syntax
+- [x] **SRCH-03**: Search results show matching bullets; clicking a result opens it in zoomed focus view
+- [x] **SRCH-04**: Search accessible via no-focus toolbar button and Ctrl/Cmd+F keyboard shortcut
 
 ### Bookmarks
 
-- [ ] **BM-01**: User can bookmark a bullet (via focus toolbar or context menu)
-- [ ] **BM-02**: No-focus toolbar "Bookmarks" button shows a dedicated screen of all bookmarked bullets
-- [ ] **BM-03**: Clicking a bookmark opens the bullet in zoomed focus view
+- [x] **BM-01**: User can bookmark a bullet (via focus toolbar or context menu)
+- [x] **BM-02**: No-focus toolbar "Bookmarks" button shows a dedicated screen of all bookmarked bullets
+- [x] **BM-03**: Clicking a bookmark opens the bullet in zoomed focus view
 
 ### Comments
 
@@ -159,8 +159,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BULL-06 | Phase 2 | Complete |
 | BULL-07 | Phase 2 | Complete |
 | BULL-08 | Phase 2 | Complete |
-| BULL-09 | Phase 3 | Pending |
-| BULL-10 | Phase 3 | Pending |
+| BULL-09 | Phase 3 | Complete |
+| BULL-10 | Phase 3 | Complete |
 | BULL-11 | Phase 2 | Complete |
 | BULL-12 | Phase 2 | Complete |
 | BULL-13 | Phase 2 | Complete |
@@ -179,18 +179,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MOB-03 | Phase 4 | Pending |
 | MOB-04 | Phase 4 | Pending |
 | MOB-05 | Phase 4 | Pending |
-| TAG-01 | Phase 3 | Pending |
-| TAG-02 | Phase 3 | Pending |
-| TAG-03 | Phase 3 | Pending |
-| TAG-04 | Phase 3 | Pending |
-| TAG-05 | Phase 3 | Pending |
-| SRCH-01 | Phase 3 | Pending |
-| SRCH-02 | Phase 3 | Pending |
-| SRCH-03 | Phase 3 | Pending |
-| SRCH-04 | Phase 3 | Pending |
-| BM-01 | Phase 3 | Pending |
-| BM-02 | Phase 3 | Pending |
-| BM-03 | Phase 3 | Pending |
+| TAG-01 | Phase 3 | Complete |
+| TAG-02 | Phase 3 | Complete |
+| TAG-03 | Phase 3 | Complete |
+| TAG-04 | Phase 3 | Complete |
+| TAG-05 | Phase 3 | Complete |
+| SRCH-01 | Phase 3 | Complete |
+| SRCH-02 | Phase 3 | Complete |
+| SRCH-03 | Phase 3 | Complete |
+| SRCH-04 | Phase 3 | Complete |
+| BM-01 | Phase 3 | Complete |
+| BM-02 | Phase 3 | Complete |
+| BM-03 | Phase 3 | Complete |
 | CMT-01 | Phase 4 | Pending |
 | CMT-02 | Phase 4 | Pending |
 | CMT-03 | Phase 4 | Pending |

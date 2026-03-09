@@ -3,6 +3,21 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
+stopped_at: Completed 03-rich-content-08-PLAN.md
+last_updated: "2026-03-09T13:38:41.791Z"
+last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
+progress:
+  total_phases: 4
+  completed_phases: 2
+  total_plans: 23
+  completed_plans: 22
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: executing
 stopped_at: Completed 02-core-outliner-08-PLAN.md
 last_updated: "2026-03-09T11:22:14.702Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
@@ -67,6 +82,14 @@ Progress: [█████░░░░░] 50%
 | Phase 02-core-outliner P06 | 4min | 2 tasks | 5 files |
 | Phase 02-core-outliner P07 | 3min | 2 tasks | 4 files |
 | Phase 02-core-outliner P08 | 3min | 2 tasks | 1 files |
+| Phase 03-rich-content P01 | 2min | 3 tasks | 9 files |
+| Phase 03-rich-content P02 | 5min | 2 tasks | 3 files |
+| Phase 03-rich-content P03 | 1min | 2 tasks | 2 files |
+| Phase 03-rich-content P04 | 5 | 2 tasks | 4 files |
+| Phase 03-rich-content P05 | 5min | 2 tasks | 7 files |
+| Phase 03-rich-content P07 | 3min | 2 tasks | 4 files |
+| Phase 03-rich-content P06 | 3min | 2 tasks | 5 files |
+| Phase 03-rich-content P08 | 2min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -115,6 +138,24 @@ Recent decisions affecting current work:
 - [Phase 02-core-outliner]: DocumentToolbar rendered outside SortableContext — dnd-kit would capture toolbar pointer events inside SortableContext
 - [Phase 02-core-outliner]: BulletTree DnD logic uses visibleItems (not flatItems) when hide-completed active — prevents stale index lookups with hidden bullets
 - [Phase 02-core-outliner]: RED scaffold tests implemented as pure logic tests without React mounting
+- [Phase 03-rich-content]: bookmarks table uses uniqueIndex on (userId, bulletId) — enforced at DB level, prevents duplicate bookmarks
+- [Phase 03-rich-content]: marked@17 + dompurify@3 installed together — marked renders markdown to HTML, dompurify sanitizes before display
+- [Phase 03-rich-content]: Client chip tests operate on plain strings not HTML (renderWithChips input is plain text) — simplifies implementation surface
+- [Phase 03-rich-content]: addBookmark uses onConflictDoNothing — idempotent, no error on duplicate (userId, bulletId)
+- [Phase 03-rich-content]: searchBullets strips leading chip prefix before ILIKE — #milk searches for milk
+- [Phase 03-rich-content]: getTagCounts uses Number(row.count) cast — pg driver returns numeric aggregates as strings in raw sql mode
+- [Phase 03-rich-content]: canvasView and sidebarTab excluded from zustand persist via partialize — transient UI state resets on page reload
+- [Phase 03-rich-content]: CanvasView type exported from uiStore.ts as single canonical import for all canvas view consumers
+- [Phase 03-rich-content]: BulletContent isEditing: span for view mode + contenteditable div for edit mode — never set innerHTML on contenteditable
+- [Phase 03-rich-content]: useLayoutEffect to set textContent + focus on edit mode entry — runs synchronously before browser paint
+- [Phase 03-rich-content]: !! date picker trigger: only when content has !! but not !![ — prevents re-triggering on already-inserted date chips
+- [Phase 03-rich-content]: Route handlers cast req.user as { id: string } — consistent with existing bullets.ts pattern, avoids Passport User type mismatch
+- [Phase 03-rich-content]: ChipType cast in tags route — route layer accepts string URL param, service layer enforces valid ChipType values internally
+- [Phase 03-rich-content]: SearchModal uses position:fixed mounted inside DocumentToolbar — renders correctly in viewport regardless of DOM tree
+- [Phase 03-rich-content]: canvasView consumed in DocumentView with early return before main BulletTree render — keeps filtered vs document branches fully separate
+- [Phase 03-rich-content]: DocumentRow (not DocumentList) holds setCanvasView reset — navigation happens in DocumentRow onClick; DocumentList is a pure DnD wrapper
+- [Phase 03-rich-content]: BookmarkRow.id is the bullet ID (not the bookmark record ID) — getUserBookmarks returns bullets.id per service JOIN
+- [Phase 03-rich-content]: ContextMenu calls useBookmarks() directly to determine isBookmarked state per bullet, not passed as prop
 
 ### Pending Todos
 
@@ -128,6 +169,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T11:22:14.700Z
-Stopped at: Completed 02-core-outliner-08-PLAN.md
+Last session: 2026-03-09T13:38:41.783Z
+Stopped at: Completed 03-rich-content-08-PLAN.md
 Resume file: None

@@ -5,7 +5,7 @@ import { apiClient } from '../api/client';
 
 export function useGlobalKeyboard() {
   const queryClient = useQueryClient();
-  const { sidebarOpen, setSidebarOpen } = useUiStore();
+  const { sidebarOpen, setSidebarOpen, setSearchOpen, setCanvasView } = useUiStore();
 
   const handleUndo = useCallback(async () => {
     await apiClient.post('/api/undo', {});
@@ -50,22 +50,22 @@ export function useGlobalKeyboard() {
         setSidebarOpen(!sidebarOpen);
         return;
       }
-      // Ctrl+P = search (Phase 3 — no-op stub)
-      if (e.key === 'p') {
+      // Ctrl+F = open search modal (blocks browser find bar)
+      if (e.key === 'f') {
         e.preventDefault();
-        console.log('[Phase 3] Search not yet implemented');
+        setSearchOpen(true);
         return;
       }
-      // Ctrl+* = bookmarks (Phase 3 — no-op stub)
+      // Ctrl+* = bookmarks canvas view
       // '*' key = Shift+8, so check e.key === '*'
       if (e.key === '*') {
         e.preventDefault();
-        console.log('[Phase 3] Bookmarks not yet implemented');
+        setCanvasView({ type: 'bookmarks' });
         return;
       }
     }
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [handleUndo, handleRedo, sidebarOpen, setSidebarOpen]);
+  }, [handleUndo, handleRedo, sidebarOpen, setSidebarOpen, setSearchOpen, setCanvasView]);
 }

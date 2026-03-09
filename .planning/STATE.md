@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-03-09T20:23:20.637Z"
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-03-09T20:27:33.469Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 31
-  completed_plans: 25
+  completed_plans: 26
   percent: 100
 ---
 
@@ -109,6 +109,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03-rich-content P09 | 5 | 3 tasks | 1 files |
 | Phase 04-attachments-comments-and-mobile P01 | 2min | 3 tasks | 8 files |
 | Phase 04-attachments-comments-and-mobile P02 | 8min | 2 tasks | 5 files |
+| Phase 04-attachments-comments-and-mobile P03 | 5min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -180,6 +181,9 @@ Recent decisions affecting current work:
 - [Phase 04-attachments-comments-and-mobile]: pdfjs-dist mocked with vi.mock() at module level so pdfThumbnail test runs even before pdfjs-dist is installed
 - [Phase 04-attachments-comments-and-mobile]: patchBullet has no undo recording — note updates are lightweight metadata, not structural ops
 - [Phase 04-attachments-comments-and-mobile]: empty string normalized to null at route layer, not service layer — keeps service pure
+- [Phase 04-attachments-comments-and-mobile]: multer diskStorage to /data/attachments with UUID filename via node:crypto — no uuid package dependency
+- [Phase 04-attachments-comments-and-mobile]: apiClient.upload() omits Content-Type — browser sets multipart boundary automatically
+- [Phase 04-attachments-comments-and-mobile]: res.sendFile with root:'/' for inline attachment serving — preferred over res.download()
 
 ### Pending Todos
 
@@ -193,6 +197,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T20:23:20.633Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-03-09T20:27:33.466Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None

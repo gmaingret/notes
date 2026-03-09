@@ -139,24 +139,78 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01–05 | Phase 1 | Pending |
-| DOC-01–07 | Phase 1 | Pending |
-| BULL-01–16 | Phase 2 | Pending |
-| KB-01–07 | Phase 2 | Pending |
-| UNDO-01–04 | Phase 3 | Pending |
-| MOB-01–05 | Phase 4 | Pending |
-| BULL-05 (drag-and-drop) | Phase 4 | Pending |
-| TAG-01–05 | Phase 5 | Pending |
-| SRCH-01–04 | Phase 5 | Pending |
-| ATT-01–06 | Phase 6 | Pending |
-| CMT-01–04 | Phase 6 | Pending |
-| BM-01–03 | Phase 5 | Pending |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| AUTH-04 | Phase 1 | Pending |
+| AUTH-05 | Phase 1 | Pending |
+| DOC-01 | Phase 1 | Pending |
+| DOC-02 | Phase 1 | Pending |
+| DOC-03 | Phase 1 | Pending |
+| DOC-04 | Phase 1 | Pending |
+| DOC-05 | Phase 1 | Pending |
+| DOC-06 | Phase 1 | Pending |
+| DOC-07 | Phase 1 | Pending |
+| BULL-01 | Phase 2 | Pending |
+| BULL-02 | Phase 2 | Pending |
+| BULL-03 | Phase 2 | Pending |
+| BULL-04 | Phase 2 | Pending |
+| BULL-05 | Phase 2 | Pending |
+| BULL-06 | Phase 2 | Pending |
+| BULL-07 | Phase 2 | Pending |
+| BULL-08 | Phase 2 | Pending |
+| BULL-09 | Phase 3 | Pending |
+| BULL-10 | Phase 3 | Pending |
+| BULL-11 | Phase 2 | Pending |
+| BULL-12 | Phase 2 | Pending |
+| BULL-13 | Phase 2 | Pending |
+| BULL-14 | Phase 2 | Pending |
+| BULL-15 | Phase 2 | Pending |
+| BULL-16 | Phase 4 | Pending |
+| KB-01 | Phase 2 | Pending |
+| KB-02 | Phase 2 | Pending |
+| KB-03 | Phase 2 | Pending |
+| KB-04 | Phase 2 | Pending |
+| KB-05 | Phase 2 | Pending |
+| KB-06 | Phase 2 | Pending |
+| KB-07 | Phase 2 | Pending |
+| MOB-01 | Phase 4 | Pending |
+| MOB-02 | Phase 4 | Pending |
+| MOB-03 | Phase 4 | Pending |
+| MOB-04 | Phase 4 | Pending |
+| MOB-05 | Phase 4 | Pending |
+| TAG-01 | Phase 3 | Pending |
+| TAG-02 | Phase 3 | Pending |
+| TAG-03 | Phase 3 | Pending |
+| TAG-04 | Phase 3 | Pending |
+| TAG-05 | Phase 3 | Pending |
+| SRCH-01 | Phase 3 | Pending |
+| SRCH-02 | Phase 3 | Pending |
+| SRCH-03 | Phase 3 | Pending |
+| SRCH-04 | Phase 3 | Pending |
+| BM-01 | Phase 3 | Pending |
+| BM-02 | Phase 3 | Pending |
+| BM-03 | Phase 3 | Pending |
+| CMT-01 | Phase 4 | Pending |
+| CMT-02 | Phase 4 | Pending |
+| CMT-03 | Phase 4 | Pending |
+| CMT-04 | Phase 4 | Pending |
+| ATT-01 | Phase 4 | Pending |
+| ATT-02 | Phase 4 | Pending |
+| ATT-03 | Phase 4 | Pending |
+| ATT-04 | Phase 4 | Pending |
+| ATT-05 | Phase 4 | Pending |
+| ATT-06 | Phase 4 | Pending |
+| UNDO-01 | Phase 2 | Pending |
+| UNDO-02 | Phase 2 | Pending |
+| UNDO-03 | Phase 2 | Pending |
+| UNDO-04 | Phase 2 | Pending |
 
 **Coverage:**
-- v1 requirements: 57 total
-- Mapped to phases: 57
-- Unmapped: 0 ✓
+- v1 requirements: 66 total
+- Mapped to phases: 66
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-09*
-*Last updated: 2026-03-09 after initial definition*
+*Last updated: 2026-03-09 — traceability updated after roadmap creation (4 phases)*

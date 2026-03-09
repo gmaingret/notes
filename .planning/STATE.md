@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in-progress
-stopped_at: Completed 01-02-PLAN.md — authentication backend with JWT, register/login/refresh/logout endpoints
-last_updated: "2026-03-09T09:00:00.000Z"
+status: executing
+stopped_at: Completed 01-03-PLAN.md — document CRUD routes, FLOAT8 reorder, and ZIP/Markdown export
+last_updated: "2026-03-09T08:04:53.892Z"
 last_activity: 2026-03-09 — Plan 02 complete (auth backend, 29 tests pass)
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 6
-  completed_plans: 3
-  percent: 33
+  completed_plans: 4
+  percent: 67
 ---
 
 # Project State
@@ -26,27 +26,27 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 ## Current Position
 
 Phase: 1 of 4 (Foundation)
-Plan: 3 of 6 in current phase
-Status: In progress — Plan 03 ready to execute
-Last activity: 2026-03-09 — Plan 02 complete (auth backend, 29 tests pass)
+Plan: 4 of 6 in current phase (Plan 03 complete)
+Status: In progress — Plan 05 ready to execute (Plans 01-04 done)
+Last activity: 2026-03-09 — Plan 03 complete (document CRUD, reorder, export — 16 tests pass)
 
-Progress: [███░░░░░░░] 33%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 20min
-- Total execution time: ~1 hour
+- Total plans completed: 4
+- Average duration: ~20min
+- Total execution time: ~1.3 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 3/6 | ~60min | ~20min |
+| 01-foundation | 4/6 | ~77min | ~19min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01, 01-04, 01-02
+- Last 5 plans: 01-01, 01-04, 01-02, 01-03
 - Trend: stable
 
 *Updated after each plan completion*
@@ -56,6 +56,7 @@ Progress: [███░░░░░░░] 33%
 | Phase 01-foundation P01 | 6min | 3 tasks | 15 files |
 | Phase 01-foundation P04 | 4min | 2 tasks | 12 files |
 | Phase 01-foundation P02 | 35min | 2 tasks | 8 files |
+| Phase 01-foundation P03 | 17 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,9 @@ Recent decisions affecting current work:
 - [Phase 01-02]: drizzle-orm 0.45.x has missing index.cjs in npm package — must use 0.40.0 + drizzle-kit 0.29.x
 - [Phase 01-02]: requireAuth uses passport.authenticate callback pattern to return 401 JSON (not HTML)
 - [Phase 01-02]: Google OAuth token sent as URL hash fragment (?token=) — hash not sent to server, prevents logging
+- [Phase 01-foundation]: export-all route registered before /:id/export — Express param collision prevention
+- [Phase 01-foundation]: computeDocumentInsertPosition accepts afterId (UUID or null) — client never computes FLOAT8 position
+- [Phase 01-foundation]: renderDocumentAsMarkdown uses 2-space indent per nesting level — locked UX decision
 
 ### Pending Todos
 
@@ -90,6 +94,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T09:00:00.000Z
-Stopped at: Completed 01-02-PLAN.md — auth backend with JWT, register/login/refresh/logout
-Resume file: .planning/phases/01-foundation/01-03-PLAN.md
+Last session: 2026-03-09T08:04:53.890Z
+Stopped at: Completed 01-03-PLAN.md — document CRUD routes, FLOAT8 reorder, and ZIP/Markdown export
+Resume file: .planning/phases/01-foundation/01-05-PLAN.md

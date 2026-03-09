@@ -5,8 +5,11 @@ import { CSS } from '@dnd-kit/utilities';
 import type { FlatBullet, BulletMap } from './BulletTree';
 import { getChildren } from './BulletTree';
 import { useSetCollapsed } from '../../hooks/useBullets';
+import { useBulletAttachments, useDeleteAttachment } from '../../hooks/useAttachments';
 import { BulletContent } from './BulletContent';
 import { ContextMenu } from './ContextMenu';
+import { NoteRow } from './NoteRow';
+import { AttachmentRow } from './AttachmentRow';
 
 type Props = {
   bullet: FlatBullet;
@@ -18,6 +21,8 @@ type Props = {
 export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: Props) {
   const navigate = useNavigate();
   const setCollapsed = useSetCollapsed();
+  const { data: attachments = [] } = useBulletAttachments(bullet.id);
+  const deleteAttachment = useDeleteAttachment();
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
 
   const {
@@ -128,19 +133,31 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
       </div>
 
       {/* Content — not rendered in drag overlay (just the dot + text stub) */}
-      <BulletContent
-        bullet={bullet}
-        bulletMap={isDragOverlay ? {} : bulletMap}
-        isDragOverlay={isDragOverlay}
-      />
-      {contextMenuPos && (
-        <ContextMenu
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <BulletContent
           bullet={bullet}
-          bulletMap={bulletMap}
-          position={contextMenuPos}
-          onClose={() => setContextMenuPos(null)}
+          bulletMap={isDragOverlay ? {} : bulletMap}
+          isDragOverlay={isDragOverlay}
         />
-      )}
+        {!isDragOverlay && bullet.note !== null && (
+          <NoteRow bulletId={bullet.id} initialNote={bullet.note} />
+        )}
+        {!isDragOverlay && attachments.map(a => (
+          <AttachmentRow
+            key={a.id}
+            attachment={a}
+            onDelete={() => deleteAttachment.mutate({ attachmentId: a.id, bulletId: bullet.id })}
+          />
+        ))}
+        {contextMenuPos && (
+          <ContextMenu
+            bullet={bullet}
+            bulletMap={bulletMap}
+            position={contextMenuPos}
+            onClose={() => setContextMenuPos(null)}
+          />
+        )}
+      </div>
     </div>
   );
 }

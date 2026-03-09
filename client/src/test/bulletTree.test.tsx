@@ -1,5 +1,20 @@
-import { describe, it } from 'vitest';
-import { flattenTree } from '../components/DocumentView/BulletTree';
+import { describe, it, expect } from 'vitest';
+import { flattenTree, buildBulletMap } from '../components/DocumentView/BulletTree';
+import type { Bullet } from '../hooks/useBullets';
+
+function makeBullet(overrides: Partial<Bullet> & { id: string }): Bullet {
+  return {
+    documentId: 'doc1',
+    userId: 'user1',
+    parentId: null,
+    content: '',
+    position: 1,
+    isComplete: false,
+    isCollapsed: false,
+    deletedAt: null,
+    ...overrides,
+  };
+}
 
 describe('zoom URL encoding', () => {
   it('zoomTo(bulletId) navigates to hash #bullet/{id}', () => {
@@ -77,18 +92,49 @@ describe('keyboard shortcuts (global)', () => {
 
 describe('flattenTree', () => {
   it('returns root bullets in position order with depth=0', () => {
-    throw new Error('not yet implemented');
+    const bullets = [
+      makeBullet({ id: 'b', position: 2 }),
+      makeBullet({ id: 'a', position: 1 }),
+      makeBullet({ id: 'c', position: 3 }),
+    ];
+    const map = buildBulletMap(bullets);
+    const flat = flattenTree(map);
+    expect(flat.map(b => b.id)).toEqual(['a', 'b', 'c']);
+    expect(flat.every(b => b.depth === 0)).toBe(true);
   });
 
   it('returns children interleaved after parent with depth=1', () => {
-    throw new Error('not yet implemented');
+    const bullets = [
+      makeBullet({ id: 'parent', position: 1 }),
+      makeBullet({ id: 'child1', parentId: 'parent', position: 1 }),
+      makeBullet({ id: 'child2', parentId: 'parent', position: 2 }),
+    ];
+    const map = buildBulletMap(bullets);
+    const flat = flattenTree(map);
+    expect(flat.map(b => b.id)).toEqual(['parent', 'child1', 'child2']);
+    expect(flat[0].depth).toBe(0);
+    expect(flat[1].depth).toBe(1);
+    expect(flat[2].depth).toBe(1);
   });
 
   it('skips children of collapsed bullets', () => {
-    throw new Error('not yet implemented');
+    const bullets = [
+      makeBullet({ id: 'parent', position: 1, isCollapsed: true }),
+      makeBullet({ id: 'child', parentId: 'parent', position: 1 }),
+    ];
+    const map = buildBulletMap(bullets);
+    const flat = flattenTree(map);
+    expect(flat.map(b => b.id)).toEqual(['parent']);
   });
 
   it('skips bullets with deletedAt set', () => {
-    throw new Error('not yet implemented');
+    const bullets = [
+      makeBullet({ id: 'a', position: 1 }),
+      makeBullet({ id: 'b', position: 2, deletedAt: '2024-01-01T00:00:00Z' }),
+      makeBullet({ id: 'c', position: 3 }),
+    ];
+    const map = buildBulletMap(bullets);
+    const flat = flattenTree(map);
+    expect(flat.map(b => b.id)).toEqual(['a', 'c']);
   });
 });

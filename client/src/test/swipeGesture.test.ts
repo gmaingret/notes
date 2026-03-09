@@ -1,16 +1,8 @@
 import { describe, it, expect } from 'vitest';
+import { swipeThresholdReached } from '../components/DocumentView/gestures';
 
-// Phase 4 RED stubs — swipe gesture threshold tests
-// Will be made GREEN in plan 04-05
-//
 // MOB-01: swipeThresholdReached returns 'complete' when swipeX > rowWidth * 0.4
 // MOB-02: swipeThresholdReached returns 'delete' when swipeX < -(rowWidth * 0.4)
-
-// Local placeholder — replace with real import in 04-05:
-// import { swipeThresholdReached } from '../components/DocumentView/BulletNode';
-const swipeThresholdReached = (_swipeX: number, _rowWidth: number): 'complete' | 'delete' | null => {
-  throw new Error('not implemented — implement in 04-05');
-};
 
 describe('swipeThresholdReached', () => {
   it('returns complete when swipeX exceeds 40% of row width (right swipe)', () => {

@@ -1,23 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { createLongPressHandler } from '../components/DocumentView/gestures';
 
-// Phase 4 RED stubs — long press handler tests
-// Will be made GREEN in plan 04-05
-//
 // BULL-16 / MOB-03: createLongPressHandler returns {handleTouchStart, handleTouchMove, handleTouchEnd}
 // Long press fires after 500ms with no touchmove > 8px
 // touchmove > 8px cancels timer (onLongPress not called)
-
-// Local placeholder — replace with real import in 04-05:
-// import { createLongPressHandler } from '../utils/longPressHandler';
-type LongPressHandler = {
-  handleTouchStart: (e: { touches: { clientX: number; clientY: number }[] }) => void;
-  handleTouchMove: (e: { touches: { clientX: number; clientY: number }[] }) => void;
-  handleTouchEnd: () => void;
-};
-
-const createLongPressHandler = (_opts: { onLongPress: () => void; delay?: number }): LongPressHandler => {
-  throw new Error('not implemented — implement in 04-05');
-};
 
 describe('createLongPressHandler', () => {
   beforeEach(() => {

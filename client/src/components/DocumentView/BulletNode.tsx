@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -6,6 +6,7 @@ import type { FlatBullet, BulletMap } from './BulletTree';
 import { getChildren } from './BulletTree';
 import { useSetCollapsed } from '../../hooks/useBullets';
 import { BulletContent } from './BulletContent';
+import { ContextMenu } from './ContextMenu';
 
 type Props = {
   bullet: FlatBullet;
@@ -17,6 +18,7 @@ type Props = {
 export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: Props) {
   const navigate = useNavigate();
   const setCollapsed = useSetCollapsed();
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
 
   const {
     attributes,
@@ -68,6 +70,10 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
         opacity: bullet.isComplete ? 0.5 : 1,
         textDecoration: bullet.isComplete ? 'line-through' : 'none',
         ...style,
+      }}
+      onContextMenu={isDragOverlay ? undefined : (e) => {
+        e.preventDefault();
+        setContextMenuPos({ x: e.clientX, y: e.clientY });
       }}
     >
       {/* Chevron column — always reserves space, only shows icon when children exist */}
@@ -121,6 +127,14 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
         bulletMap={isDragOverlay ? {} : bulletMap}
         isDragOverlay={isDragOverlay}
       />
+      {contextMenuPos && (
+        <ContextMenu
+          bullet={bullet}
+          bulletMap={bulletMap}
+          position={contextMenuPos}
+          onClose={() => setContextMenuPos(null)}
+        />
+      )}
     </div>
   );
 }

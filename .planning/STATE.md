@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-core-outliner-02-PLAN.md
-last_updated: "2026-03-09T10:53:51.222Z"
+stopped_at: Completed 02-core-outliner-03-PLAN.md
+last_updated: "2026-03-09T11:00:13.780Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 14
-  completed_plans: 8
+  completed_plans: 9
   percent: 50
 ---
 
@@ -61,6 +61,7 @@ Progress: [█████░░░░░] 50%
 | Phase 01-foundation P06 | 35min | 1 tasks | 8 files |
 | Phase 02-core-outliner P01 | 8min | 4 tasks | 5 files |
 | Phase 02-core-outliner P02 | 4min | 2 tasks | 4 files |
+| Phase 02-core-outliner P03 | 4min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,9 @@ Recent decisions affecting current work:
 - [Phase 02-core-outliner]: Use node:crypto randomUUID instead of uuid package — uuid not in server/package.json; avoids new dependency
 - [Phase 02-core-outliner]: recordUndoEvent takes dbInstance param — callers pass active transaction handle for atomic bullet mutation + undo event
 - [Phase 02-core-outliner]: applyOp in undoService executes ops directly via Drizzle — prevents circular dependency with bulletService
+- [Phase 02-core-outliner]: DB type changed from NodePgDatabase to PgDatabase<any> to accept both db and transaction handles in service functions
+- [Phase 02-core-outliner]: undoRouter mounted at /api (not /api/undo) to handle /undo, /redo, /undo/status as separate paths
+- [Phase 02-core-outliner]: Content PATCH bypasses undo at route level; client calls POST /:id/undo-checkpoint after debounce timeout
 
 ### Pending Todos
 
@@ -108,6 +112,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T10:53:51.219Z
-Stopped at: Completed 02-core-outliner-02-PLAN.md
+Last session: 2026-03-09T11:00:13.777Z
+Stopped at: Completed 02-core-outliner-03-PLAN.md
 Resume file: None

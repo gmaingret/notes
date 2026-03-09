@@ -37,9 +37,9 @@
 - [ ] **BULL-10**: Markdown renders on blur/Enter/Esc; raw markdown shows while editing (Dynalist-style live toggle)
 - [x] **BULL-11**: User can soft-delete a bullet (undo restores it with all children)
 - [x] **BULL-12**: User can mark a bullet complete (strikethrough + 50% opacity, stays in position)
-- [ ] **BULL-13**: User can hide completed bullets via "Hide completed" toolbar toggle
-- [ ] **BULL-14**: User can bulk delete all completed bullets (irreversible; permanently purges)
-- [ ] **BULL-15**: Desktop: right-click bullet → context menu (indent, outdent, move, complete, delete, bookmark, attachment, comment)
+- [x] **BULL-13**: User can hide completed bullets via "Hide completed" toolbar toggle
+- [x] **BULL-14**: User can bulk delete all completed bullets (irreversible; permanently purges)
+- [x] **BULL-15**: Desktop: right-click bullet → context menu (indent, outdent, move, complete, delete, bookmark, attachment, comment)
 - [ ] **BULL-16**: Mobile: long press bullet → context menu (same actions)
 
 ### Keyboard Shortcuts (Desktop)
@@ -163,9 +163,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BULL-10 | Phase 3 | Pending |
 | BULL-11 | Phase 2 | Complete |
 | BULL-12 | Phase 2 | Complete |
-| BULL-13 | Phase 2 | Pending |
-| BULL-14 | Phase 2 | Pending |
-| BULL-15 | Phase 2 | Pending |
+| BULL-13 | Phase 2 | Complete |
+| BULL-14 | Phase 2 | Complete |
+| BULL-15 | Phase 2 | Complete |
 | BULL-16 | Phase 4 | Pending |
 | KB-01 | Phase 2 | Complete |
 | KB-02 | Phase 2 | Complete |

@@ -1,6 +1,5 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import type { FlatBullet, BulletMap } from './BulletTree';
 import { getChildren } from './BulletTree';
 import {
@@ -12,7 +11,6 @@ import {
   useMoveBullet,
   useBulletUndoCheckpoint,
 } from '../../hooks/useBullets';
-import { apiClient } from '../../api/client';
 
 // ─── Cursor helpers ────────────────────────────────────────────────────────────
 

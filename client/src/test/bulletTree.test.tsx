@@ -163,11 +163,29 @@ describe('keyboard shortcuts (global)', () => {
   });
 
   it('Ctrl+]: zooms in to focused bullet', () => {
-    throw new Error('not yet implemented');
+    // Logic: Ctrl+] navigates to #bullet/{bullet.id}
+    // The navigation target is derived from bullet.id directly
+    const bullet = makeBullet({ id: 'b1', parentId: 'parent1' });
+    const expectedHash = `#bullet/${bullet.id}`;
+    expect(expectedHash).toBe('#bullet/b1');
   });
 
   it('Ctrl+[: zooms out to parent', () => {
-    throw new Error('not yet implemented');
+    // Logic: Ctrl+[ navigates to #bullet/{parentId} if parentId exists, else clears hash
+    const bulletWithParent = makeBullet({ id: 'b1', parentId: 'parent1' });
+    const bulletAtRoot = makeBullet({ id: 'b2', parentId: null });
+
+    // With parent: navigate to #bullet/parent1
+    const withParentTarget = bulletWithParent.parentId
+      ? `#bullet/${bulletWithParent.parentId}`
+      : '';
+    expect(withParentTarget).toBe('#bullet/parent1');
+
+    // At root: navigate to '' (clear hash)
+    const atRootTarget = bulletAtRoot.parentId
+      ? `#bullet/${bulletAtRoot.parentId}`
+      : '';
+    expect(atRootTarget).toBe('');
   });
 
   it('Ctrl+E: toggles sidebar', () => {

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 3 context gathered
-last_updated: "2026-03-09T12:55:21.173Z"
+stopped_at: Completed 03-rich-content-01-PLAN.md
+last_updated: "2026-03-09T13:20:42.411Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 14
-  completed_plans: 14
+  total_plans: 23
+  completed_plans: 15
 ---
 
 ---
@@ -82,6 +82,7 @@ Progress: [█████░░░░░] 50%
 | Phase 02-core-outliner P06 | 4min | 2 tasks | 5 files |
 | Phase 02-core-outliner P07 | 3min | 2 tasks | 4 files |
 | Phase 02-core-outliner P08 | 3min | 2 tasks | 1 files |
+| Phase 03-rich-content P01 | 2min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -130,6 +131,9 @@ Recent decisions affecting current work:
 - [Phase 02-core-outliner]: DocumentToolbar rendered outside SortableContext — dnd-kit would capture toolbar pointer events inside SortableContext
 - [Phase 02-core-outliner]: BulletTree DnD logic uses visibleItems (not flatItems) when hide-completed active — prevents stale index lookups with hidden bullets
 - [Phase 02-core-outliner]: RED scaffold tests implemented as pure logic tests without React mounting
+- [Phase 03-rich-content]: bookmarks table uses uniqueIndex on (userId, bulletId) — enforced at DB level, prevents duplicate bookmarks
+- [Phase 03-rich-content]: marked@17 + dompurify@3 installed together — marked renders markdown to HTML, dompurify sanitizes before display
+- [Phase 03-rich-content]: Client chip tests operate on plain strings not HTML (renderWithChips input is plain text) — simplifies implementation surface
 
 ### Pending Todos
 
@@ -143,6 +147,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T12:55:21.170Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-rich-content/03-CONTEXT.md
+Last session: 2026-03-09T13:20:34.113Z
+Stopped at: Completed 03-rich-content-01-PLAN.md
+Resume file: None

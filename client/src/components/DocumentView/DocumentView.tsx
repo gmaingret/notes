@@ -7,6 +7,7 @@ import { useDocumentBullets } from '../../hooks/useBullets';
 import { useUiStore } from '../../store/uiStore';
 import { useTagBullets } from '../../hooks/useTags';
 import { FilteredBulletList, type FilteredBulletRow } from './FilteredBulletList';
+import { useBookmarks, useRemoveBookmark } from '../../hooks/useBookmarks';
 
 type Props = { document: Document };
 
@@ -16,6 +17,9 @@ export function DocumentView({ document }: Props) {
   const { canvasView, setCanvasView } = useUiStore();
   const { data: flatBullets = [] } = useDocumentBullets(document.id);
   const bulletMap = useMemo(() => buildBulletMap(flatBullets), [flatBullets]);
+
+  const { data: bookmarkedBullets = [], isLoading: bookmarksLoading } = useBookmarks();
+  const removeBookmark = useRemoveBookmark();
 
   const isFiltered = canvasView.type === 'filtered';
   const { data: tagBullets, isLoading: tagBulletsLoading } = useTagBullets(
@@ -29,6 +33,32 @@ export function DocumentView({ document }: Props) {
     const match = hash.match(/^#bullet\/(.+)$/);
     return match ? match[1] : null;
   }, [location.hash]);
+
+  if (canvasView.type === 'bookmarks') {
+    const rows: FilteredBulletRow[] = bookmarkedBullets.map(b => ({
+      bulletId: b.id,
+      bulletContent: b.content,
+      documentId: b.documentId,
+      documentTitle: b.documentTitle,
+      isBookmarked: true,
+    }));
+    return (
+      <div style={{ padding: '2rem 3rem', maxWidth: 720, margin: '0 auto' }}>
+        <FilteredBulletList
+          title="Bookmarks"
+          rows={rows}
+          onRowClick={(row) => {
+            navigate(`/doc/${row.documentId}#bullet/${row.bulletId}`);
+            setCanvasView({ type: 'document' });
+          }}
+          onToggleBookmark={(row) => {
+            removeBookmark.mutate(row.bulletId);
+          }}
+          isLoading={bookmarksLoading}
+        />
+      </div>
+    );
+  }
 
   if (canvasView.type === 'filtered') {
     const cv = canvasView as { type: 'filtered'; chipType: 'tag' | 'mention' | 'date'; chipValue: string };

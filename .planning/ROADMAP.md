@@ -29,7 +29,15 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A new user lands in a blank "Inbox" document automatically created on first login
   4. User can create, rename, reorder, and delete documents from the sidebar and navigate between them
   5. User can export any document or all documents as Markdown files
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Infrastructure, Drizzle schema (5 tables), Docker, test scaffolds
+- [ ] 01-02-PLAN.md — Auth backend: register, login, refresh, logout, Google OAuth
+- [ ] 01-03-PLAN.md — Documents backend: CRUD, reorder, export endpoints
+- [ ] 01-04-PLAN.md — Frontend scaffold: Vite, AuthContext, LoginPage, React Router
+- [ ] 01-05-PLAN.md — App shell: Sidebar, DocumentList (dnd-kit), DocumentRow, DocumentView
+- [ ] 01-06-PLAN.md — Deploy to production, E2E smoke test, Google SSO human checkpoint
 
 ### Phase 2: Core Outliner
 **Goal**: Users can capture and organize thoughts in an infinitely nested bullet outline with full keyboard control and undo that survives page refresh
@@ -74,7 +82,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/TBD | Not started | - |
+| 1. Foundation | 0/6 | Planning done | - |
 | 2. Core Outliner | 0/TBD | Not started | - |
 | 3. Rich Content | 0/TBD | Not started | - |
 | 4. Attachments, Comments, and Mobile | 0/TBD | Not started | - |

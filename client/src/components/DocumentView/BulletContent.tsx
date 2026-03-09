@@ -626,11 +626,29 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       const nextSibling = siblings[myIdx + 1];
       if (!nextSibling) return;
 
+      const nextSiblingChildren = getChildren(bulletMap, nextSibling.id).filter(b => !b.deletedAt);
       const mergedContent = (el.textContent ?? '') + nextSibling.content;
       const cursorOffset = (el.textContent ?? '').length;
 
       patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: mergedContent });
-      softDeleteBullet.mutate({ id: nextSibling.id, documentId: bullet.documentId });
+
+      if (nextSiblingChildren.length > 0) {
+        // Re-parent nextSibling's children to current bullet, then delete nextSibling.
+        // Insert in reverse order each as first child to preserve original ordering.
+        void (async () => {
+          for (const child of [...nextSiblingChildren].reverse()) {
+            await moveBullet.mutateAsync({
+              id: child.id,
+              documentId: bullet.documentId,
+              newParentId: bullet.id,
+              afterId: null,
+            });
+          }
+          softDeleteBullet.mutate({ id: nextSibling.id, documentId: bullet.documentId });
+        })();
+      } else {
+        softDeleteBullet.mutate({ id: nextSibling.id, documentId: bullet.documentId });
+      }
 
       setTimeout(() => {
         const myEl = document.getElementById(`bullet-${bullet.id}`) as HTMLDivElement | null;

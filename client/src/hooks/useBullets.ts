@@ -20,7 +20,7 @@ function bulletKey(documentId: string) {
 export function useDocumentBullets(documentId: string) {
   return useQuery<Bullet[]>({
     queryKey: bulletKey(documentId),
-    queryFn: () => apiClient.get<Bullet[]>(`/api/documents/${documentId}/bullets`),
+    queryFn: () => apiClient.get<Bullet[]>(`/api/bullets/documents/${documentId}/bullets`),
     enabled: !!documentId,
   });
 }

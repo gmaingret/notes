@@ -114,6 +114,30 @@ bulletsRouter.patch('/:id', async (req, res) => {
   }
 });
 
+// BULL-14: Hard-delete all completed bullets in a document (no undo)
+// DELETE /api/bullets/documents/:docId/completed
+// NOTE: Must be defined BEFORE /:id to avoid Express param collision
+bulletsRouter.delete('/documents/:docId/completed', async (req, res) => {
+  const user = req.user as { id: string };
+  try {
+    await db
+      .delete(bullets)
+      .where(
+        and(
+          eq(bullets.documentId, req.params.docId),
+          eq(bullets.userId, user.id),
+          eq(bullets.isComplete, true),
+          isNull(bullets.deletedAt)
+        )
+      );
+    return res.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message.toLowerCase() : '';
+    if (msg.includes('not found')) return res.status(404).json({ error: 'Not found' });
+    throw err;
+  }
+});
+
 // BULL-05: Soft delete a bullet
 // DELETE /api/bullets/:id
 bulletsRouter.delete('/:id', async (req, res) => {
@@ -189,30 +213,6 @@ bulletsRouter.post('/:id/move', async (req, res) => {
     }
     if (msg.includes('not found')) return res.status(404).json({ error: 'Not found' });
     if (msg.includes('unauthorized')) return res.status(403).json({ error: 'Forbidden' });
-    throw err;
-  }
-});
-
-// BULL-14: Hard-delete all completed bullets in a document (no undo)
-// DELETE /api/bullets/documents/:docId/completed
-// NOTE: Must be defined BEFORE /:id to avoid Express param collision
-bulletsRouter.delete('/documents/:docId/completed', async (req, res) => {
-  const user = req.user as { id: string };
-  try {
-    await db
-      .delete(bullets)
-      .where(
-        and(
-          eq(bullets.documentId, req.params.docId),
-          eq(bullets.userId, user.id),
-          eq(bullets.isComplete, true),
-          isNull(bullets.deletedAt)
-        )
-      );
-    return res.json({ ok: true });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message.toLowerCase() : '';
-    if (msg.includes('not found')) return res.status(404).json({ error: 'Not found' });
     throw err;
   }
 });

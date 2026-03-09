@@ -9,7 +9,7 @@ import {
 } from '@dnd-kit/core';
 import type { DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useDocumentBullets, useMoveBullet } from '../../hooks/useBullets';
+import { useDocumentBullets, useMoveBullet, useCreateBullet } from '../../hooks/useBullets';
 import type { Bullet } from '../../hooks/useBullets';
 import { BulletNode } from './BulletNode';
 import { DocumentToolbar } from './DocumentToolbar';
@@ -67,8 +67,9 @@ export function BulletTree({
   documentId: string;
   zoomedBulletId?: string | null;
 }) {
-  const { data: flatBullets = [] } = useDocumentBullets(documentId);
+  const { data: flatBullets = [], isLoading } = useDocumentBullets(documentId);
   const moveBullet = useMoveBullet();
+  const createBullet = useCreateBullet();
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragOffsetX, setDragOffsetX] = useState(0);
@@ -203,6 +204,21 @@ export function BulletTree({
         strategy={verticalListSortingStrategy}
       >
         <div style={{ position: 'relative' }}>
+          {visibleItems.length === 0 && !isLoading && (
+            <div
+              onClick={() => createBullet.mutate({ documentId, parentId: null, afterId: null, content: '' })}
+              style={{
+                padding: '0.2rem 0',
+                color: '#bbb',
+                cursor: 'text',
+                userSelect: 'none',
+                fontSize: '0.9375rem',
+                lineHeight: 1.6,
+              }}
+            >
+              Click to add your first bullet...
+            </div>
+          )}
           {visibleItems.map((b, idx) => (
             <div key={b.id}>
               {dropIndicatorIndex === idx && activeId && b.id !== activeId && (

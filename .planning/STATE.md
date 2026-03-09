@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-05-PLAN.md — app shell, sidebar, document management UI
-last_updated: "2026-03-09T08:10:06.567Z"
+stopped_at: Completed 01-06-PLAN.md — production deployment; awaiting Nginx port update from Greg
+last_updated: "2026-03-09T08:21:29.682Z"
 last_activity: 2026-03-09 — Plan 03 complete (document CRUD, reorder, export — 16 tests pass)
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
   percent: 67
 ---
 
@@ -58,6 +58,7 @@ Progress: [███████░░░] 67%
 | Phase 01-foundation P02 | 35min | 2 tasks | 8 files |
 | Phase 01-foundation P03 | 17 | 2 tasks | 3 files |
 | Phase 01-foundation P05 | 2min | 2 tasks | 9 files |
+| Phase 01-foundation P06 | 35min | 1 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,9 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: renderDocumentAsMarkdown uses 2-space indent per nesting level — locked UX decision
 - [Phase 01-foundation]: apiClient.download() added for blob/file responses — avoids storing token in localStorage
 - [Phase 01-foundation]: 3-dot menu hidden by default; revealed via CSS opacity on hover/focus-within (locked UX decision, Phase 01-05)
+- [Phase 01-foundation]: Dockerfile CMD path is server/dist/src/index.js — TypeScript rootDir='.' emits src/ and db/ to dist/src/ and dist/db/
+- [Phase 01-foundation]: Nginx proxy must target port 8000 on Docker host — port 3000 is occupied by outlinergod-backend-1 container
+- [Phase 01-foundation]: vite.config.ts must use defineConfig from vitest/config to support the 'test' property without TS error
 
 ### Pending Todos
 
@@ -97,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T08:10:06.565Z
-Stopped at: Completed 01-05-PLAN.md — app shell, sidebar, document management UI
+Last session: 2026-03-09T08:21:29.679Z
+Stopped at: Completed 01-06-PLAN.md — production deployment; awaiting Nginx port update from Greg
 Resume file: None

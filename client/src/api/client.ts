@@ -61,6 +61,14 @@ class ApiClient {
   delete<T>(path: string, options?: RequestOptions) {
     return this.request<T>(path, { ...options, method: 'DELETE' });
   }
+
+  async download(path: string): Promise<Response> {
+    const headers: Record<string, string> = {};
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+    return fetch(`${BASE}${path}`, { headers, credentials: 'include' });
+  }
 }
 
 export const apiClient = new ApiClient();

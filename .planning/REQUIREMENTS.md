@@ -7,10 +7,10 @@
 
 ### Authentication
 
-- [ ] **AUTH-01**: User can register an account with email and password
-- [ ] **AUTH-02**: User can log in with email and password (JWT session, persists across refresh)
-- [ ] **AUTH-03**: User can log in with Google SSO (OAuth 2.0)
-- [ ] **AUTH-04**: User can log out via sidebar button
+- [x] **AUTH-01**: User can register an account with email and password
+- [x] **AUTH-02**: User can log in with email and password (JWT session, persists across refresh)
+- [x] **AUTH-03**: User can log in with Google SSO (OAuth 2.0)
+- [x] **AUTH-04**: User can log out via sidebar button
 - [ ] **AUTH-05**: New user automatically gets a blank "Inbox" document on first login
 
 ### Documents
@@ -139,10 +139,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
-| AUTH-04 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Complete |
+| AUTH-02 | Phase 1 | Complete |
+| AUTH-03 | Phase 1 | Complete |
+| AUTH-04 | Phase 1 | Complete |
 | AUTH-05 | Phase 1 | Pending |
 | DOC-01 | Phase 1 | Pending |
 | DOC-02 | Phase 1 | Pending |

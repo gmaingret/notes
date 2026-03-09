@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-03-09T07:23:34.596Z"
+stopped_at: Completed 01-04-PLAN.md — React frontend scaffold and auth UI
+last_updated: "2026-03-09T07:51:37.959Z"
 last_activity: 2026-03-09 — Roadmap created (4 phases, 66 requirements mapped)
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 6
+  completed_plans: 1
   percent: 0
 ---
 
@@ -50,6 +50,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01-foundation P04 | 4min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -62,6 +63,9 @@ Recent decisions affecting current work:
 - [Pre-phase]: Soft delete (`deleted_at`) on bullets from schema creation — enables undo of subtree deletions
 - [Pre-phase]: Undo system uses `undo_events` + `undo_cursors` tables with `schema_version` column — must be created in Phase 1 even though undo ships in Phase 2
 - [Pre-phase]: Plain contenteditable per bullet (not a single ProseMirror document) — tree model conflicts with ProseMirror document model
+- [Phase 01-04]: AccessToken in React context (memory only) — not localStorage — prevents XSS token theft
+- [Phase 01-04]: Google OAuth token received via URL hash fragment; AuthContext reads and cleans it via history.replaceState without navigation
+- [Phase 01-04]: RequireAuth returns null during isLoading — prevents flash-of-login on valid session
 
 ### Pending Todos
 
@@ -75,6 +79,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T07:23:34.581Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-foundation/01-CONTEXT.md
+Last session: 2026-03-09T07:51:37.956Z
+Stopped at: Completed 01-04-PLAN.md — React frontend scaffold and auth UI
+Resume file: None

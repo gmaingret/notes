@@ -75,6 +75,15 @@ function setCursorAtPosition(el: HTMLDivElement, offset: number) {
   }
 }
 
+function placeCursorAtEnd(el: HTMLElement) {
+  const range = document.createRange();
+  const sel = window.getSelection();
+  range.selectNodeContents(el);
+  range.collapse(false); // false = collapse to end
+  sel?.removeAllRanges();
+  sel?.addRange(range);
+}
+
 // ─── Shake animation style ─────────────────────────────────────────────────────
 
 const SHAKE_STYLE = `
@@ -212,15 +221,19 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     const el = divRef.current;
     if (!el) return;
     if (isEditing) {
-      // Switch to edit mode: set plain text, then focus only if not already focused.
-      // Calling el.focus() on an already-focused element (e.g. after a click) can
-      // trigger another blur+focus cycle in browsers when contentEditable changes.
+      // Switch to edit mode: set plain text, then focus + place cursor at end.
+      // If element is already focused (e.g. arrow-key navigation called focus() before
+      // enterEditMode completed), skip re-focusing but still place cursor at end —
+      // assigning textContent resets the browser selection to position 0.
       console.log('[useLayoutEffect isEditing→true] bullet', bullet.id, 'activeElement:', document.activeElement?.id, 'el===active:', document.activeElement === el);
       el.textContent = localContent;
       if (document.activeElement !== el) {
         console.log('[useLayoutEffect isEditing→true] calling el.focus() for bullet', bullet.id);
         el.focus();
       }
+      // Always place cursor at end after textContent assignment — the assignment resets
+      // the selection to position 0 regardless of whether the element was already focused.
+      placeCursorAtEnd(el);
     } else {
       // Switch to view mode: set rendered HTML
       console.log('[useLayoutEffect isEditing→false] bullet', bullet.id);

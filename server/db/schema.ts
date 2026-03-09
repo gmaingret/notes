@@ -1,6 +1,6 @@
 import {
   pgTable, uuid, text, timestamp, doublePrecision,
-  boolean, bigserial, integer, jsonb, index
+  boolean, bigserial, integer, jsonb, index, uniqueIndex
 } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
@@ -58,3 +58,13 @@ export const undoCursors = pgTable('undo_cursors', {
   userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
   currentSeq: integer('current_seq').notNull().default(0),
 });
+
+export const bookmarks = pgTable('bookmarks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  bulletId: uuid('bullet_id').notNull().references(() => bullets.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('bookmarks_user_id_idx').on(t.userId),
+  uniqueIndex('bookmarks_user_bullet_idx').on(t.userId, t.bulletId),
+]);

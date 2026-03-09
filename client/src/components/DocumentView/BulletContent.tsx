@@ -35,7 +35,6 @@ export function isCursorAtEnd(el: HTMLDivElement): boolean {
   if (!sel || sel.rangeCount === 0) return false;
   const range = sel.getRangeAt(0);
   if (!range.collapsed) return false;
-  // At end of text node
   if (range.startContainer === el) {
     return range.startOffset === el.childNodes.length;
   }
@@ -73,6 +72,15 @@ function setCursorAtPosition(el: HTMLDivElement, offset: number) {
     sel.removeAllRanges();
     sel.addRange(range);
   }
+}
+
+function placeCursorAtEnd(el: HTMLDivElement) {
+  const range = document.createRange();
+  const sel = window.getSelection();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  sel?.removeAllRanges();
+  sel?.addRange(range);
 }
 
 // ─── Shake animation style ─────────────────────────────────────────────────────
@@ -123,7 +131,7 @@ function triggerDatePicker(onDate: (date: string) => void) {
   input.style.cssText = 'position:fixed;opacity:0;pointer-events:none;top:0;left:0;';
   document.body.appendChild(input);
   input.addEventListener('change', () => {
-    onDate(input.value); // YYYY-MM-DD
+    onDate(input.value);
     document.body.removeChild(input);
   });
   input.addEventListener('blur', () => {
@@ -149,6 +157,8 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   const [localContent, setLocalContent] = useState(bullet.content);
   const [isShaking, setIsShaking] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  // Prevent focus from re-entering edit mode during programmatic blur (e.g. chip click)
+  const suppressFocusRef = useRef(false);
 
   const createBullet = useCreateBullet();
   const patchBullet = usePatchBullet();
@@ -160,7 +170,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
 
   const { setSidebarTab, setCanvasView } = useUiStore();
 
-  // Undo/redo handlers — call API and invalidate all bullet queries (global scope per UNDO-02)
   const handleUndo = useCallback(async () => {
     await apiClient.post('/api/undo', {});
     await queryClient.invalidateQueries({ queryKey: ['bullets'] });
@@ -171,35 +180,42 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     await queryClient.invalidateQueries({ queryKey: ['bullets'] });
   }, [queryClient]);
 
-  // Sync from props only when not editing
+  // Sync content from props when not editing
   useEffect(() => {
     if (!isEditing) {
       setLocalContent(bullet.content);
-      if (divRef.current) divRef.current.textContent = bullet.content;
     }
   }, [bullet.content, isEditing]);
 
-  // Set initial textContent
-  useEffect(() => {
-    if (divRef.current && divRef.current.textContent !== localContent) {
-      divRef.current.textContent = localContent;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Inject shake + chip styles once
+  // Inject styles once
   useEffect(() => {
     ensureShakeStyle();
     ensureChipStyle();
   }, []);
 
-  // When entering edit mode, set textContent and focus the div
+  // Update div content when editing mode changes
   useLayoutEffect(() => {
-    if (isEditing && divRef.current) {
-      divRef.current.textContent = localContent;
-      divRef.current.focus();
+    const el = divRef.current;
+    if (!el) return;
+    if (isEditing) {
+      el.textContent = localContent;
+      if (document.activeElement !== el) {
+        el.focus();
+      }
+      placeCursorAtEnd(el);
+    } else {
+      el.innerHTML = renderWithChips(renderBulletMarkdown(localContent));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing]);
+
+  // Keep view-mode HTML in sync when localContent changes while not editing
+  useLayoutEffect(() => {
+    const el = divRef.current;
+    if (!el || isEditing) return;
+    el.innerHTML = renderWithChips(renderBulletMarkdown(localContent));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localContent]);
 
   function triggerShake() {
     setIsShaking(true);
@@ -212,7 +228,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     const content = el.textContent ?? '';
     setLocalContent(content);
 
-    // Detect !! trigger for date picker (only when not already a date chip)
     if (content.includes('!!') && !content.includes('!![')) {
       triggerDatePicker((date: string) => {
         if (!divRef.current) return;
@@ -228,15 +243,17 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
       patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content });
       undoCheckpoint.mutate({ id: bullet.id, content });
     }, 1000);
   }
 
   function handleBlur() {
-    // Flush any pending save timer immediately
+    // Flush any pending save immediately
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
       const content = divRef.current?.textContent ?? '';
       if (content !== bullet.content) {
         patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content });
@@ -246,27 +263,36 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     setIsEditing(false);
   }
 
-  function handleRenderedClick(e: React.MouseEvent<HTMLSpanElement>) {
+  function handleFocus() {
+    if (suppressFocusRef.current) return;
+    if (!isEditing) {
+      setIsEditing(true);
+    }
+    if (onFocus) onFocus();
+  }
+
+  // Handle chip clicks in view mode without entering edit mode
+  function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    if (isEditing) return;
     const target = e.target as HTMLElement;
     const chipType = target.dataset.chipType as 'tag' | 'mention' | 'date' | undefined;
     const chipValue = target.dataset.chipValue;
     if (chipType && chipValue) {
-      e.stopPropagation();
+      e.preventDefault(); // Prevent focus → edit mode
       if (chipType === 'tag' || chipType === 'mention') {
         setSidebarTab('tags');
         setCanvasView({ type: 'filtered', chipType, chipValue });
       } else if (chipType === 'date') {
-        // Open date picker to edit the date
+        suppressFocusRef.current = true;
         triggerDatePicker((newDate: string) => {
+          suppressFocusRef.current = false;
           const updated = localContent.replace(`!![${chipValue}]`, `!![${newDate}]`);
           setLocalContent(updated);
           patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: updated });
         });
+        setTimeout(() => { suppressFocusRef.current = false; }, 500);
       }
-      return;
     }
-    // Not a chip — switch to edit mode
-    setIsEditing(true);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
@@ -277,52 +303,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     if (e.key === 'Escape') {
       e.preventDefault();
       divRef.current?.blur();
-      return;
-    }
-
-    // ── Ctrl/Cmd+B: bold ───────────────────────────────────────────────────
-    if (isMeta && e.key === 'b') {
-      e.preventDefault();
-      wrapSelection('**');
-      return;
-    }
-
-    // ── Ctrl/Cmd+I: italic ────────────────────────────────────────────────
-    if (isMeta && e.key === 'i') {
-      e.preventDefault();
-      wrapSelection('*');
-      return;
-    }
-
-    // ── Ctrl/Cmd+Z: undo ──────────────────────────────────────────────────
-    if (isMeta && e.key === 'z' && !e.shiftKey) {
-      e.preventDefault(); // block browser native undo on contenteditable
-      void handleUndo();
-      return;
-    }
-
-    // ── Ctrl/Cmd+Y: redo ──────────────────────────────────────────────────
-    if (isMeta && e.key === 'y') {
-      e.preventDefault();
-      void handleRedo();
-      return;
-    }
-
-    // ── Ctrl/Cmd+]: zoom into focused bullet ──────────────────────────────
-    if (isMeta && e.key === ']') {
-      e.preventDefault();
-      navigate(`#bullet/${bullet.id}`);
-      return;
-    }
-
-    // ── Ctrl/Cmd+[: zoom out one level ────────────────────────────────────
-    if (isMeta && e.key === '[') {
-      e.preventDefault();
-      if (bullet.parentId) {
-        navigate(`#bullet/${bullet.parentId}`);
-      } else {
-        navigate('', { relative: 'path' });
-      }
       return;
     }
 
@@ -352,13 +332,61 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       return;
     }
 
+    // All keys below only apply in edit mode
+    if (!isEditing) return;
+
+    // ── Ctrl/Cmd+B: bold ───────────────────────────────────────────────────
+    if (isMeta && e.key === 'b') {
+      e.preventDefault();
+      wrapSelection('**');
+      return;
+    }
+
+    // ── Ctrl/Cmd+I: italic ────────────────────────────────────────────────
+    if (isMeta && e.key === 'i') {
+      e.preventDefault();
+      wrapSelection('*');
+      return;
+    }
+
+    // ── Ctrl/Cmd+Z: undo ──────────────────────────────────────────────────
+    if (isMeta && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      void handleUndo();
+      return;
+    }
+
+    // ── Ctrl/Cmd+Y: redo ──────────────────────────────────────────────────
+    if (isMeta && e.key === 'y') {
+      e.preventDefault();
+      void handleRedo();
+      return;
+    }
+
+    // ── Ctrl/Cmd+]: zoom into focused bullet ──────────────────────────────
+    if (isMeta && e.key === ']') {
+      e.preventDefault();
+      navigate(`#bullet/${bullet.id}`);
+      return;
+    }
+
+    // ── Ctrl/Cmd+[: zoom out one level ────────────────────────────────────
+    if (isMeta && e.key === '[') {
+      e.preventDefault();
+      if (bullet.parentId) {
+        navigate(`#bullet/${bullet.parentId}`);
+      } else {
+        navigate('', { relative: 'path' });
+      }
+      return;
+    }
+
     // ── Ctrl/Cmd+ArrowUp: move bullet up ──────────────────────────────────
     if (isMeta && e.key === 'ArrowUp') {
       e.preventDefault();
       const siblings = getChildren(bulletMap, bullet.parentId);
       const myIdx = siblings.findIndex(s => s.id === bullet.id);
-      if (myIdx <= 0) return; // already first
-      // Move bullet to before the previous sibling: afterId = the one before prevSibling
+      if (myIdx <= 0) return;
       const afterId = myIdx >= 2 ? siblings[myIdx - 2].id : null;
       moveBullet.mutate({
         id: bullet.id,
@@ -374,7 +402,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       e.preventDefault();
       const siblings = getChildren(bulletMap, bullet.parentId);
       const myIdx = siblings.findIndex(s => s.id === bullet.id);
-      if (myIdx >= siblings.length - 1) return; // already last
+      if (myIdx >= siblings.length - 1) return;
       const nextNextSibling = siblings[myIdx + 2] ?? null;
       moveBullet.mutate({
         id: bullet.id,
@@ -391,13 +419,11 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       const currentContent = el.textContent ?? '';
 
       if (currentContent === '' && bullet.parentId !== null) {
-        // Empty bullet with indent — outdent
         outdentBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
         return;
       }
 
       if (currentContent === '' && bullet.parentId === null) {
-        // Empty root bullet — create blank sibling
         setIsEditing(false);
         createBullet.mutate(
           { documentId: bullet.documentId, parentId: null, afterId: bullet.id, content: '' },
@@ -416,13 +442,12 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       const { before, after } = splitAtCursor(el);
       const children = getChildren(bulletMap, bullet.id).filter(b => !b.deletedAt);
 
-      // Flush debounce immediately to save 'before' content
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: before });
+      setLocalContent(before);
       setIsEditing(false);
 
       if (children.length > 0) {
-        // Has children: create as first child
         createBullet.mutate(
           { documentId: bullet.documentId, parentId: bullet.id, afterId: null, content: after },
           {
@@ -435,7 +460,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
           }
         );
       } else {
-        // Create sibling below
         createBullet.mutate(
           { documentId: bullet.documentId, parentId: bullet.parentId, afterId: bullet.id, content: after },
           {
@@ -455,13 +479,12 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     if (e.key === 'Tab') {
       e.preventDefault();
       if (e.shiftKey) {
-        if (bullet.parentId === null) return; // already root
+        if (bullet.parentId === null) return;
         outdentBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
       } else {
-        // Check if this is first sibling — if so, no-op
         const siblings = getChildren(bulletMap, bullet.parentId);
         const myIdx = siblings.findIndex(s => s.id === bullet.id);
-        if (myIdx === 0) return; // first sibling — no-op
+        if (myIdx === 0) return;
         indentBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
       }
       return;
@@ -476,16 +499,47 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         return;
       }
 
-      // Find previous bullet in render order
-      const allBullets = Object.values(bulletMap).filter(b => !b.deletedAt);
       const siblings = getChildren(bulletMap, bullet.parentId);
       const myIdx = siblings.findIndex(s => s.id === bullet.id);
 
+      // Empty node: just delete it and move focus to nearest neighbor
+      if ((el.textContent ?? '') === '') {
+        softDeleteBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
+        setTimeout(() => {
+          if (myIdx > 0) {
+            let prevBullet = siblings[myIdx - 1];
+            let candidate = prevBullet;
+            while (true) {
+              if (candidate.isCollapsed) break;
+              const prevChildren = getChildren(bulletMap, candidate.id).filter(b => !b.deletedAt);
+              if (prevChildren.length === 0) break;
+              candidate = prevChildren[prevChildren.length - 1];
+            }
+            prevBullet = candidate;
+            const prevEl = document.getElementById(`bullet-${prevBullet.id}`) as HTMLDivElement | null;
+            if (prevEl) prevEl.focus();
+          } else if (bullet.parentId !== null) {
+            const parentEl = document.getElementById(`bullet-${bullet.parentId}`) as HTMLDivElement | null;
+            if (parentEl) parentEl.focus();
+          } else {
+            // First root — focus next
+            const allBulletEls = Array.from(document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]'));
+            const myDomIdx = allBulletEls.findIndex(d => d === divRef.current);
+            const next = allBulletEls[myDomIdx + 1];
+            if (next) next.focus();
+          }
+        }, 50);
+        return;
+      }
+
+      // Non-empty first child — ignore merge into parent
+      if (myIdx === 0 && bullet.parentId !== null) return;
+
+      // Find previous bullet in render order
+      const allBullets = Object.values(bulletMap).filter(b => !b.deletedAt);
       let prevBullet: typeof allBullets[0] | undefined;
       if (myIdx > 0) {
-        // Previous sibling (or its last visible descendant)
         prevBullet = siblings[myIdx - 1];
-        // Walk to deepest last child of prev sibling
         let candidate = prevBullet;
         while (true) {
           if (candidate.isCollapsed) break;
@@ -494,9 +548,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
           candidate = prevChildren[prevChildren.length - 1];
         }
         prevBullet = candidate;
-      } else if (bullet.parentId !== null) {
-        // First child — ignore backspace rather than merging into parent
-        return;
       }
 
       if (!prevBullet) return;
@@ -508,7 +559,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       patchBullet.mutate({ id: prevBullet.id, documentId: bullet.documentId, content: mergedContent });
       softDeleteBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
 
-      // Focus prev bullet and set cursor to join point
       setTimeout(() => {
         const prevEl = document.getElementById(`bullet-${prevBullet!.id}`) as HTMLDivElement | null;
         if (prevEl) {
@@ -521,17 +571,55 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     // ── Delete at end ─────────────────────────────────────────────────────
     if (e.key === 'Delete' && isCursorAtEnd(el)) {
       e.preventDefault();
-      // Find next sibling
+      const ownChildren = getChildren(bulletMap, bullet.id).filter(b => !b.deletedAt);
+      if (ownChildren.length > 0) return;
+
       const siblings = getChildren(bulletMap, bullet.parentId);
       const myIdx = siblings.findIndex(s => s.id === bullet.id);
       const nextSibling = siblings[myIdx + 1];
-      if (!nextSibling) return;
 
+      // Empty node with no next sibling: delete it
+      if (!nextSibling) {
+        if ((el.textContent ?? '') === '') {
+          softDeleteBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
+          setTimeout(() => {
+            const allBulletEls = Array.from(document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]'));
+            const myDomIdx = allBulletEls.findIndex(d => d === divRef.current);
+            const target = allBulletEls[myDomIdx - 1];
+            if (target) target.focus();
+          }, 50);
+        }
+        return;
+      }
+
+      const nextSiblingChildren = getChildren(bulletMap, nextSibling.id).filter(b => !b.deletedAt);
       const mergedContent = (el.textContent ?? '') + nextSibling.content;
       const cursorOffset = (el.textContent ?? '').length;
 
-      patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: mergedContent });
-      softDeleteBullet.mutate({ id: nextSibling.id, documentId: bullet.documentId });
+      el.textContent = mergedContent;
+      setLocalContent(mergedContent);
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+
+      if (nextSiblingChildren.length > 0) {
+        void (async () => {
+          await patchBullet.mutateAsync({ id: bullet.id, documentId: bullet.documentId, content: mergedContent });
+          for (const child of [...nextSiblingChildren].reverse()) {
+            await moveBullet.mutateAsync({
+              id: child.id,
+              documentId: bullet.documentId,
+              newParentId: bullet.id,
+              afterId: null,
+            });
+          }
+          softDeleteBullet.mutate({ id: nextSibling.id, documentId: bullet.documentId });
+        })();
+      } else {
+        patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: mergedContent });
+        softDeleteBullet.mutate({ id: nextSibling.id, documentId: bullet.documentId });
+      }
 
       setTimeout(() => {
         const myEl = document.getElementById(`bullet-${bullet.id}`) as HTMLDivElement | null;
@@ -553,10 +641,8 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     const el = divRef.current;
     if (!el) return;
 
-    // Replace selected text with wrapped version in textContent
     const text = el.textContent ?? '';
     const start = range.startOffset;
-    // Find actual offset in full textContent
     const beforeRange = document.createRange();
     beforeRange.setStart(el, 0);
     beforeRange.setEnd(range.startContainer, range.startOffset);
@@ -568,14 +654,13 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     el.textContent = newContent;
     setLocalContent(newContent);
 
-    // Place cursor after the closing marker
     const newCursorPos = startIdx + marker.length + selected.length + marker.length;
     setCursorAtPosition(el, newCursorPos);
-    void start; // suppress unused warning
+    void start;
 
-    // Trigger save
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
       patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: newContent });
     }, 1000);
   }
@@ -598,41 +683,23 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     );
   }
 
-  // Compute rendered HTML for view mode
-  const renderedHtml = !isEditing
-    ? renderWithChips(renderBulletMarkdown(localContent))
-    : '';
-
-  if (!isEditing) {
-    return (
-      <span
-        dangerouslySetInnerHTML={{ __html: renderedHtml }}
-        onClick={handleRenderedClick}
-        style={{
-          flex: 1,
-          fontSize: '0.9375rem',
-          color: '#333',
-          lineHeight: 1.6,
-          minHeight: '1.6em',
-          wordBreak: 'break-word',
-          cursor: 'text',
-          display: 'block',
-        }}
-      />
-    );
-  }
-
+  // Single persistent div — always in DOM with stable id for focus navigation.
+  // View mode: contentEditable=false, shows rendered HTML (managed via layoutEffect).
+  // Edit mode: contentEditable=true, shows plain text for editing.
+  // tabIndex=0 ensures the div is focusable in both modes so arrow-key navigation works.
   return (
     <div
       id={`bullet-${bullet.id}`}
       ref={divRef}
-      contentEditable
+      contentEditable={isEditing}
       suppressContentEditableWarning
+      tabIndex={0}
       className={isShaking ? 'bullet-shake' : undefined}
-      onInput={handleInput}
+      onInput={isEditing ? handleInput : undefined}
       onKeyDown={handleKeyDown}
-      onFocus={onFocus}
-      onBlur={handleBlur}
+      onMouseDown={handleMouseDown}
+      onFocus={handleFocus}
+      onBlur={isEditing ? handleBlur : undefined}
       style={{
         flex: 1,
         outline: 'none',
@@ -641,6 +708,8 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         lineHeight: 1.6,
         minHeight: '1.6em',
         wordBreak: 'break-word',
+        cursor: 'text',
+        userSelect: 'text',
       }}
     />
   );

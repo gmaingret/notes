@@ -139,13 +139,17 @@ export function BulletTree({
       }
     }
 
-    // Determine afterId: the item at overIndex - 1 that shares the same new parentId
+    // Determine afterId: the nearest preceding item that shares newParentId (i.e. a true sibling).
+    // Walking backward from overIndex ensures we skip items that belong to a different subtree
+    // (e.g. the parent node itself or children of another parent), which would otherwise cause
+    // the server to append the dragged item at the end of the parent's children.
     let afterId: string | null = null;
-    if (overIndex > 0) {
-      const candidateAfter = visibleItems[overIndex - 1];
-      // If the item before overIndex has the same parent as the new position, use it as afterId
-      if (candidateAfter.id !== currentActiveId) {
-        afterId = candidateAfter.id;
+    for (let i = overIndex - 1; i >= 0; i--) {
+      const candidate = visibleItems[i];
+      if (candidate.id === currentActiveId) continue;
+      if (candidate.parentId === newParentId) {
+        afterId = candidate.id;
+        break;
       }
     }
 

@@ -245,13 +245,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   function enterEditMode() {
     if (isEditing) return;
     console.log('[enterEditMode] bullet', bullet.id, '— setting isEditing=true. activeElement:', document.activeElement?.id);
-    // Guard against the spurious blur that browsers fire when contentEditable changes on a
-    // focused element. Without this, handleBlur fires immediately after setIsEditing(true)
-    // and calls leaveEditMode(), causing isEditing to flicker true→false on every click.
-    isSwitchingModeRef.current = true;
-    requestAnimationFrame(() => {
-      isSwitchingModeRef.current = false;
-    });
     setIsEditing(true);
   }
 

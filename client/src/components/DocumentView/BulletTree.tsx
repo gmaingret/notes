@@ -126,9 +126,11 @@ export function BulletTree({
     const projectedDepth = getProjectedDepth(visibleItems, currentActiveId, currentOverId, dragOffsetX);
 
     // Determine newParentId: find last item before overIndex with depth === projectedDepth - 1
+    // Skip the active bullet itself to avoid self-parenting cycles
     let newParentId: string | null = null;
     if (projectedDepth > 0) {
       for (let i = overIndex - 1; i >= 0; i--) {
+        if (visibleItems[i].id === currentActiveId) continue;
         if (visibleItems[i].depth === projectedDepth - 1) {
           newParentId = visibleItems[i].id;
           break;

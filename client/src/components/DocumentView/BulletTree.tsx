@@ -13,6 +13,8 @@ import { useDocumentBullets, useMoveBullet, useCreateBullet } from '../../hooks/
 import type { Bullet } from '../../hooks/useBullets';
 import { BulletNode } from './BulletNode';
 import { DocumentToolbar } from './DocumentToolbar';
+import { FocusToolbar } from './FocusToolbar';
+import { useUiStore } from '../../store/uiStore';
 
 export type BulletMap = Record<string, Bullet>;
 export type FlatBullet = Bullet & { depth: number };
@@ -70,6 +72,7 @@ export function BulletTree({
   const { data: flatBullets = [], isLoading } = useDocumentBullets(documentId);
   const moveBullet = useMoveBullet();
   const createBullet = useCreateBullet();
+  const { focusedBulletId } = useUiStore();
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragOffsetX, setDragOffsetX] = useState(0);
@@ -201,11 +204,15 @@ export function BulletTree({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <DocumentToolbar
-        documentId={documentId}
-        hideCompleted={hideCompleted}
-        onToggleHideCompleted={() => setHideCompleted(h => !h)}
-      />
+      {focusedBulletId ? (
+        <FocusToolbar bulletId={focusedBulletId} documentId={documentId} />
+      ) : (
+        <DocumentToolbar
+          documentId={documentId}
+          hideCompleted={hideCompleted}
+          onToggleHideCompleted={() => setHideCompleted(h => !h)}
+        />
+      )}
       <SortableContext
         items={visibleItems.map(f => f.id)}
         strategy={verticalListSortingStrategy}

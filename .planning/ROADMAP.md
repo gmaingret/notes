@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Authenticated app with document management and correct DB schema (completed 2026-03-09)
 - [x] **Phase 2: Core Outliner** - Bullet CRUD, nesting, keyboard shortcuts, collapse/zoom, and server-persisted undo (completed 2026-03-09)
-- [ ] **Phase 3: Rich Content** - Markdown rendering, full-text search, tag/mention/date chips, and bookmarks
+- [x] **Phase 3: Rich Content** - Markdown rendering, full-text search, tag/mention/date chips, and bookmarks (completed 2026-03-09)
 - [ ] **Phase 4: Attachments, Comments, and Mobile** - File attachments, comments, and mobile touch gestures
 
 ## Phase Details
@@ -105,5 +105,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 6/6 | Complete   | 2026-03-09 |
 | 2. Core Outliner | 8/8 | Complete   | 2026-03-09 |
-| 3. Rich Content | 8/9 | In Progress|  |
+| 3. Rich Content | 9/9 | Complete   | 2026-03-09 |
 | 4. Attachments, Comments, and Mobile | 0/TBD | Not started | - |

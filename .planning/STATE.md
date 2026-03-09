@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-rich-content-09-PLAN.md
-last_updated: "2026-03-09T19:30:21.738Z"
+stopped_at: Completed 04-07-PLAN.md
+last_updated: "2026-03-09T20:48:52.498Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 23
-  completed_plans: 23
+  total_plans: 31
+  completed_plans: 30
   percent: 100
 ---
 
@@ -107,6 +107,13 @@ Progress: [█████░░░░░] 50%
 | Phase 03-rich-content P06 | 3min | 2 tasks | 5 files |
 | Phase 03-rich-content P08 | 2min | 2 tasks | 4 files |
 | Phase 03-rich-content P09 | 5 | 3 tasks | 1 files |
+| Phase 04-attachments-comments-and-mobile P01 | 2min | 3 tasks | 8 files |
+| Phase 04-attachments-comments-and-mobile P02 | 8min | 2 tasks | 5 files |
+| Phase 04-attachments-comments-and-mobile P03 | 5min | 2 tasks | 6 files |
+| Phase 04-attachments-comments-and-mobile P04 | 12min | 2 tasks | 9 files |
+| Phase 04-attachments-comments-and-mobile P05 | 8min | 2 tasks | 5 files |
+| Phase 04-attachments-comments-and-mobile P06 | 8min | 2 tasks | 5 files |
+| Phase 04-attachments-comments-and-mobile P07 | 8min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -174,6 +181,21 @@ Recent decisions affecting current work:
 - [Phase 03-rich-content]: BookmarkRow.id is the bullet ID (not the bookmark record ID) — getUserBookmarks returns bullets.id per service JOIN
 - [Phase 03-rich-content]: ContextMenu calls useBookmarks() directly to determine isBookmarked state per bullet, not passed as prop
 - [Phase 03-rich-content]: Server tests run locally via node_modules/.bin/vitest — Docker container only has dist/, not source/tests
+- [Phase 04-attachments-comments-and-mobile]: Placeholder local functions used instead of top-level imports for not-yet-created modules — avoids import crashes while keeping tests runnable
+- [Phase 04-attachments-comments-and-mobile]: pdfjs-dist mocked with vi.mock() at module level so pdfThumbnail test runs even before pdfjs-dist is installed
+- [Phase 04-attachments-comments-and-mobile]: patchBullet has no undo recording — note updates are lightweight metadata, not structural ops
+- [Phase 04-attachments-comments-and-mobile]: empty string normalized to null at route layer, not service layer — keeps service pure
+- [Phase 04-attachments-comments-and-mobile]: multer diskStorage to /data/attachments with UUID filename via node:crypto — no uuid package dependency
+- [Phase 04-attachments-comments-and-mobile]: apiClient.upload() omits Content-Type — browser sets multipart boundary automatically
+- [Phase 04-attachments-comments-and-mobile]: res.sendFile with root:'/' for inline attachment serving — preferred over res.download()
+- [Phase 04-attachments-comments-and-mobile]: pdfjs-dist vi.mock needed in both test files to prevent DOMMatrix crash in jsdom when AttachmentRow imports pdfjs at module level
+- [Phase 04-attachments-comments-and-mobile]: renderPdfThumbnail exported as named export from AttachmentRow.tsx to enable isolated unit testing
+- [Phase 04-attachments-comments-and-mobile]: FocusToolbar placed in BulletTree (not DocumentView) since DocumentToolbar lives inside DndContext in BulletTree
+- [Phase 04-attachments-comments-and-mobile]: focusedBulletId excluded from zustand partialize — transient UI state resets on page reload
+- [Phase 04-attachments-comments-and-mobile]: gestures.ts uses plain closure-based mutable state (not useRef) so pure functions can be unit tested without React
+- [Phase 04-attachments-comments-and-mobile]: Swipe handlers on outer row div only; dot div retains touchAction:none for dnd-kit PointerSensor
+- [Phase 04-attachments-comments-and-mobile]: computeKeyboardOffset exported from FocusToolbar.tsx (not a separate utils file) — co-located with its only consumer
+- [Phase 04-attachments-comments-and-mobile]: MOB-04 requires no new code — dnd-kit PointerSensor + touchAction:none on dot was already in place from Phase 2
 
 ### Pending Todos
 
@@ -187,6 +209,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T19:25:20.059Z
-Stopped at: Completed 03-rich-content-09-PLAN.md
+Last session: 2026-03-09T20:48:52.495Z
+Stopped at: Completed 04-07-PLAN.md
 Resume file: None

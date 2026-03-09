@@ -120,6 +120,16 @@ export function ContextMenu({ bullet, bulletMap, position, onClose }: Props) {
     onClose();
   }
 
+  function handleAttachFile() {
+    document.dispatchEvent(new CustomEvent('attach-file', { detail: { bulletId: bullet.id } }));
+    onClose();
+  }
+
+  function handleAddNote() {
+    document.dispatchEvent(new CustomEvent('focus-note', { detail: { bulletId: bullet.id } }));
+    onClose();
+  }
+
   const buttonStyle: React.CSSProperties = {
     display: 'block',
     width: '100%',
@@ -217,6 +227,22 @@ export function ContextMenu({ bullet, bulletMap, position, onClose }: Props) {
         onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
       >
         {isBookmarked ? 'Remove bookmark' : 'Bookmark'}
+      </button>
+      <button
+        style={buttonStyle}
+        onClick={handleAttachFile}
+        onMouseEnter={e => { (e.target as HTMLElement).style.background = '#f5f5f5'; }}
+        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
+      >
+        Attach file
+      </button>
+      <button
+        style={buttonStyle}
+        onClick={handleAddNote}
+        onMouseEnter={e => { (e.target as HTMLElement).style.background = '#f5f5f5'; }}
+        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
+      >
+        Add note
       </button>
       <button
         style={deleteButtonStyle}

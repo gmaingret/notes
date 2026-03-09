@@ -10,6 +10,7 @@ import {
   softDeleteBullet,
   markComplete,
   setCollapsed,
+  patchBullet,
 } from '../services/bulletService.js';
 import { recordUndoEvent } from '../services/undoService.js';
 import { db } from '../../db/index.js';
@@ -63,12 +64,13 @@ bulletsRouter.post('/', async (req, res) => {
   }
 });
 
-// BULL-03/11/12/13: Patch bullet (content, isComplete, isCollapsed)
+// BULL-03/11/12/13/CMT-03: Patch bullet (content, isComplete, isCollapsed, note)
 // PATCH /api/bullets/:id
 const patchBulletSchema = z.object({
   content: z.string().optional(),
   isComplete: z.boolean().optional(),
   isCollapsed: z.boolean().optional(),
+  note: z.string().nullable().optional(),
 });
 
 bulletsRouter.patch('/:id', async (req, res) => {
@@ -78,7 +80,7 @@ bulletsRouter.patch('/:id', async (req, res) => {
     return res.status(400).json({ errors: result.error.flatten().fieldErrors });
   }
 
-  const { content, isComplete, isCollapsed } = result.data;
+  const { content, isComplete, isCollapsed, note } = result.data;
 
   try {
     if (isCollapsed !== undefined) {
@@ -103,6 +105,14 @@ bulletsRouter.patch('/:id', async (req, res) => {
         .returning();
       if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
       return res.json(rows[0]);
+    }
+
+    if (note !== undefined) {
+      // Normalize empty string to null — empty note is equivalent to no note
+      const normalizedNote = note === '' ? null : note;
+      const bullet = await patchBullet(user.id, req.params.id, { note: normalizedNote });
+      if (!bullet) return res.status(404).json({ error: 'Not found' });
+      return res.json(bullet);
     }
 
     return res.status(400).json({ error: 'No valid field to update' });

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 01-04-PLAN.md — React frontend scaffold and auth UI
-last_updated: "2026-03-09T07:51:37.959Z"
+stopped_at: Completed 01-01-PLAN.md — server bootstrap, schema, and test scaffolds
+last_updated: "2026-03-09T07:54:50.007Z"
 last_activity: 2026-03-09 — Roadmap created (4 phases, 66 requirements mapped)
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 6
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -51,6 +51,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01-foundation P04 | 4min | 2 tasks | 12 files |
+| Phase 01-foundation P01 | 6 | 3 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,9 @@ Recent decisions affecting current work:
 - [Phase 01-04]: AccessToken in React context (memory only) — not localStorage — prevents XSS token theft
 - [Phase 01-04]: Google OAuth token received via URL hash fragment; AuthContext reads and cleans it via history.replaceState without navigation
 - [Phase 01-04]: RequireAuth returns null during isLoading — prevents flash-of-login on valid session
+- [Phase 01-01]: FLOAT8 double precision for all position columns — locked, cannot change after data exists
+- [Phase 01-01]: undo_events.schema_version column present from migration 0 — prevents Phase 2/3 migration pain
+- [Phase 01-01]: Docker port mapping 8000:3000 per MEMORY.md (app accessible at 192.168.1.50:8000)
 
 ### Pending Todos
 
@@ -79,6 +83,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T07:51:37.956Z
-Stopped at: Completed 01-04-PLAN.md — React frontend scaffold and auth UI
+Last session: 2026-03-09T07:54:50.005Z
+Stopped at: Completed 01-01-PLAN.md — server bootstrap, schema, and test scaffolds
 Resume file: None

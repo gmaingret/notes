@@ -11,17 +11,17 @@
 - [x] **AUTH-02**: User can log in with email and password (JWT session, persists across refresh)
 - [x] **AUTH-03**: User can log in with Google SSO (OAuth 2.0)
 - [x] **AUTH-04**: User can log out via sidebar button
-- [ ] **AUTH-05**: New user automatically gets a blank "Inbox" document on first login
+- [x] **AUTH-05**: New user automatically gets a blank "Inbox" document on first login
 
 ### Documents
 
-- [ ] **DOC-01**: User can create a new document (flat list, no folders)
-- [ ] **DOC-02**: User can rename a document
-- [ ] **DOC-03**: User can delete a document (with confirmation)
-- [ ] **DOC-04**: User can reorder documents via drag in the sidebar
-- [ ] **DOC-05**: User can navigate between documents by clicking in the sidebar
-- [ ] **DOC-06**: User can export a single document as a Markdown file
-- [ ] **DOC-07**: User can export all documents as a Markdown archive
+- [x] **DOC-01**: User can create a new document (flat list, no folders)
+- [x] **DOC-02**: User can rename a document
+- [x] **DOC-03**: User can delete a document (with confirmation)
+- [x] **DOC-04**: User can reorder documents via drag in the sidebar
+- [x] **DOC-05**: User can navigate between documents by clicking in the sidebar
+- [x] **DOC-06**: User can export a single document as a Markdown file
+- [x] **DOC-07**: User can export all documents as a Markdown archive
 
 ### Bullet Editing
 
@@ -143,14 +143,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-02 | Phase 1 | Complete |
 | AUTH-03 | Phase 1 | Complete |
 | AUTH-04 | Phase 1 | Complete |
-| AUTH-05 | Phase 1 | Pending |
-| DOC-01 | Phase 1 | Pending |
-| DOC-02 | Phase 1 | Pending |
-| DOC-03 | Phase 1 | Pending |
-| DOC-04 | Phase 1 | Pending |
-| DOC-05 | Phase 1 | Pending |
-| DOC-06 | Phase 1 | Pending |
-| DOC-07 | Phase 1 | Pending |
+| AUTH-05 | Phase 1 | Complete |
+| DOC-01 | Phase 1 | Complete |
+| DOC-02 | Phase 1 | Complete |
+| DOC-03 | Phase 1 | Complete |
+| DOC-04 | Phase 1 | Complete |
+| DOC-05 | Phase 1 | Complete |
+| DOC-06 | Phase 1 | Complete |
+| DOC-07 | Phase 1 | Complete |
 | BULL-01 | Phase 2 | Pending |
 | BULL-02 | Phase 2 | Pending |
 | BULL-03 | Phase 2 | Pending |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-rich-content-03-PLAN.md
-last_updated: "2026-03-09T13:23:30.980Z"
+stopped_at: Completed 03-rich-content-05-PLAN.md
+last_updated: "2026-03-09T13:28:20.455Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 23
-  completed_plans: 17
+  completed_plans: 19
 ---
 
 ---
@@ -85,6 +85,8 @@ Progress: [█████░░░░░] 50%
 | Phase 03-rich-content P01 | 2min | 3 tasks | 9 files |
 | Phase 03-rich-content P02 | 5min | 2 tasks | 3 files |
 | Phase 03-rich-content P03 | 1min | 2 tasks | 2 files |
+| Phase 03-rich-content P04 | 5 | 2 tasks | 4 files |
+| Phase 03-rich-content P05 | 5min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -141,6 +143,11 @@ Recent decisions affecting current work:
 - [Phase 03-rich-content]: getTagCounts uses Number(row.count) cast — pg driver returns numeric aggregates as strings in raw sql mode
 - [Phase 03-rich-content]: canvasView and sidebarTab excluded from zustand persist via partialize — transient UI state resets on page reload
 - [Phase 03-rich-content]: CanvasView type exported from uiStore.ts as single canonical import for all canvas view consumers
+- [Phase 03-rich-content]: BulletContent isEditing: span for view mode + contenteditable div for edit mode — never set innerHTML on contenteditable
+- [Phase 03-rich-content]: useLayoutEffect to set textContent + focus on edit mode entry — runs synchronously before browser paint
+- [Phase 03-rich-content]: !! date picker trigger: only when content has !! but not !![ — prevents re-triggering on already-inserted date chips
+- [Phase 03-rich-content]: Route handlers cast req.user as { id: string } — consistent with existing bullets.ts pattern, avoids Passport User type mismatch
+- [Phase 03-rich-content]: ChipType cast in tags route — route layer accepts string URL param, service layer enforces valid ChipType values internally
 
 ### Pending Todos
 
@@ -154,6 +161,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T13:23:30.976Z
-Stopped at: Completed 03-rich-content-03-PLAN.md
+Last session: 2026-03-09T13:28:14.709Z
+Stopped at: Completed 03-rich-content-05-PLAN.md
 Resume file: None

@@ -105,5 +105,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 6/6 | Complete   | 2026-03-09 |
 | 2. Core Outliner | 8/8 | Complete   | 2026-03-09 |
-| 3. Rich Content | 3/9 | In Progress|  |
+| 3. Rich Content | 5/9 | In Progress|  |
 | 4. Attachments, Comments, and Mobile | 0/TBD | Not started | - |

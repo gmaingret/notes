@@ -64,7 +64,7 @@
 
 - [x] **TAG-01**: `#tag` syntax creates a tag, renders as a clickable chip in bullet text
 - [x] **TAG-02**: `@mention` syntax renders as a clickable chip (personal label)
-- [ ] **TAG-03**: `!!` syntax opens a date/time picker; renders as a 📅 date chip
+- [x] **TAG-03**: `!!` syntax opens a date/time picker; renders as a 📅 date chip
 - [x] **TAG-04**: Sidebar Tab 2: Tag Browser lists all unique #tags, @mentions, !!dates across user's documents with bullet counts
 - [x] **TAG-05**: Clicking a tag in the Tag Browser opens a filtered view of all matching bullets
 
@@ -73,7 +73,7 @@
 - [x] **SRCH-01**: User can search across all personal documents (full-text)
 - [x] **SRCH-02**: Search supports #tag, @mention, and !!date query syntax
 - [x] **SRCH-03**: Search results show matching bullets; clicking a result opens it in zoomed focus view
-- [ ] **SRCH-04**: Search accessible via no-focus toolbar button and Ctrl/Cmd+F keyboard shortcut
+- [x] **SRCH-04**: Search accessible via no-focus toolbar button and Ctrl/Cmd+F keyboard shortcut
 
 ### Bookmarks
 
@@ -181,13 +181,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MOB-05 | Phase 4 | Pending |
 | TAG-01 | Phase 3 | Complete |
 | TAG-02 | Phase 3 | Complete |
-| TAG-03 | Phase 3 | Pending |
+| TAG-03 | Phase 3 | Complete |
 | TAG-04 | Phase 3 | Complete |
 | TAG-05 | Phase 3 | Complete |
 | SRCH-01 | Phase 3 | Complete |
 | SRCH-02 | Phase 3 | Complete |
 | SRCH-03 | Phase 3 | Complete |
-| SRCH-04 | Phase 3 | Pending |
+| SRCH-04 | Phase 3 | Complete |
 | BM-01 | Phase 3 | Complete |
 | BM-02 | Phase 3 | Complete |
 | BM-03 | Phase 3 | Complete |

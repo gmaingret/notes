@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-core-outliner-03-PLAN.md
-last_updated: "2026-03-09T11:00:13.780Z"
+stopped_at: Completed 02-core-outliner-04-PLAN.md
+last_updated: "2026-03-09T11:07:19.535Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 14
-  completed_plans: 9
+  completed_plans: 10
   percent: 50
 ---
 
@@ -62,6 +62,7 @@ Progress: [█████░░░░░] 50%
 | Phase 02-core-outliner P01 | 8min | 4 tasks | 5 files |
 | Phase 02-core-outliner P02 | 4min | 2 tasks | 4 files |
 | Phase 02-core-outliner P03 | 4min | 2 tasks | 5 files |
+| Phase 02-core-outliner P04 | 5min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,9 @@ Recent decisions affecting current work:
 - [Phase 02-core-outliner]: DB type changed from NodePgDatabase to PgDatabase<any> to accept both db and transaction handles in service functions
 - [Phase 02-core-outliner]: undoRouter mounted at /api (not /api/undo) to handle /undo, /redo, /undo/status as separate paths
 - [Phase 02-core-outliner]: Content PATCH bypasses undo at route level; client calls POST /:id/undo-checkpoint after debounce timeout
+- [Phase 02-core-outliner]: BulletContent exports cursor helpers (isCursorAtStart, isCursorAtEnd, splitAtCursor) as named exports for unit testing without mounting the full component
+- [Phase 02-core-outliner]: Shake animation uses singleton style tag injected on first render — self-contained in BulletContent, no Tailwind or external CSS dependency
+- [Phase 02-core-outliner]: Enter on bullet with children creates new bullet as first child (parentId=bullet.id, afterId=null) per CONTEXT.md locked decision
 
 ### Pending Todos
 
@@ -112,6 +116,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T11:00:13.777Z
-Stopped at: Completed 02-core-outliner-03-PLAN.md
+Last session: 2026-03-09T11:07:19.532Z
+Stopped at: Completed 02-core-outliner-04-PLAN.md
 Resume file: None

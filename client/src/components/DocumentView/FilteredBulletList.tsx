@@ -1,5 +1,3 @@
-import React from 'react';
-
 export type FilteredBulletRow = {
   bulletId: string;
   bulletContent: string;

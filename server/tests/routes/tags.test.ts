@@ -23,7 +23,7 @@ vi.mock('../../src/services/tagService.js', () => ({
     { chipType: 'tag', value: 'milk', count: 3 },
   ]),
   getBulletsForTag: vi.fn().mockResolvedValue([
-    { id: BULLET_ID, content: 'buy #milk', documentId: DOC_ID, documentTitle: 'Inbox' },
+    { id: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', content: 'buy #milk', documentId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', documentTitle: 'Inbox' },
   ]),
 }));
 

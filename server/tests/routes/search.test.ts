@@ -20,7 +20,7 @@ vi.mock('../../src/middleware/auth.js', () => ({
 
 vi.mock('../../src/services/searchService.js', () => ({
   searchBullets: vi.fn().mockResolvedValue([
-    { id: BULLET_ID, content: 'hello world', documentId: DOC_ID, documentTitle: 'Inbox' },
+    { id: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', content: 'hello world', documentId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', documentTitle: 'Inbox' },
   ]),
 }));
 

@@ -21,13 +21,13 @@ vi.mock('../../src/middleware/auth.js', () => ({
 vi.mock('../../src/services/bookmarkService.js', () => ({
   addBookmark: vi.fn().mockResolvedValue({
     id: 'bm-uuid-1',
-    userId: USER_ID,
-    bulletId: BULLET_ID,
+    userId: 'c3d4e5f6-a7b8-9012-cdef-123456789012',
+    bulletId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
     createdAt: new Date(),
   }),
   removeBookmark: vi.fn().mockResolvedValue(undefined),
   getUserBookmarks: vi.fn().mockResolvedValue([
-    { id: BULLET_ID, content: 'bookmarked bullet', documentId: DOC_ID, documentTitle: 'Inbox' },
+    { id: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', content: 'bookmarked bullet', documentId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', documentTitle: 'Inbox' },
   ]),
 }));
 

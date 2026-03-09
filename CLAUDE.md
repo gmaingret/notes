@@ -26,6 +26,12 @@
 - Claude uses this account to perform end-to-end testing of features.
 - Google SSO cannot be tested by Claude — only email/password auth is used for automated testing.
 
+## Git Workflow
+- `main` is the stable branch — never commit directly to it.
+- For each phase, create a dedicated branch named `phase-N/short-description` (e.g. `phase-3/rich-content`).
+- All commits for that phase go on the phase branch.
+- When the phase is approved by the user, open a PR and merge the phase branch into `main`.
+
 ## Deployment Workflow
 1. Develop and commit code to the GitHub repository.
 2. On the application server (`192.168.1.50`), pull changes and rebuild/restart Docker containers.

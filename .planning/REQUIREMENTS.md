@@ -31,8 +31,8 @@
 - [x] **BULL-04**: User can move a bullet up or down (toolbar / keyboard shortcuts / context menu)
 - [x] **BULL-05**: User can reorder bullets via drag-and-drop (maintains children; desktop + mobile)
 - [x] **BULL-06**: User can collapse a bullet with children (chevron glyph; persisted per user)
-- [ ] **BULL-07**: User can zoom into a bullet to view it as the full-screen root
-- [ ] **BULL-08**: User can navigate back out via breadcrumb bar (click any ancestor to zoom to that level)
+- [x] **BULL-07**: User can zoom into a bullet to view it as the full-screen root
+- [x] **BULL-08**: User can navigate back out via breadcrumb bar (click any ancestor to zoom to that level)
 - [ ] **BULL-09**: Bullet text supports inline markdown: **bold**, *italic*, ~~strikethrough~~, [links](url), ![image](url)
 - [ ] **BULL-10**: Markdown renders on blur/Enter/Esc; raw markdown shows while editing (Dynalist-style live toggle)
 - [x] **BULL-11**: User can soft-delete a bullet (undo restores it with all children)
@@ -47,7 +47,7 @@
 - [x] **KB-01**: Enter = new bullet below current
 - [x] **KB-02**: Tab = indent; Shift+Tab = outdent
 - [x] **KB-03**: Ctrl/Cmd+↑↓ = move bullet up/down
-- [ ] **KB-04**: Ctrl/Cmd+] = zoom in; Ctrl/Cmd+[ = zoom out to parent
+- [x] **KB-04**: Ctrl/Cmd+] = zoom in; Ctrl/Cmd+[ = zoom out to parent
 - [x] **KB-05**: Ctrl/Cmd+Z = undo; Ctrl/Cmd+Y = redo
 - [x] **KB-06**: Ctrl/Cmd+B = bold; Ctrl/Cmd+I = italic
 - [x] **KB-07**: Ctrl/Cmd+P = open search; Ctrl/Cmd+* = bookmarks; Ctrl/Cmd+E = toggle sidebar
@@ -157,8 +157,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BULL-04 | Phase 2 | Complete |
 | BULL-05 | Phase 2 | Complete |
 | BULL-06 | Phase 2 | Complete |
-| BULL-07 | Phase 2 | Pending |
-| BULL-08 | Phase 2 | Pending |
+| BULL-07 | Phase 2 | Complete |
+| BULL-08 | Phase 2 | Complete |
 | BULL-09 | Phase 3 | Pending |
 | BULL-10 | Phase 3 | Pending |
 | BULL-11 | Phase 2 | Complete |
@@ -170,7 +170,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | KB-01 | Phase 2 | Complete |
 | KB-02 | Phase 2 | Complete |
 | KB-03 | Phase 2 | Complete |
-| KB-04 | Phase 2 | Pending |
+| KB-04 | Phase 2 | Complete |
 | KB-05 | Phase 2 | Complete |
 | KB-06 | Phase 2 | Complete |
 | KB-07 | Phase 2 | Complete |

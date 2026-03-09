@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { getTagCounts, getBulletsForTag } from '../services/tagService.js';
+import { getTagCounts, getBulletsForTag, type ChipType } from '../services/tagService.js';
 
 export const tagsRouter = Router();
 
 tagsRouter.get('/', requireAuth, async (req, res) => {
+  const user = req.user as { id: string };
   try {
-    const tags = await getTagCounts(req.user!.id);
+    const tags = await getTagCounts(user.id);
     res.json(tags);
   } catch (err) {
     console.error(err);
@@ -15,9 +16,10 @@ tagsRouter.get('/', requireAuth, async (req, res) => {
 });
 
 tagsRouter.get('/:type/:value/bullets', requireAuth, async (req, res) => {
+  const user = req.user as { id: string };
   try {
     const { type, value } = req.params;
-    const bullets = await getBulletsForTag(req.user!.id, type, value);
+    const bullets = await getBulletsForTag(user.id, type as ChipType, value as string);
     res.json(bullets);
   } catch (err) {
     console.error(err);

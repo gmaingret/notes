@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-03-09T20:33:57.888Z"
+stopped_at: Completed 04-05-PLAN.md
+last_updated: "2026-03-09T20:39:24.746Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 31
-  completed_plans: 27
+  completed_plans: 28
   percent: 100
 ---
 
@@ -111,6 +111,7 @@ Progress: [█████░░░░░] 50%
 | Phase 04-attachments-comments-and-mobile P02 | 8min | 2 tasks | 5 files |
 | Phase 04-attachments-comments-and-mobile P03 | 5min | 2 tasks | 6 files |
 | Phase 04-attachments-comments-and-mobile P04 | 12min | 2 tasks | 9 files |
+| Phase 04-attachments-comments-and-mobile P05 | 8min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -187,6 +188,8 @@ Recent decisions affecting current work:
 - [Phase 04-attachments-comments-and-mobile]: res.sendFile with root:'/' for inline attachment serving — preferred over res.download()
 - [Phase 04-attachments-comments-and-mobile]: pdfjs-dist vi.mock needed in both test files to prevent DOMMatrix crash in jsdom when AttachmentRow imports pdfjs at module level
 - [Phase 04-attachments-comments-and-mobile]: renderPdfThumbnail exported as named export from AttachmentRow.tsx to enable isolated unit testing
+- [Phase 04-attachments-comments-and-mobile]: FocusToolbar placed in BulletTree (not DocumentView) since DocumentToolbar lives inside DndContext in BulletTree
+- [Phase 04-attachments-comments-and-mobile]: focusedBulletId excluded from zustand partialize — transient UI state resets on page reload
 
 ### Pending Todos
 
@@ -200,6 +203,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T20:33:57.885Z
-Stopped at: Completed 04-04-PLAN.md
+Last session: 2026-03-09T20:39:24.743Z
+Stopped at: Completed 04-05-PLAN.md
 Resume file: None

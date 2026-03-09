@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import React from 'react';
 
 // Mock pdfjs-dist to prevent DOMMatrix ReferenceError in jsdom (Node env)
 vi.mock('pdfjs-dist', () => ({
@@ -58,8 +57,8 @@ describe('AttachmentRow — image attachment', () => {
     (useDeleteAttachment as ReturnType<typeof vi.fn>).mockReturnValue({ mutate: mutateMock });
 
     // Mock URL.createObjectURL and URL.revokeObjectURL
-    global.URL.createObjectURL = vi.fn().mockReturnValue('blob:http://localhost/fake-object-url');
-    global.URL.revokeObjectURL = vi.fn();
+    globalThis.URL.createObjectURL = vi.fn().mockReturnValue('blob:http://localhost/fake-object-url');
+    globalThis.URL.revokeObjectURL = vi.fn();
 
     // Mock apiClient.download to return a fake Response with blob()
     const fakeBlob = new Blob(['fake image data'], { type: 'image/jpeg' });

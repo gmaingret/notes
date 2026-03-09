@@ -22,6 +22,7 @@ function makeBullet(overrides: Partial<Bullet> & { id: string }): Bullet {
     isComplete: false,
     isCollapsed: false,
     deletedAt: null,
+    note: null,
     ...overrides,
   };
 }

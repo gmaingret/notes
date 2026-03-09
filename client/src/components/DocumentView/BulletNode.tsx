@@ -167,8 +167,8 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
       onPointerDown={isDragOverlay ? undefined : handleRowPointerDown}
       onPointerMove={isDragOverlay ? undefined : handleRowPointerMove}
       onPointerUp={isDragOverlay ? undefined : handleRowPointerUp}
-      onTouchStart={isDragOverlay ? undefined : longPressHandler.handleTouchStart}
-      onTouchMove={isDragOverlay ? undefined : longPressHandler.handleTouchMove}
+      onTouchStart={isDragOverlay ? undefined : longPressHandler.handleTouchStart as React.TouchEventHandler}
+      onTouchMove={isDragOverlay ? undefined : longPressHandler.handleTouchMove as React.TouchEventHandler}
       onTouchEnd={isDragOverlay ? undefined : longPressHandler.handleTouchEnd as React.TouchEventHandler}
     >
       {/* Swipe background reveal layer */}

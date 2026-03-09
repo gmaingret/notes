@@ -72,6 +72,7 @@ export function useCreateBullet() {
         isComplete: false,
         isCollapsed: false,
         deletedAt: null,
+        note: null,
       };
       qc.setQueryData(bulletKey(vars.documentId), (old: Bullet[] = []) => [
         ...old,

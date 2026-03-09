@@ -26,7 +26,7 @@ export async function renderPdfThumbnail(blob: Blob, canvas: HTMLCanvasElement):
   canvas.height = viewport.height;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
-  await page.render({ canvasContext: ctx, viewport }).promise;
+  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
 }
 
 function ImageAttachmentRow({ attachment, onDelete }: Props) {

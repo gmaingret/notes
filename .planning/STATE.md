@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-rich-content-06-PLAN.md
-last_updated: "2026-03-09T13:34:32.028Z"
+stopped_at: Completed 03-rich-content-08-PLAN.md
+last_updated: "2026-03-09T13:38:41.791Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 23
-  completed_plans: 21
+  completed_plans: 22
 ---
 
 ---
@@ -89,6 +89,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03-rich-content P05 | 5min | 2 tasks | 7 files |
 | Phase 03-rich-content P07 | 3min | 2 tasks | 4 files |
 | Phase 03-rich-content P06 | 3min | 2 tasks | 5 files |
+| Phase 03-rich-content P08 | 2min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -153,6 +154,8 @@ Recent decisions affecting current work:
 - [Phase 03-rich-content]: SearchModal uses position:fixed mounted inside DocumentToolbar — renders correctly in viewport regardless of DOM tree
 - [Phase 03-rich-content]: canvasView consumed in DocumentView with early return before main BulletTree render — keeps filtered vs document branches fully separate
 - [Phase 03-rich-content]: DocumentRow (not DocumentList) holds setCanvasView reset — navigation happens in DocumentRow onClick; DocumentList is a pure DnD wrapper
+- [Phase 03-rich-content]: BookmarkRow.id is the bullet ID (not the bookmark record ID) — getUserBookmarks returns bullets.id per service JOIN
+- [Phase 03-rich-content]: ContextMenu calls useBookmarks() directly to determine isBookmarked state per bullet, not passed as prop
 
 ### Pending Todos
 
@@ -166,6 +169,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T13:34:32.024Z
-Stopped at: Completed 03-rich-content-06-PLAN.md
+Last session: 2026-03-09T13:38:41.783Z
+Stopped at: Completed 03-rich-content-08-PLAN.md
 Resume file: None

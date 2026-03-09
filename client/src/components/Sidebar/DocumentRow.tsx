@@ -4,6 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useRenameDocument, useDeleteDocument, useExportDocument } from '../../hooks/useDocuments';
 import type { Document } from '../../hooks/useDocuments';
+import { useUiStore } from '../../store/uiStore';
 
 type Props = { document: Document; isActive: boolean };
 
@@ -12,6 +13,7 @@ export function DocumentRow({ document, isActive }: Props) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(document.title);
   const navigate = useNavigate();
+  const { setCanvasView } = useUiStore();
   const { mutate: rename } = useRenameDocument();
   const { mutate: deleteDoc } = useDeleteDocument();
   const { mutate: exportDoc } = useExportDocument();
@@ -61,7 +63,7 @@ export function DocumentRow({ document, isActive }: Props) {
         margin: '0 4px',
         position: 'relative',
       }}
-      onClick={() => { if (!isRenaming) navigate(`/doc/${document.id}`); }}
+      onClick={() => { if (!isRenaming) { setCanvasView({ type: 'document' }); navigate(`/doc/${document.id}`); } }}
       className="document-row"
       {...attributes}
       {...listeners}

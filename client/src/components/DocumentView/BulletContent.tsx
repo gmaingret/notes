@@ -630,11 +630,21 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       const mergedContent = (el.textContent ?? '') + nextSibling.content;
       const cursorOffset = (el.textContent ?? '').length;
 
+      // Update the DOM and local state immediately so the user sees the merged text
+      // right away, and so handleBlur reads the correct merged content (not the old
+      // pre-merge DOM text which would otherwise overwrite the server-side merge).
+      el.textContent = mergedContent;
+      setLocalContent(mergedContent);
+      // Clear any pending autosave timer — the merge patch below will save the content.
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+
       if (nextSiblingChildren.length > 0) {
         // Re-parent nextSibling's children to current bullet, then delete nextSibling.
         // Await patchBullet first so the text merge is persisted on the server before
-        // the move operations trigger query invalidations (which would otherwise refetch
-        // stale data and overwrite the optimistic merged-text update).
+        // the move operations trigger query invalidations.
         void (async () => {
           await patchBullet.mutateAsync({ id: bullet.id, documentId: bullet.documentId, content: mergedContent });
           // Insert in reverse order each as first child to preserve original ordering.

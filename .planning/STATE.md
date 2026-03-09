@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: phase-complete
-stopped_at: Completed Phase 1 — all 6 plans done; production verified at notes.gregorymaingret.fr
-last_updated: "2026-03-09T09:15:00.000Z"
-last_activity: 2026-03-09 — Plan 03 complete (document CRUD, reorder, export — 16 tests pass)
+status: verifying
+stopped_at: "Completed Phase 1 (01-06) — production verified at https://notes.gregorymaingret.fr; Phase 2 unblocked"
+last_updated: "2026-03-09T08:32:20.938Z"
+last_activity: 2026-03-09 — Plan 06 complete (production deployment, all API endpoints verified)
 progress:
   total_phases: 4
   completed_phases: 1

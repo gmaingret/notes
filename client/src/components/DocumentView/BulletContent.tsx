@@ -630,12 +630,14 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       const mergedContent = (el.textContent ?? '') + nextSibling.content;
       const cursorOffset = (el.textContent ?? '').length;
 
-      patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: mergedContent });
-
       if (nextSiblingChildren.length > 0) {
         // Re-parent nextSibling's children to current bullet, then delete nextSibling.
-        // Insert in reverse order each as first child to preserve original ordering.
+        // Await patchBullet first so the text merge is persisted on the server before
+        // the move operations trigger query invalidations (which would otherwise refetch
+        // stale data and overwrite the optimistic merged-text update).
         void (async () => {
+          await patchBullet.mutateAsync({ id: bullet.id, documentId: bullet.documentId, content: mergedContent });
+          // Insert in reverse order each as first child to preserve original ordering.
           for (const child of [...nextSiblingChildren].reverse()) {
             await moveBullet.mutateAsync({
               id: child.id,
@@ -647,6 +649,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
           softDeleteBullet.mutate({ id: nextSibling.id, documentId: bullet.documentId });
         })();
       } else {
+        patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: mergedContent });
         softDeleteBullet.mutate({ id: nextSibling.id, documentId: bullet.documentId });
       }
 

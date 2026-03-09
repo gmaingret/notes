@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-rich-content-01-PLAN.md
-last_updated: "2026-03-09T13:20:42.411Z"
+stopped_at: Completed 03-rich-content-03-PLAN.md
+last_updated: "2026-03-09T13:23:30.980Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 23
-  completed_plans: 15
+  completed_plans: 17
 ---
 
 ---
@@ -83,6 +83,8 @@ Progress: [█████░░░░░] 50%
 | Phase 02-core-outliner P07 | 3min | 2 tasks | 4 files |
 | Phase 02-core-outliner P08 | 3min | 2 tasks | 1 files |
 | Phase 03-rich-content P01 | 2min | 3 tasks | 9 files |
+| Phase 03-rich-content P02 | 5min | 2 tasks | 3 files |
+| Phase 03-rich-content P03 | 1min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -134,6 +136,11 @@ Recent decisions affecting current work:
 - [Phase 03-rich-content]: bookmarks table uses uniqueIndex on (userId, bulletId) — enforced at DB level, prevents duplicate bookmarks
 - [Phase 03-rich-content]: marked@17 + dompurify@3 installed together — marked renders markdown to HTML, dompurify sanitizes before display
 - [Phase 03-rich-content]: Client chip tests operate on plain strings not HTML (renderWithChips input is plain text) — simplifies implementation surface
+- [Phase 03-rich-content]: addBookmark uses onConflictDoNothing — idempotent, no error on duplicate (userId, bulletId)
+- [Phase 03-rich-content]: searchBullets strips leading chip prefix before ILIKE — #milk searches for milk
+- [Phase 03-rich-content]: getTagCounts uses Number(row.count) cast — pg driver returns numeric aggregates as strings in raw sql mode
+- [Phase 03-rich-content]: canvasView and sidebarTab excluded from zustand persist via partialize — transient UI state resets on page reload
+- [Phase 03-rich-content]: CanvasView type exported from uiStore.ts as single canonical import for all canvas view consumers
 
 ### Pending Todos
 
@@ -147,6 +154,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T13:20:34.113Z
-Stopped at: Completed 03-rich-content-01-PLAN.md
+Last session: 2026-03-09T13:23:30.976Z
+Stopped at: Completed 03-rich-content-03-PLAN.md
 Resume file: None

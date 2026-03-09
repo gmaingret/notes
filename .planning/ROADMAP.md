@@ -13,7 +13,7 @@ Four phases deliver a complete self-hosted infinite outliner. Phase 1 lays the a
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Authenticated app with document management and correct DB schema (completed 2026-03-09)
-- [ ] **Phase 2: Core Outliner** - Bullet CRUD, nesting, keyboard shortcuts, collapse/zoom, and server-persisted undo
+- [x] **Phase 2: Core Outliner** - Bullet CRUD, nesting, keyboard shortcuts, collapse/zoom, and server-persisted undo (completed 2026-03-09)
 - [ ] **Phase 3: Rich Content** - Markdown rendering, full-text search, tag/mention/date chips, and bookmarks
 - [ ] **Phase 4: Attachments, Comments, and Mobile** - File attachments, comments, and mobile touch gestures
 
@@ -49,7 +49,17 @@ Plans:
   3. User can collapse and expand branches; collapsed state survives a page refresh
   4. User can zoom into any bullet as the full-screen root and navigate back up via the breadcrumb bar using keyboard or click
   5. User can undo and redo up to 50 actions — including deletions, reorders, and indent changes — and the undo history survives a full page refresh
-**Plans**: TBD
+**Plans**: 8 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Wave 0: Nyquist test scaffolds (failing stubs for all 24 requirements)
+- [ ] 02-02-PLAN.md — bulletService + undoService (server-side tree ops + undo stack)
+- [ ] 02-03-PLAN.md — Bullet + undo HTTP routes, registered in index.ts
+- [ ] 02-04-PLAN.md — useBullets hooks, BulletTree/BulletNode/BulletContent + keyboard handler
+- [ ] 02-05-PLAN.md — DnD reorder (flatten/projected-depth) + URL-based zoom
+- [ ] 02-06-PLAN.md — Breadcrumb + global keyboard shortcuts (Ctrl+Z/Y/E/P)
+- [ ] 02-07-PLAN.md — Context menu, complete/hide/bulk-delete completed
+- [ ] 02-08-PLAN.md — Deploy to production + human verification checkpoint
 
 ### Phase 3: Rich Content
 **Goal**: Bullet text comes alive with inline formatting, clickable syntax chips, tag browsing, bookmarks, and fast full-text search
@@ -83,6 +93,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 6/6 | Complete   | 2026-03-09 |
-| 2. Core Outliner | 0/TBD | Not started | - |
+| 2. Core Outliner | 8/8 | Complete   | 2026-03-09 |
 | 3. Rich Content | 0/TBD | Not started | - |
 | 4. Attachments, Comments, and Mobile | 0/TBD | Not started | - |

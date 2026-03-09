@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: "Completed Phase 1 (01-06) — production verified at https://notes.gregorymaingret.fr; Phase 2 unblocked"
-last_updated: "2026-03-09T08:32:20.938Z"
-last_activity: 2026-03-09 — Plan 06 complete (production deployment, all API endpoints verified)
+status: executing
+stopped_at: Completed 02-core-outliner-08-PLAN.md
+last_updated: "2026-03-09T11:22:14.702Z"
+last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 6
-  completed_plans: 6
-  percent: 67
+  completed_phases: 2
+  total_plans: 14
+  completed_plans: 14
+  percent: 50
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 2 — Core Outliner
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation)
-Plan: 6 of 6 in current phase (all plans complete)
-Status: Phase 1 complete — production verified at https://notes.gregorymaingret.fr
-Last activity: 2026-03-09 — Plan 06 complete (production deployment, all API endpoints verified)
+Phase: 2 of 4 (Core Outliner)
+Plan: 1 of 8 in current phase (02-01 complete — test scaffolds)
+Status: Phase 2 in progress — Wave 0 RED scaffolds complete, ready for implementation plans
+Last activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 
-Progress: [███████░░░] 67%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -59,6 +59,14 @@ Progress: [███████░░░] 67%
 | Phase 01-foundation P03 | 17 | 2 tasks | 3 files |
 | Phase 01-foundation P05 | 2min | 2 tasks | 9 files |
 | Phase 01-foundation P06 | 35min | 1 tasks | 8 files |
+| Phase 02-core-outliner P01 | 8min | 4 tasks | 5 files |
+| Phase 02-core-outliner P02 | 4min | 2 tasks | 4 files |
+| Phase 02-core-outliner P03 | 4min | 2 tasks | 5 files |
+| Phase 02-core-outliner P04 | 5min | 2 tasks | 6 files |
+| Phase 02-core-outliner P05 | 2min | 2 tasks | 4 files |
+| Phase 02-core-outliner P06 | 4min | 2 tasks | 5 files |
+| Phase 02-core-outliner P07 | 3min | 2 tasks | 4 files |
+| Phase 02-core-outliner P08 | 3min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -88,6 +96,25 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: Dockerfile CMD path is server/dist/src/index.js — TypeScript rootDir='.' emits src/ and db/ to dist/src/ and dist/db/
 - [Phase 01-foundation]: Nginx proxy must target port 8000 on Docker host — port 3000 is occupied by outlinergod-backend-1 container
 - [Phase 01-foundation]: vite.config.ts must use defineConfig from vitest/config to support the 'test' property without TS error
+- [Phase 02-core-outliner]: Route test mock paths use ../../src/... relative from tests/routes/ — consistent with project import convention
+- [Phase 02-core-outliner]: Client test imports flattenTree from ../components/DocumentView/BulletTree — establishes expected export path for implementation
+- [Phase 02-core-outliner]: Use node:crypto randomUUID instead of uuid package — uuid not in server/package.json; avoids new dependency
+- [Phase 02-core-outliner]: recordUndoEvent takes dbInstance param — callers pass active transaction handle for atomic bullet mutation + undo event
+- [Phase 02-core-outliner]: applyOp in undoService executes ops directly via Drizzle — prevents circular dependency with bulletService
+- [Phase 02-core-outliner]: DB type changed from NodePgDatabase to PgDatabase<any> to accept both db and transaction handles in service functions
+- [Phase 02-core-outliner]: undoRouter mounted at /api (not /api/undo) to handle /undo, /redo, /undo/status as separate paths
+- [Phase 02-core-outliner]: Content PATCH bypasses undo at route level; client calls POST /:id/undo-checkpoint after debounce timeout
+- [Phase 02-core-outliner]: BulletContent exports cursor helpers (isCursorAtStart, isCursorAtEnd, splitAtCursor) as named exports for unit testing without mounting the full component
+- [Phase 02-core-outliner]: Shake animation uses singleton style tag injected on first render — self-contained in BulletContent, no Tailwind or external CSS dependency
+- [Phase 02-core-outliner]: Enter on bullet with children creates new bullet as first child (parentId=bullet.id, afterId=null) per CONTEXT.md locked decision
+- [Phase 02-core-outliner]: Single flat SortableContext over entire tree — nested SortableContexts block cross-level drag
+- [Phase 02-core-outliner]: isDragOverlay prop skips BulletContent interactivity — renders plain text div in DragOverlay
+- [Phase 02-core-outliner]: Click-vs-drag on dot: onPointerDown/Up with distance<5px check — 5px threshold matches PointerSensor activationConstraint
+- [Phase 02-core-outliner]: GlobalKeyboard skips Ctrl+Z/Y when contenteditable has focus — BulletContent handles to prevent double-API-call
+- [Phase 02-core-outliner]: invalidateQueries uses queryKey ['bullets'] prefix (no docId) for global per-user undo scope (UNDO-02)
+- [Phase 02-core-outliner]: DocumentToolbar rendered outside SortableContext — dnd-kit would capture toolbar pointer events inside SortableContext
+- [Phase 02-core-outliner]: BulletTree DnD logic uses visibleItems (not flatItems) when hide-completed active — prevents stale index lookups with hidden bullets
+- [Phase 02-core-outliner]: RED scaffold tests implemented as pure logic tests without React mounting
 
 ### Pending Todos
 
@@ -101,6 +128,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T09:15:00.000Z
-Stopped at: Completed Phase 1 (01-06) — production verified at https://notes.gregorymaingret.fr; Phase 2 unblocked
+Last session: 2026-03-09T11:22:14.700Z
+Stopped at: Completed 02-core-outliner-08-PLAN.md
 Resume file: None

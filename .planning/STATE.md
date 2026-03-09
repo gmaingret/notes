@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-core-outliner-06-PLAN.md
-last_updated: "2026-03-09T11:13:51.231Z"
+stopped_at: Completed 02-core-outliner-07-PLAN.md
+last_updated: "2026-03-09T11:18:13.846Z"
 last_activity: 2026-03-09 — Plan 02-01 complete (Wave 0 test scaffolds, RED state confirmed)
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 14
-  completed_plans: 12
+  completed_plans: 13
   percent: 50
 ---
 
@@ -65,6 +65,7 @@ Progress: [█████░░░░░] 50%
 | Phase 02-core-outliner P04 | 5min | 2 tasks | 6 files |
 | Phase 02-core-outliner P05 | 2min | 2 tasks | 4 files |
 | Phase 02-core-outliner P06 | 4min | 2 tasks | 5 files |
+| Phase 02-core-outliner P07 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,8 @@ Recent decisions affecting current work:
 - [Phase 02-core-outliner]: Click-vs-drag on dot: onPointerDown/Up with distance<5px check — 5px threshold matches PointerSensor activationConstraint
 - [Phase 02-core-outliner]: GlobalKeyboard skips Ctrl+Z/Y when contenteditable has focus — BulletContent handles to prevent double-API-call
 - [Phase 02-core-outliner]: invalidateQueries uses queryKey ['bullets'] prefix (no docId) for global per-user undo scope (UNDO-02)
+- [Phase 02-core-outliner]: DocumentToolbar rendered outside SortableContext — dnd-kit would capture toolbar pointer events inside SortableContext
+- [Phase 02-core-outliner]: BulletTree DnD logic uses visibleItems (not flatItems) when hide-completed active — prevents stale index lookups with hidden bullets
 
 ### Pending Todos
 
@@ -123,6 +126,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T11:13:51.228Z
-Stopped at: Completed 02-core-outliner-06-PLAN.md
+Last session: 2026-03-09T11:18:13.844Z
+Stopped at: Completed 02-core-outliner-07-PLAN.md
 Resume file: None

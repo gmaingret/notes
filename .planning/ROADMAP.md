@@ -36,8 +36,8 @@ Plans:
 - [x] 01-02-PLAN.md — Auth backend: register, login, refresh, logout, Google OAuth
 - [x] 01-03-PLAN.md — Documents backend: CRUD, reorder, export endpoints
 - [x] 01-04-PLAN.md — Frontend scaffold: Vite, AuthContext, LoginPage, React Router
-- [ ] 01-05-PLAN.md — App shell: Sidebar, DocumentList (dnd-kit), DocumentRow, DocumentView
-- [ ] 01-06-PLAN.md — Deploy to production, E2E smoke test, Google SSO human checkpoint
+- [x] 01-05-PLAN.md — App shell: Sidebar, DocumentList (dnd-kit), DocumentRow, DocumentView
+- [x] 01-06-PLAN.md — Deploy to production, E2E smoke test, Google SSO human checkpoint
 
 ### Phase 2: Core Outliner
 **Goal**: Users can capture and organize thoughts in an infinitely nested bullet outline with full keyboard control and undo that survives page refresh

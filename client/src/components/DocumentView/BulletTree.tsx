@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useDocumentBullets } from '../../hooks/useBullets';
 import type { Bullet } from '../../hooks/useBullets';
+import { BulletNode } from './BulletNode';
 
 export type BulletMap = Record<string, Bullet>;
 export type FlatBullet = Bullet & { depth: number };
@@ -38,13 +39,15 @@ export function BulletTree({
   const rootId = zoomedBulletId ?? null;
   const flatItems = useMemo(() => flattenTree(bulletMap, rootId), [bulletMap, rootId]);
 
-  // Render placeholder list for now — BulletNode added in Task 2
   return (
     <div>
       {flatItems.map(b => (
-        <div key={b.id} style={{ paddingLeft: b.depth * 24 }}>
-          {b.content}
-        </div>
+        <BulletNode
+          key={b.id}
+          bullet={b}
+          bulletMap={bulletMap}
+          depth={b.depth}
+        />
       ))}
     </div>
   );

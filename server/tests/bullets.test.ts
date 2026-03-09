@@ -581,6 +581,20 @@ describe('bulletService.markComplete', () => {
   });
 });
 
+// ─── note patch (CMT-03) ──────────────────────────────────────────────────────
+
+describe('bulletService.patchBullet (note field)', () => {
+  it('PATCH with note text persists note', () => {
+    // CMT-03: patchBullet(userId, bulletId, {note: 'some text'}) stores note in DB
+    throw new Error('not implemented — implement in 04-02');
+  });
+
+  it('PATCH with empty note stores null', () => {
+    // CMT-03: patchBullet(userId, bulletId, {note: ''}) stores null in DB
+    throw new Error('not implemented — implement in 04-02');
+  });
+});
+
 // ─── setCollapsed ─────────────────────────────────────────────────────────────
 
 describe('bulletService.setCollapsed', () => {

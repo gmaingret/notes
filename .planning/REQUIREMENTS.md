@@ -57,7 +57,7 @@
 - [x] **MOB-01**: Swipe right on bullet = mark complete
 - [x] **MOB-02**: Swipe left on bullet = soft delete (undo available)
 - [x] **MOB-03**: Long press = context menu
-- [ ] **MOB-04**: Touch-friendly drag handles for bullet reordering
+- [x] **MOB-04**: Touch-friendly drag handles for bullet reordering
 - [x] **MOB-05**: Focus toolbar (appears above keyboard when bullet selected): indent | outdent | ↑ | ↓ | undo | redo | attachment | comment | bookmark | complete | delete
 
 ### Special Syntax & Tags
@@ -177,7 +177,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MOB-01 | Phase 4 | Complete |
 | MOB-02 | Phase 4 | Complete |
 | MOB-03 | Phase 4 | Complete |
-| MOB-04 | Phase 4 | Pending |
+| MOB-04 | Phase 4 | Complete |
 | MOB-05 | Phase 4 | Complete |
 | TAG-01 | Phase 3 | Complete |
 | TAG-02 | Phase 3 | Complete |

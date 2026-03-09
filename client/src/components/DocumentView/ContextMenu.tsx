@@ -8,6 +8,7 @@ import {
   useMarkComplete,
   useSoftDeleteBullet,
 } from '../../hooks/useBullets';
+import { useBookmarks, useAddBookmark, useRemoveBookmark } from '../../hooks/useBookmarks';
 
 type Props = {
   bullet: FlatBullet;
@@ -24,6 +25,11 @@ export function ContextMenu({ bullet, bulletMap, position, onClose }: Props) {
   const moveBullet = useMoveBullet();
   const markComplete = useMarkComplete();
   const softDelete = useSoftDeleteBullet();
+
+  const { data: bookmarks = [] } = useBookmarks();
+  const addBookmark = useAddBookmark();
+  const removeBookmark = useRemoveBookmark();
+  const isBookmarked = bookmarks.some(b => b.id === bullet.id);
 
   // Close on outside click
   useEffect(() => {
@@ -102,6 +108,15 @@ export function ContextMenu({ bullet, bulletMap, position, onClose }: Props) {
 
   function handleDelete() {
     softDelete.mutate({ id: bullet.id, documentId: bullet.documentId });
+    onClose();
+  }
+
+  function handleToggleBookmark() {
+    if (isBookmarked) {
+      removeBookmark.mutate(bullet.id);
+    } else {
+      addBookmark.mutate(bullet.id);
+    }
     onClose();
   }
 
@@ -194,6 +209,14 @@ export function ContextMenu({ bullet, bulletMap, position, onClose }: Props) {
         onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
       >
         {bullet.isComplete ? 'Unmark complete' : 'Mark complete'}
+      </button>
+      <button
+        style={buttonStyle}
+        onClick={handleToggleBookmark}
+        onMouseEnter={e => { (e.target as HTMLElement).style.background = '#f5f5f5'; }}
+        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
+      >
+        {isBookmarked ? 'Remove bookmark' : 'Bookmark'}
       </button>
       <button
         style={deleteButtonStyle}

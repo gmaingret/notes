@@ -11,7 +11,7 @@ type Props = {
 
 export function DocumentToolbar({ documentId, hideCompleted, onToggleHideCompleted }: Props) {
   const queryClient = useQueryClient();
-  const { searchOpen, setSearchOpen } = useUiStore();
+  const { searchOpen, setSearchOpen, setCanvasView } = useUiStore();
 
   async function handleDeleteCompleted() {
     const confirmed = window.confirm(
@@ -41,6 +41,13 @@ export function DocumentToolbar({ documentId, hideCompleted, onToggleHideComplet
           title="Search (Ctrl+F)"
         >
           Search
+        </button>
+        <button
+          onClick={() => setCanvasView({ type: 'bookmarks' })}
+          style={{ fontSize: '0.8rem', color: '#666', background: 'none', border: 'none', cursor: 'pointer' }}
+          title="Bookmarks (Ctrl+*)"
+        >
+          Bookmarks
         </button>
         <button
           onClick={onToggleHideCompleted}

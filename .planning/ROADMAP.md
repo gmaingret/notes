@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Authenticated app with document management and correct DB schema (completed 2026-03-09)
 - [x] **Phase 2: Core Outliner** - Bullet CRUD, nesting, keyboard shortcuts, collapse/zoom, and server-persisted undo (completed 2026-03-09)
-- [ ] **Phase 3: Rich Content** - Markdown rendering, full-text search, tag/mention/date chips, and bookmarks
+- [x] **Phase 3: Rich Content** - Markdown rendering, full-text search, tag/mention/date chips, and bookmarks (completed 2026-03-09)
 - [ ] **Phase 4: Attachments, Comments, and Mobile** - File attachments, comments, and mobile touch gestures
 
 ## Phase Details
@@ -52,14 +52,14 @@ Plans:
 **Plans**: 8 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Wave 0: Nyquist test scaffolds (failing stubs for all 24 requirements)
-- [ ] 02-02-PLAN.md — bulletService + undoService (server-side tree ops + undo stack)
-- [ ] 02-03-PLAN.md — Bullet + undo HTTP routes, registered in index.ts
-- [ ] 02-04-PLAN.md — useBullets hooks, BulletTree/BulletNode/BulletContent + keyboard handler
-- [ ] 02-05-PLAN.md — DnD reorder (flatten/projected-depth) + URL-based zoom
-- [ ] 02-06-PLAN.md — Breadcrumb + global keyboard shortcuts (Ctrl+Z/Y/E/P)
-- [ ] 02-07-PLAN.md — Context menu, complete/hide/bulk-delete completed
-- [ ] 02-08-PLAN.md — Deploy to production + human verification checkpoint
+- [x] 02-01-PLAN.md — Wave 0: Nyquist test scaffolds (failing stubs for all 24 requirements)
+- [x] 02-02-PLAN.md — bulletService + undoService (server-side tree ops + undo stack)
+- [x] 02-03-PLAN.md — Bullet + undo HTTP routes, registered in index.ts
+- [x] 02-04-PLAN.md — useBullets hooks, BulletTree/BulletNode/BulletContent + keyboard handler
+- [x] 02-05-PLAN.md — DnD reorder (flatten/projected-depth) + URL-based zoom
+- [x] 02-06-PLAN.md — Breadcrumb + global keyboard shortcuts (Ctrl+Z/Y/E/P)
+- [x] 02-07-PLAN.md — Context menu, complete/hide/bulk-delete completed
+- [x] 02-08-PLAN.md — Deploy to production + human verification checkpoint
 
 ### Phase 3: Rich Content
 **Goal**: Bullet text comes alive with inline formatting, clickable syntax chips, tag browsing, bookmarks, and fast full-text search
@@ -74,15 +74,15 @@ Plans:
 **Plans**: 9 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Wave 0: test scaffolds (markdown, chips, routes), bookmarks schema + migration, install marked+dompurify
-- [ ] 03-02-PLAN.md — Server services: bookmarkService, tagService, searchService
-- [ ] 03-03-PLAN.md — uiStore expansion (sidebarTab, canvasView, searchOpen) + FilteredBulletList shared component
-- [ ] 03-04-PLAN.md — BulletContent markdown toggle + chip rendering + !! date picker
-- [ ] 03-05-PLAN.md — Server routes: bookmarks, tags, search + register in index.ts
-- [ ] 03-06-PLAN.md — Sidebar tab bar + TagBrowser component + filtered view in DocumentView
-- [ ] 03-07-PLAN.md — SearchModal + Ctrl+F handler + toolbar search icon
-- [ ] 03-08-PLAN.md — Bookmarks canvas view + toolbar icon + context menu bookmark toggle
-- [ ] 03-09-PLAN.md — Deploy to production + human verification checkpoint
+- [x] 03-01-PLAN.md — Wave 0: test scaffolds (markdown, chips, routes), bookmarks schema + migration, install marked+dompurify
+- [x] 03-02-PLAN.md — Server services: bookmarkService, tagService, searchService
+- [x] 03-03-PLAN.md — uiStore expansion (sidebarTab, canvasView, searchOpen) + FilteredBulletList shared component
+- [x] 03-04-PLAN.md — BulletContent markdown toggle + chip rendering + !! date picker
+- [x] 03-05-PLAN.md — Server routes: bookmarks, tags, search + register in index.ts
+- [x] 03-06-PLAN.md — Sidebar tab bar + TagBrowser component + filtered view in DocumentView
+- [x] 03-07-PLAN.md — SearchModal + Ctrl+F handler + toolbar search icon
+- [x] 03-08-PLAN.md — Bookmarks canvas view + toolbar icon + context menu bookmark toggle
+- [x] 03-09-PLAN.md — Deploy to production + human verification checkpoint
 
 ### Phase 4: Attachments, Comments, and Mobile
 **Goal**: Users can attach files and leave comments on bullets, and the full feature set works on mobile browsers via swipe and long-press gestures
@@ -105,5 +105,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 6/6 | Complete   | 2026-03-09 |
 | 2. Core Outliner | 8/8 | Complete   | 2026-03-09 |
-| 3. Rich Content | 8/9 | In Progress|  |
+| 3. Rich Content | 9/9 | Complete   | 2026-03-09 |
 | 4. Attachments, Comments, and Mobile | 0/TBD | Not started | - |

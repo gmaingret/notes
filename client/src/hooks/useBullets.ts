@@ -37,13 +37,37 @@ export function useCreateBullet() {
     onMutate: async (vars) => {
       await qc.cancelQueries({ queryKey: bulletKey(vars.documentId) });
       const prev = qc.getQueryData<Bullet[]>(bulletKey(vars.documentId));
+      const bullets = prev ?? [];
+
+      // Compute an optimistic position so the bullet renders in the right place immediately
+      let optimisticPosition = 0;
+      if (vars.afterId) {
+        const afterBullet = bullets.find(b => b.id === vars.afterId);
+        if (afterBullet) {
+          const siblings = bullets
+            .filter(b => b.parentId === vars.parentId && !b.deletedAt)
+            .sort((a, b) => a.position - b.position);
+          const afterIdx = siblings.findIndex(s => s.id === vars.afterId);
+          const nextSibling = afterIdx >= 0 ? siblings[afterIdx + 1] : null;
+          optimisticPosition = nextSibling
+            ? (afterBullet.position + nextSibling.position) / 2
+            : afterBullet.position + 1;
+        }
+      } else {
+        // afterId null → insert before all siblings
+        const siblings = bullets.filter(b => b.parentId === vars.parentId && !b.deletedAt);
+        if (siblings.length > 0) {
+          optimisticPosition = Math.min(...siblings.map(s => s.position)) - 1;
+        }
+      }
+
       const optimistic: Bullet = {
         id: `optimistic-${Date.now()}`,
         documentId: vars.documentId,
         userId: '',
         parentId: vars.parentId,
         content: vars.content,
-        position: 0,
+        position: optimisticPosition,
         isComplete: false,
         isCollapsed: false,
         deletedAt: null,

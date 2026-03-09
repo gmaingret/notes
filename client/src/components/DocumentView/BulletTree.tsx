@@ -206,7 +206,17 @@ export function BulletTree({
         <div style={{ position: 'relative' }}>
           {visibleItems.length === 0 && !isLoading && (
             <div
-              onClick={() => createBullet.mutate({ documentId, parentId: null, afterId: null, content: '' })}
+              onClick={() => createBullet.mutate(
+                { documentId, parentId: null, afterId: null, content: '' },
+                {
+                  onSuccess: (data) => {
+                    setTimeout(() => {
+                      const el = document.getElementById(`bullet-${data.id}`) as HTMLDivElement | null;
+                      if (el) el.focus();
+                    }, 50);
+                  },
+                }
+              )}
               style={{
                 padding: '0.2rem 0',
                 color: '#bbb',

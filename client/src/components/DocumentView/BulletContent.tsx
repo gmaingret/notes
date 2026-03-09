@@ -221,6 +221,32 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       return;
     }
 
+    // ── ArrowUp: navigate to previous bullet ──────────────────────────────
+    if (e.key === 'ArrowUp' && !isMeta) {
+      const allBulletEls = Array.from(
+        document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]')
+      );
+      const myIdx = allBulletEls.indexOf(divRef.current!);
+      if (myIdx > 0) {
+        e.preventDefault();
+        allBulletEls[myIdx - 1].focus();
+      }
+      return;
+    }
+
+    // ── ArrowDown: navigate to next bullet ────────────────────────────────
+    if (e.key === 'ArrowDown' && !isMeta) {
+      const allBulletEls = Array.from(
+        document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]')
+      );
+      const myIdx = allBulletEls.indexOf(divRef.current!);
+      if (myIdx < allBulletEls.length - 1) {
+        e.preventDefault();
+        allBulletEls[myIdx + 1].focus();
+      }
+      return;
+    }
+
     // ── Ctrl/Cmd+ArrowUp: move bullet up ──────────────────────────────────
     if (isMeta && e.key === 'ArrowUp') {
       e.preventDefault();
@@ -267,12 +293,17 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
 
       if (currentContent === '' && bullet.parentId === null) {
         // Empty root bullet — create blank sibling
-        createBullet.mutate({
-          documentId: bullet.documentId,
-          parentId: null,
-          afterId: bullet.id,
-          content: '',
-        });
+        createBullet.mutate(
+          { documentId: bullet.documentId, parentId: null, afterId: bullet.id, content: '' },
+          {
+            onSuccess: (data) => {
+              setTimeout(() => {
+                const newEl = document.getElementById(`bullet-${data.id}`) as HTMLDivElement | null;
+                if (newEl) newEl.focus();
+              }, 50);
+            },
+          }
+        );
         return;
       }
 
@@ -285,20 +316,30 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
 
       if (children.length > 0) {
         // Has children: create as first child
-        createBullet.mutate({
-          documentId: bullet.documentId,
-          parentId: bullet.id,
-          afterId: null,
-          content: after,
-        });
+        createBullet.mutate(
+          { documentId: bullet.documentId, parentId: bullet.id, afterId: null, content: after },
+          {
+            onSuccess: (data) => {
+              setTimeout(() => {
+                const newEl = document.getElementById(`bullet-${data.id}`) as HTMLDivElement | null;
+                if (newEl) newEl.focus();
+              }, 50);
+            },
+          }
+        );
       } else {
         // Create sibling below
-        createBullet.mutate({
-          documentId: bullet.documentId,
-          parentId: bullet.parentId,
-          afterId: bullet.id,
-          content: after,
-        });
+        createBullet.mutate(
+          { documentId: bullet.documentId, parentId: bullet.parentId, afterId: bullet.id, content: after },
+          {
+            onSuccess: (data) => {
+              setTimeout(() => {
+                const newEl = document.getElementById(`bullet-${data.id}`) as HTMLDivElement | null;
+                if (newEl) newEl.focus();
+              }, 50);
+            },
+          }
+        );
       }
       return;
     }
@@ -347,7 +388,8 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         }
         prevBullet = candidate;
       } else if (bullet.parentId !== null) {
-        prevBullet = bulletMap[bullet.parentId];
+        // First child — ignore backspace rather than merging into parent
+        return;
       }
 
       if (!prevBullet) return;

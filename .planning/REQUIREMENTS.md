@@ -40,7 +40,7 @@
 - [x] **BULL-13**: User can hide completed bullets via "Hide completed" toolbar toggle
 - [x] **BULL-14**: User can bulk delete all completed bullets (irreversible; permanently purges)
 - [x] **BULL-15**: Desktop: right-click bullet → context menu (indent, outdent, move, complete, delete, bookmark, attachment, comment)
-- [ ] **BULL-16**: Mobile: long press bullet → context menu (same actions)
+- [x] **BULL-16**: Mobile: long press bullet → context menu (same actions)
 
 ### Keyboard Shortcuts (Desktop)
 
@@ -54,11 +54,11 @@
 
 ### Mobile Touch (Responsive)
 
-- [ ] **MOB-01**: Swipe right on bullet = mark complete
-- [ ] **MOB-02**: Swipe left on bullet = soft delete (undo available)
-- [ ] **MOB-03**: Long press = context menu
-- [ ] **MOB-04**: Touch-friendly drag handles for bullet reordering
-- [ ] **MOB-05**: Focus toolbar (appears above keyboard when bullet selected): indent | outdent | ↑ | ↓ | undo | redo | attachment | comment | bookmark | complete | delete
+- [x] **MOB-01**: Swipe right on bullet = mark complete
+- [x] **MOB-02**: Swipe left on bullet = soft delete (undo available)
+- [x] **MOB-03**: Long press = context menu
+- [x] **MOB-04**: Touch-friendly drag handles for bullet reordering
+- [x] **MOB-05**: Focus toolbar (appears above keyboard when bullet selected): indent | outdent | ↑ | ↓ | undo | redo | attachment | comment | bookmark | complete | delete
 
 ### Special Syntax & Tags
 
@@ -83,19 +83,19 @@
 
 ### Comments
 
-- [ ] **CMT-01**: Bullets with comments show a small note icon indicator
-- [ ] **CMT-02**: Clicking the note icon opens a right-edge slide-in side panel with flat comment list
-- [ ] **CMT-03**: User can add a plain-text comment to any bullet
-- [ ] **CMT-04**: User can delete their own comments
+- [x] **CMT-01**: Bullets with comments show a small note icon indicator
+- [x] **CMT-02**: Clicking the note icon opens a right-edge slide-in side panel with flat comment list
+- [x] **CMT-03**: User can add a plain-text comment to any bullet
+- [x] **CMT-04**: User can delete their own comments
 
 ### Attachments
 
-- [ ] **ATT-01**: User can attach a file to a bullet (any file type, 100MB max)
-- [ ] **ATT-02**: Upload accessible via focus toolbar button or context menu
-- [ ] **ATT-03**: Images render as inline previews within the bullet
-- [ ] **ATT-04**: PDFs show a thumbnail preview
-- [ ] **ATT-05**: Other file types show a download icon + filename
-- [ ] **ATT-06**: Files stored on Docker volume mount
+- [x] **ATT-01**: User can attach a file to a bullet (any file type, 100MB max)
+- [x] **ATT-02**: Upload accessible via focus toolbar button or context menu
+- [x] **ATT-03**: Images render as inline previews within the bullet
+- [x] **ATT-04**: PDFs show a thumbnail preview
+- [x] **ATT-05**: Other file types show a download icon + filename
+- [x] **ATT-06**: Files stored on Docker volume mount
 
 ### Undo / Redo
 
@@ -166,7 +166,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BULL-13 | Phase 2 | Complete |
 | BULL-14 | Phase 2 | Complete |
 | BULL-15 | Phase 2 | Complete |
-| BULL-16 | Phase 4 | Pending |
+| BULL-16 | Phase 4 | Complete |
 | KB-01 | Phase 2 | Complete |
 | KB-02 | Phase 2 | Complete |
 | KB-03 | Phase 2 | Complete |
@@ -174,11 +174,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | KB-05 | Phase 2 | Complete |
 | KB-06 | Phase 2 | Complete |
 | KB-07 | Phase 2 | Complete |
-| MOB-01 | Phase 4 | Pending |
-| MOB-02 | Phase 4 | Pending |
-| MOB-03 | Phase 4 | Pending |
-| MOB-04 | Phase 4 | Pending |
-| MOB-05 | Phase 4 | Pending |
+| MOB-01 | Phase 4 | Complete |
+| MOB-02 | Phase 4 | Complete |
+| MOB-03 | Phase 4 | Complete |
+| MOB-04 | Phase 4 | Complete |
+| MOB-05 | Phase 4 | Complete |
 | TAG-01 | Phase 3 | Complete |
 | TAG-02 | Phase 3 | Complete |
 | TAG-03 | Phase 3 | Complete |
@@ -191,16 +191,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BM-01 | Phase 3 | Complete |
 | BM-02 | Phase 3 | Complete |
 | BM-03 | Phase 3 | Complete |
-| CMT-01 | Phase 4 | Pending |
-| CMT-02 | Phase 4 | Pending |
-| CMT-03 | Phase 4 | Pending |
-| CMT-04 | Phase 4 | Pending |
-| ATT-01 | Phase 4 | Pending |
-| ATT-02 | Phase 4 | Pending |
-| ATT-03 | Phase 4 | Pending |
-| ATT-04 | Phase 4 | Pending |
-| ATT-05 | Phase 4 | Pending |
-| ATT-06 | Phase 4 | Pending |
+| CMT-01 | Phase 4 | Complete |
+| CMT-02 | Phase 4 | Complete |
+| CMT-03 | Phase 4 | Complete |
+| CMT-04 | Phase 4 | Complete |
+| ATT-01 | Phase 4 | Complete |
+| ATT-02 | Phase 4 | Complete |
+| ATT-03 | Phase 4 | Complete |
+| ATT-04 | Phase 4 | Complete |
+| ATT-05 | Phase 4 | Complete |
+| ATT-06 | Phase 4 | Complete |
 | UNDO-01 | Phase 2 | Complete |
 | UNDO-02 | Phase 2 | Complete |
 | UNDO-03 | Phase 2 | Complete |

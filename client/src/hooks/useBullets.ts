@@ -11,6 +11,7 @@ export type Bullet = {
   isComplete: boolean;
   isCollapsed: boolean;
   deletedAt: string | null;
+  note: string | null;
 };
 
 function bulletKey(documentId: string) {
@@ -71,6 +72,7 @@ export function useCreateBullet() {
         isComplete: false,
         isCollapsed: false,
         deletedAt: null,
+        note: null,
       };
       qc.setQueryData(bulletKey(vars.documentId), (old: Bullet[] = []) => [
         ...old,
@@ -207,5 +209,12 @@ export function useBulletUndoCheckpoint() {
   return useMutation({
     mutationFn: (vars: { id: string; content: string }) =>
       apiClient.post<void>(`/api/bullets/${vars.id}/undo-checkpoint`, { content: vars.content }),
+  });
+}
+
+export function usePatchNote() {
+  return useMutation({
+    mutationFn: (vars: { id: string; note: string | null }) =>
+      apiClient.patch<Bullet>(`/api/bullets/${vars.id}`, { note: vars.note }),
   });
 }

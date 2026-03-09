@@ -168,7 +168,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   const moveBullet = useMoveBullet();
   const undoCheckpoint = useBulletUndoCheckpoint();
 
-  const { setSidebarTab, setCanvasView } = useUiStore();
+  const { setSidebarTab, setCanvasView, setFocusedBulletId } = useUiStore();
 
   const handleUndo = useCallback(async () => {
     await apiClient.post('/api/undo', {});
@@ -261,6 +261,8 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       setLocalContent(content);
     }
     setIsEditing(false);
+    // Clear focused bullet LAST to avoid race where toolbar disappears before action completes
+    setFocusedBulletId(null);
   }
 
   function handleFocus() {
@@ -268,6 +270,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     if (!isEditing) {
       setIsEditing(true);
     }
+    setFocusedBulletId(bullet.id);
     if (onFocus) onFocus();
   }
 

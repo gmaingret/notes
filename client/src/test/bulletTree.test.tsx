@@ -1,4 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// pdfjs-dist is imported transitively via AttachmentRow → BulletNode → BulletTree.
+// Mock it at module level to prevent DOMMatrix crash in jsdom.
+vi.mock('pdfjs-dist', () => ({
+  getDocument: vi.fn(),
+  GlobalWorkerOptions: { workerSrc: '' },
+  version: '4.0.0',
+}));
+
 import { flattenTree, buildBulletMap } from '../components/DocumentView/BulletTree';
 import { isCursorAtStart, splitAtCursor } from '../components/DocumentView/BulletContent';
 import type { Bullet } from '../hooks/useBullets';
@@ -13,6 +22,7 @@ function makeBullet(overrides: Partial<Bullet> & { id: string }): Bullet {
     isComplete: false,
     isCollapsed: false,
     deletedAt: null,
+    note: null,
     ...overrides,
   };
 }

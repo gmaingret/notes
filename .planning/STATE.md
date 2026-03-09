@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Completed 01-01-PLAN.md — server bootstrap, schema, and test scaffolds
-last_updated: "2026-03-09T07:54:50.007Z"
-last_activity: 2026-03-09 — Roadmap created (4 phases, 66 requirements mapped)
+status: in-progress
+stopped_at: Completed 01-02-PLAN.md — authentication backend with JWT, register/login/refresh/logout endpoints
+last_updated: "2026-03-09T09:00:00.000Z"
+last_activity: 2026-03-09 — Plan 02 complete (auth backend, 29 tests pass)
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 6
-  completed_plans: 2
-  percent: 0
+  completed_plans: 3
+  percent: 33
 ---
 
 # Project State
@@ -26,32 +26,36 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 ## Current Position
 
 Phase: 1 of 4 (Foundation)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-09 — Roadmap created (4 phases, 66 requirements mapped)
+Plan: 3 of 6 in current phase
+Status: In progress — Plan 03 ready to execute
+Last activity: 2026-03-09 — Plan 02 complete (auth backend, 29 tests pass)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 3
+- Average duration: 20min
+- Total execution time: ~1 hour
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-foundation | 3/6 | ~60min | ~20min |
 
 **Recent Trend:**
-- Last 5 plans: none yet
-- Trend: -
+- Last 5 plans: 01-01, 01-04, 01-02
+- Trend: stable
 
 *Updated after each plan completion*
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01-foundation P01 | 6min | 3 tasks | 15 files |
 | Phase 01-foundation P04 | 4min | 2 tasks | 12 files |
-| Phase 01-foundation P01 | 6 | 3 tasks | 15 files |
+| Phase 01-foundation P02 | 35min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -70,6 +74,9 @@ Recent decisions affecting current work:
 - [Phase 01-01]: FLOAT8 double precision for all position columns — locked, cannot change after data exists
 - [Phase 01-01]: undo_events.schema_version column present from migration 0 — prevents Phase 2/3 migration pain
 - [Phase 01-01]: Docker port mapping 8000:3000 per MEMORY.md (app accessible at 192.168.1.50:8000)
+- [Phase 01-02]: drizzle-orm 0.45.x has missing index.cjs in npm package — must use 0.40.0 + drizzle-kit 0.29.x
+- [Phase 01-02]: requireAuth uses passport.authenticate callback pattern to return 401 JSON (not HTML)
+- [Phase 01-02]: Google OAuth token sent as URL hash fragment (?token=) — hash not sent to server, prevents logging
 
 ### Pending Todos
 
@@ -83,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T07:54:50.005Z
-Stopped at: Completed 01-01-PLAN.md — server bootstrap, schema, and test scaffolds
-Resume file: None
+Last session: 2026-03-09T09:00:00.000Z
+Stopped at: Completed 01-02-PLAN.md — auth backend with JWT, register/login/refresh/logout
+Resume file: .planning/phases/01-foundation/01-03-PLAN.md

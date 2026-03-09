@@ -200,7 +200,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   // Auto-focus when this bullet is the pending focus target (e.g. after Enter creates it)
   useEffect(() => {
     if (pendingFocusBulletId === bullet.id) {
-      console.log('[BulletContent] pendingFocusBulletId match — focusing', bullet.id, 'divRef.current:', divRef.current);
       setPendingFocusBulletId(null);
       divRef.current?.focus();
     }
@@ -210,11 +209,14 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   useLayoutEffect(() => {
     const el = divRef.current;
     if (!el) return;
-    console.log('[BulletContent] useLayoutEffect(isEditing)', bullet.id, 'isEditing:', isEditing);
     if (isEditing) {
-      // Switch to edit mode: set plain text and focus
+      // Switch to edit mode: set plain text, then focus only if not already focused.
+      // Calling el.focus() on an already-focused element (e.g. after a click) can
+      // trigger another blur+focus cycle in browsers when contentEditable changes.
       el.textContent = localContent;
-      el.focus();
+      if (document.activeElement !== el) {
+        el.focus();
+      }
     } else {
       // Switch to view mode: set rendered HTML
       el.innerHTML = renderWithChips(renderBulletMarkdown(localContent));
@@ -237,8 +239,13 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
 
   function enterEditMode() {
     if (isEditing) return;
-    console.log('[BulletContent] enterEditMode', bullet.id);
-    isSwitchingModeRef.current = false; // entering edit is not a "leaving" switch
+    // Guard against the spurious blur that browsers fire when contentEditable changes on a
+    // focused element. Without this, handleBlur fires immediately after setIsEditing(true)
+    // and calls leaveEditMode(), causing isEditing to flicker true→false on every click.
+    isSwitchingModeRef.current = true;
+    requestAnimationFrame(() => {
+      isSwitchingModeRef.current = false;
+    });
     setIsEditing(true);
   }
 
@@ -312,7 +319,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   }
 
   function handleFocus() {
-    console.log('[BulletContent] handleFocus', bullet.id, 'isEditing:', isEditing);
     const chip = pendingChipRef.current;
     pendingChipRef.current = null;
 
@@ -359,7 +365,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]')
       );
       const myIdx = allBulletEls.indexOf(divRef.current!);
-      console.log('[BulletContent] ArrowUp', bullet.id, 'allBulletEls.length:', allBulletEls.length, 'myIdx:', myIdx, 'divRef.current:', divRef.current?.id);
       if (myIdx > 0) {
         e.preventDefault();
         allBulletEls[myIdx - 1].focus();
@@ -374,7 +379,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]')
       );
       const myIdx = allBulletEls.indexOf(divRef.current!);
-      console.log('[BulletContent] ArrowDown', bullet.id, 'allBulletEls.length:', allBulletEls.length, 'myIdx:', myIdx, 'divRef.current:', divRef.current?.id);
       if (myIdx < allBulletEls.length - 1) {
         e.preventDefault();
         allBulletEls[myIdx + 1].focus();
@@ -482,7 +486,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
           { documentId: bullet.documentId, parentId: null, afterId: bullet.id, content: '' },
           {
             onSuccess: (data) => {
-              console.log('[BulletContent] Enter empty root — createBullet onSuccess, setting pendingFocusBulletId to', data.id);
               setPendingFocusBulletId(data.id);
             },
           }
@@ -509,7 +512,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
           { documentId: bullet.documentId, parentId: bullet.id, afterId: null, content: after },
           {
             onSuccess: (data) => {
-              console.log('[BulletContent] Enter (has children) — createBullet onSuccess, setting pendingFocusBulletId to', data.id);
               setPendingFocusBulletId(data.id);
             },
           }
@@ -520,7 +522,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
           { documentId: bullet.documentId, parentId: bullet.parentId, afterId: bullet.id, content: after },
           {
             onSuccess: (data) => {
-              console.log('[BulletContent] Enter (sibling) — createBullet onSuccess, setting pendingFocusBulletId to', data.id);
               setPendingFocusBulletId(data.id);
             },
           }

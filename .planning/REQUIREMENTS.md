@@ -72,14 +72,14 @@
 
 - [x] **SRCH-01**: User can search across all personal documents (full-text)
 - [x] **SRCH-02**: Search supports #tag, @mention, and !!date query syntax
-- [ ] **SRCH-03**: Search results show matching bullets; clicking a result opens it in zoomed focus view
+- [x] **SRCH-03**: Search results show matching bullets; clicking a result opens it in zoomed focus view
 - [ ] **SRCH-04**: Search accessible via no-focus toolbar button and Ctrl/Cmd+F keyboard shortcut
 
 ### Bookmarks
 
 - [x] **BM-01**: User can bookmark a bullet (via focus toolbar or context menu)
 - [x] **BM-02**: No-focus toolbar "Bookmarks" button shows a dedicated screen of all bookmarked bullets
-- [ ] **BM-03**: Clicking a bookmark opens the bullet in zoomed focus view
+- [x] **BM-03**: Clicking a bookmark opens the bullet in zoomed focus view
 
 ### Comments
 
@@ -186,11 +186,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TAG-05 | Phase 3 | Complete |
 | SRCH-01 | Phase 3 | Complete |
 | SRCH-02 | Phase 3 | Complete |
-| SRCH-03 | Phase 3 | Pending |
+| SRCH-03 | Phase 3 | Complete |
 | SRCH-04 | Phase 3 | Pending |
 | BM-01 | Phase 3 | Complete |
 | BM-02 | Phase 3 | Complete |
-| BM-03 | Phase 3 | Pending |
+| BM-03 | Phase 3 | Complete |
 | CMT-01 | Phase 4 | Pending |
 | CMT-02 | Phase 4 | Pending |
 | CMT-03 | Phase 4 | Pending |

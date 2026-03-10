@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mobile & UI Polish
 status: ready_to_plan
-stopped_at: Completed 07-icons-fonts-and-pwa-03-PLAN.md
-last_updated: "2026-03-10T17:29:56.533Z"
+stopped_at: Completed 07-icons-fonts-and-pwa-04-PLAN.md
+last_updated: "2026-03-10T17:33:09.535Z"
 last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 14
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 ---
@@ -89,6 +89,7 @@ Progress: [██░░░░░░░░] 50% (v1.0 complete, v1.1 not started)
 | Phase 07-icons-fonts-and-pwa P01 | 5 | 1 tasks | 1 files |
 | Phase 07-icons-fonts-and-pwa P02 | 8 | 2 tasks | 5 files |
 | Phase 07-icons-fonts-and-pwa P03 | 8 | 2 tasks | 4 files |
+| Phase 07-icons-fonts-and-pwa P04 | 8 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -125,6 +126,8 @@ Recent decisions affecting current work:
 - [Phase 07-icons-fonts-and-pwa]: Sidebar tabs icon-only: tabIcon const map inside IIFE; tab title attributes for accessibility
 - [Phase 07-icons-fonts-and-pwa]: Lucide icon standard: size=20 strokeWidth=1.5 — no color, no wrapping span
 - [Phase 07-icons-fonts-and-pwa]: Star fill state via .star-filled/.star-outline CSS classes (fill + color tokens) — consistent with design token approach
+- [Phase 07-icons-fonts-and-pwa]: Fontsource imports placed at top of main.tsx (before React) per @fontsource docs and plan spec
+- [Phase 07-icons-fonts-and-pwa]: JetBrains Mono applied to SearchModal input via .search-modal-input CSS class (not inline style) to keep font declarations in index.css
 
 ### Pending Todos
 
@@ -137,6 +140,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-10T17:29:51.205Z
-Stopped at: Completed 07-icons-fonts-and-pwa-03-PLAN.md
+Last session: 2026-03-10T17:33:09.532Z
+Stopped at: Completed 07-icons-fonts-and-pwa-04-PLAN.md
 Resume file: None

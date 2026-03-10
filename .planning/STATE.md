@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mobile & UI Polish
 status: ready_to_plan
-stopped_at: Completed 06-dark-mode-03-PLAN.md
-last_updated: "2026-03-10T15:38:04.979Z"
+stopped_at: Completed 06-dark-mode-04-PLAN.md
+last_updated: "2026-03-10T15:41:03.709Z"
 last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 ---
@@ -70,6 +70,7 @@ Progress: [██░░░░░░░░] 50% (v1.0 complete, v1.1 not started)
 | Phase 06-dark-mode P01 | 2 | 2 tasks | 2 files |
 | Phase 06-dark-mode P02 | 6 | 2 tasks | 14 files |
 | Phase 06-dark-mode P03 | 7 | 2 tasks | 8 files |
+| Phase 06-dark-mode P04 | 5 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,8 @@ Recent decisions affecting current work:
 - [Phase 06-dark-mode]: ContextMenu onMouseEnter/Leave JS color assignments removed in favor of CSS .context-menu-item:hover rule
 - [Phase 06-dark-mode]: DocumentRow active state via .document-row--active class (not inline) so var(--color-row-active-bg) resolves correctly in both themes
 - [Phase 06-dark-mode]: LoginPage const styles object deleted entirely — all styles now in login-* CSS classes in index.css
+- [Phase 06-dark-mode]: Synchronous FOUC script in index.html <head> — applied before first paint so dark OS users never see white flash
+- [Phase 06-dark-mode]: color-scheme meta tag delegates scrollbar and form input dark theming to the browser
 
 ### Pending Todos
 
@@ -111,6 +114,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-10T15:38:04.976Z
-Stopped at: Completed 06-dark-mode-03-PLAN.md
+Last session: 2026-03-10T15:41:03.706Z
+Stopped at: Completed 06-dark-mode-04-PLAN.md
 Resume file: None

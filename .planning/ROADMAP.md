@@ -25,7 +25,7 @@ Full details: [`.planning/milestones/v1.0-ROADMAP.md`](milestones/v1.0-ROADMAP.m
 
 - [x] **Phase 5: Mobile Layout Foundation** - Responsive sidebar, hamburger menu, touch targets, and desktop toggle (completed 2026-03-10)
 - [x] **Phase 6: Dark Mode** - System-preference dark theme with WCAG AA colors and FOUC prevention (completed 2026-03-10)
-- [ ] **Phase 7: Icons, Fonts, and PWA** - Lucide icons, self-hosted fonts, and home screen installation
+- [x] **Phase 7: Icons, Fonts, and PWA** - Lucide icons, self-hosted fonts, and home screen installation (completed 2026-03-10)
 - [ ] **Phase 8: Swipe Polish and Quick-Open Palette** - Swipe gesture animations and Ctrl+K navigation palette
 
 ## Phase Details
@@ -103,5 +103,5 @@ Plans:
 | 4. Attachments, Comments, and Mobile | v1.0 | 9/9 | Complete | 2026-03-10 |
 | 5. Mobile Layout Foundation | v1.1 | 4/4 | Complete | 2026-03-10 |
 | 6. Dark Mode | v1.1 | 5/5 | Complete   | 2026-03-10 |
-| 7. Icons, Fonts, and PWA | 4/5 | In Progress|  | - |
+| 7. Icons, Fonts, and PWA | 5/5 | Complete   | 2026-03-10 | - |
 | 8. Swipe Polish and Quick-Open Palette | v1.1 | 0/? | Not started | - |

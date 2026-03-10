@@ -17,86 +17,54 @@ export function Sidebar({ activeDocId }: SidebarProps) {
   const { sidebarOpen, setSidebarOpen, sidebarTab, setSidebarTab } = useUiStore();
   const [showSidebarMenu, setShowSidebarMenu] = useState(false);
 
-  const handleCreate = () => {
-    createDocument(undefined);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-  };
+  const handleCreate = () => { createDocument(undefined); };
+  const handleLogout = async () => { await logout(); };
 
   return (
     <>
-      {/* Mobile backdrop — always rendered so fade-out transition plays */}
-      <div
-        className={`sidebar-backdrop${sidebarOpen ? ' sidebar-open' : ''}`}
-        onClick={() => setSidebarOpen(false)}
-      />
+      {/* Backdrop — only in DOM on mobile when open, so it never interferes with desktop */}
+      {sidebarOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-      <aside
-        className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}
-        style={{
-          width: 240, // Fixed 240px — locked UX decision
-          minWidth: 240,
-          borderRight: '1px solid #e0e0e0',
-          display: 'flex',
-          flexDirection: 'column',
-          background: '#fafafa',
-          flexShrink: 0,
-        }}
-      >
-        {/* Header */}
-        <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
+        {/* Header — position:relative here so the dropdown anchors to the full header width */}
+        <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
           <span style={{ flex: 1, fontWeight: 600, fontSize: '0.875rem' }}>Notes</span>
 
-          {/* Sidebar-level menu (all-docs export + logout) */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowSidebarMenu(v => !v)}
-              style={iconButtonStyle}
-              title="More options"
-            >
-              ⋯
-            </button>
+          <div>
+            <button onClick={() => setShowSidebarMenu(v => !v)} style={iconButtonStyle} title="More options">⋯</button>
             {showSidebarMenu && (
-              <div style={dropdownStyle}>
-                <button
-                  style={dropdownItemStyle}
-                  onClick={() => { exportAll(); setShowSidebarMenu(false); }}
-                >
-                  Export all documents
-                </button>
-                <button
-                  style={dropdownItemStyle}
-                  onClick={() => { handleLogout(); setShowSidebarMenu(false); }}
-                >
-                  Logout
-                </button>
-              </div>
+              <>
+                {/* Transparent overlay — tapping outside the dropdown closes it (mobile + desktop) */}
+                <div
+                  style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                  onClick={() => setShowSidebarMenu(false)}
+                />
+                <div style={dropdownStyle}>
+                  <button style={dropdownItemStyle} onClick={() => { exportAll(); setShowSidebarMenu(false); }}>Export all documents</button>
+                  <button style={dropdownItemStyle} onClick={() => { handleLogout(); setShowSidebarMenu(false); }}>Logout</button>
+                </div>
+              </>
             )}
           </div>
 
-          {/* X close button — mobile only */}
+          {/* X close — only shown on mobile via CSS (.mobile-close-btn display:none on desktop).
+               Do NOT apply display via inline style here — CSS controls visibility. */}
           <button
-            className="mobile-only"
+            className="mobile-close-btn"
             onClick={() => setSidebarOpen(false)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: '0.25rem 0.375rem', borderRadius: 4,
-              fontSize: '1rem', color: '#666', lineHeight: 1,
-              minWidth: 44, minHeight: 44, display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-            }}
+            style={closeBtnStyle}
             title="Close sidebar"
             aria-label="Close sidebar"
           >
             ✕
           </button>
 
-          {/* New document button */}
-          <button onClick={handleCreate} style={iconButtonStyle} title="New document">
-            +
-          </button>
+          <button onClick={handleCreate} style={iconButtonStyle} title="New document">+</button>
         </div>
 
         {/* Tab bar */}
@@ -114,7 +82,7 @@ export function Sidebar({ activeDocId }: SidebarProps) {
             </button>
           ))}
         </div>
-        {/* Tab content */}
+
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {sidebarTab === 'docs' ? <DocumentList activeDocId={activeDocId} />
             : sidebarTab === 'tags' ? <TagBrowser />
@@ -126,41 +94,31 @@ export function Sidebar({ activeDocId }: SidebarProps) {
 }
 
 const iconButtonStyle = {
-  background: 'none',
-  border: 'none',
-  cursor: 'pointer',
-  padding: '0.25rem 0.375rem',
-  borderRadius: 4,
-  fontSize: '1rem',
-  color: '#666',
-  lineHeight: 1,
-  minWidth: 44,
-  minHeight: 44,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
+  background: 'none', border: 'none', cursor: 'pointer',
+  padding: '0.25rem 0.375rem', borderRadius: 4,
+  fontSize: '1rem', color: '#666', lineHeight: 1,
+  minWidth: 44, minHeight: 44, display: 'flex',
+  alignItems: 'center', justifyContent: 'center',
+} as const;
+
+// Same as iconButtonStyle but WITHOUT display — lets CSS (.mobile-close-btn) control
+// visibility so the X button is hidden on desktop and shown on mobile.
+const closeBtnStyle = {
+  background: 'none', border: 'none', cursor: 'pointer',
+  padding: '0.25rem 0.375rem', borderRadius: 4,
+  fontSize: '1rem', color: '#666', lineHeight: 1,
+  minWidth: 44, minHeight: 44,
+  alignItems: 'center', justifyContent: 'center',
 } as const;
 
 const dropdownStyle = {
-  position: 'absolute' as const,
-  right: 0,
-  top: '100%',
-  background: '#fff',
-  border: '1px solid #e0e0e0',
-  borderRadius: 4,
-  boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-  zIndex: 100,
-  minWidth: 180,
+  position: 'absolute' as const, right: 0, top: '100%',
+  background: '#fff', border: '1px solid #e0e0e0', borderRadius: 4,
+  boxShadow: '0 2px 8px rgba(0,0,0,0.12)', zIndex: 100, minWidth: 180,
 };
 
 const dropdownItemStyle = {
-  display: 'block',
-  width: '100%',
-  padding: '0.5rem 0.75rem',
-  background: 'none',
-  border: 'none',
-  cursor: 'pointer',
-  textAlign: 'left' as const,
-  fontSize: '0.875rem',
-  color: '#333',
+  display: 'block', width: '100%', padding: '0.5rem 0.75rem',
+  background: 'none', border: 'none', cursor: 'pointer',
+  textAlign: 'left' as const, fontSize: '0.875rem', color: '#333',
 };

@@ -5,6 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useRenameDocument, useDeleteDocument, useExportDocument } from '../../hooks/useDocuments';
 import type { Document } from '../../hooks/useDocuments';
 import { useUiStore } from '../../store/uiStore';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 type Props = { document: Document; isActive: boolean };
 
@@ -13,7 +14,8 @@ export function DocumentRow({ document, isActive }: Props) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(document.title);
   const navigate = useNavigate();
-  const { setCanvasView } = useUiStore();
+  const { setCanvasView, setSidebarOpen } = useUiStore();
+  const isMobile = useIsMobile();
   const { mutate: rename } = useRenameDocument();
   const { mutate: deleteDoc } = useDeleteDocument();
   const { mutate: exportDoc } = useExportDocument();
@@ -63,7 +65,14 @@ export function DocumentRow({ document, isActive }: Props) {
         margin: '0 4px',
         position: 'relative',
       }}
-      onClick={() => { if (!isRenaming) { setCanvasView({ type: 'document' }); navigate(`/doc/${document.id}`); } }}
+      onClick={() => {
+        if (!isRenaming) {
+          setCanvasView({ type: 'document' });
+          navigate(`/doc/${document.id}`);
+          // Bug 1.1: close sidebar on mobile so the document is visible
+          if (isMobile) setSidebarOpen(false);
+        }
+      }}
       className="document-row"
       {...attributes}
       {...listeners}
@@ -115,27 +124,38 @@ export function DocumentRow({ document, isActive }: Props) {
         </button>
 
         {showMenu && (
-          <div style={{
-            position: 'absolute',
-            right: 4,
-            top: '100%',
-            background: '#fff',
-            border: '1px solid #e0e0e0',
-            borderRadius: 4,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-            zIndex: 200,
-            minWidth: 150,
-          }}>
-            <button style={menuItemStyle} onClick={e => { e.stopPropagation(); setIsRenaming(true); setShowMenu(false); }}>
-              Rename
-            </button>
-            <button style={menuItemStyle} onClick={e => { e.stopPropagation(); exportDoc({ id: document.id, title: document.title }); setShowMenu(false); }}>
-              Export as Markdown
-            </button>
-            <button style={{ ...menuItemStyle, color: '#e53e3e' }} onClick={e => { e.stopPropagation(); handleDelete(); }}>
-              Delete
-            </button>
-          </div>
+          <>
+            {/* Bug 1.3: transparent full-screen overlay behind the menu — any tap outside
+                hits this overlay and closes the menu. Reliable on mobile and desktop. */}
+            <div
+              style={{ position: 'fixed', inset: 0, zIndex: 199 }}
+              onClick={e => { e.stopPropagation(); setShowMenu(false); }}
+            />
+            {/* Bug 1.2: right:0 aligns the menu's right edge with the row's right edge
+                (the row is the position:relative ancestor). The 150px menu extends leftward
+                from there and stays fully inside the 240px sidebar. */}
+            <div style={{
+              position: 'absolute',
+              right: 0,
+              top: '100%',
+              background: '#fff',
+              border: '1px solid #e0e0e0',
+              borderRadius: 4,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+              zIndex: 200,
+              minWidth: 150,
+            }}>
+              <button style={menuItemStyle} onClick={e => { e.stopPropagation(); setIsRenaming(true); setShowMenu(false); }}>
+                Rename
+              </button>
+              <button style={menuItemStyle} onClick={e => { e.stopPropagation(); exportDoc({ id: document.id, title: document.title }); setShowMenu(false); }}>
+                Export as Markdown
+              </button>
+              <button style={{ ...menuItemStyle, color: '#e53e3e' }} onClick={e => { e.stopPropagation(); handleDelete(); }}>
+                Delete
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>

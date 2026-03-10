@@ -14,7 +14,7 @@ type Props = { document: Document };
 export function DocumentView({ document }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { canvasView, setCanvasView, setSidebarOpen } = useUiStore();
+  const { canvasView, setCanvasView, sidebarOpen, setSidebarOpen } = useUiStore();
   const { data: flatBullets = [] } = useDocumentBullets(document.id);
   const bulletMap = useMemo(() => buildBulletMap(flatBullets), [flatBullets]);
 
@@ -36,24 +36,15 @@ export function DocumentView({ document }: Props) {
 
   if (canvasView.type === 'bookmarks') {
     const rows: FilteredBulletRow[] = bookmarkedBullets.map(b => ({
-      bulletId: b.id,
-      bulletContent: b.content,
-      documentId: b.documentId,
-      documentTitle: b.documentTitle,
-      isBookmarked: true,
+      bulletId: b.id, bulletContent: b.content,
+      documentId: b.documentId, documentTitle: b.documentTitle, isBookmarked: true,
     }));
     return (
       <div style={{ padding: '2rem 3rem', maxWidth: 720, margin: '0 auto' }}>
         <FilteredBulletList
-          title="Bookmarks"
-          rows={rows}
-          onRowClick={(row) => {
-            navigate(`/doc/${row.documentId}#bullet/${row.bulletId}`);
-            setCanvasView({ type: 'document' });
-          }}
-          onToggleBookmark={(row) => {
-            removeBookmark.mutate(row.bulletId);
-          }}
+          title="Bookmarks" rows={rows}
+          onRowClick={(row) => { navigate(`/doc/${row.documentId}#bullet/${row.bulletId}`); setCanvasView({ type: 'document' }); }}
+          onToggleBookmark={(row) => { removeBookmark.mutate(row.bulletId); }}
           isLoading={bookmarksLoading}
         />
       </div>
@@ -63,21 +54,15 @@ export function DocumentView({ document }: Props) {
   if (canvasView.type === 'filtered') {
     const cv = canvasView as { type: 'filtered'; chipType: 'tag' | 'mention' | 'date'; chipValue: string };
     const rows: FilteredBulletRow[] = (tagBullets ?? []).map(b => ({
-      bulletId: b.id,
-      bulletContent: b.content,
-      documentId: b.documentId,
-      documentTitle: b.documentTitle,
+      bulletId: b.id, bulletContent: b.content,
+      documentId: b.documentId, documentTitle: b.documentTitle,
     }));
     const prefix = cv.chipType === 'tag' ? '#' : cv.chipType === 'mention' ? '@' : '!!';
     return (
       <div style={{ padding: '2rem 3rem', maxWidth: 720, margin: '0 auto' }}>
         <FilteredBulletList
-          title={`Results for ${prefix}${cv.chipValue}`}
-          rows={rows}
-          onRowClick={(row) => {
-            navigate(`/doc/${row.documentId}#bullet/${row.bulletId}`);
-            setCanvasView({ type: 'document' });
-          }}
+          title={`Results for ${prefix}${cv.chipValue}`} rows={rows}
+          onRowClick={(row) => { navigate(`/doc/${row.documentId}#bullet/${row.bulletId}`); setCanvasView({ type: 'document' }); }}
           isLoading={tagBulletsLoading}
         />
       </div>
@@ -85,25 +70,25 @@ export function DocumentView({ document }: Props) {
   }
 
   return (
-    <div style={{ padding: '0 3rem', maxWidth: 720, margin: '0 auto' }}>
-      {/* Sticky header: hamburger (mobile) + breadcrumb or title */}
-      <div className="sticky-header" style={{ background: '#fff' }}>
-        <button
-          className="mobile-only"
-          onClick={() => setSidebarOpen(true)}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            padding: '0.25rem', borderRadius: 4,
-            fontSize: '1.25rem', color: '#666', lineHeight: 1,
-            minWidth: 44, minHeight: 44,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}
-          title="Open sidebar"
-          aria-label="Open sidebar"
-        >
-          &#9776;
-        </button>
+    <div style={{ padding: '0 1rem', maxWidth: 720, margin: '0 auto' }}>
+      {/* Title row: hamburger (CSS-shown on mobile when sidebar closed) + title/breadcrumb */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
+        {!sidebarOpen && (
+          <button
+            className="hamburger-btn"
+            onClick={() => setSidebarOpen(true)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: '1.25rem', color: '#666', lineHeight: 1,
+              minWidth: 36, minHeight: 36, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '0.25rem',
+            }}
+            aria-label="Open sidebar"
+          >
+            &#9776;
+          </button>
+        )}
         {zoomedBulletId ? (
           <Breadcrumb
             documentTitle={document.title}
@@ -111,12 +96,14 @@ export function DocumentView({ document }: Props) {
             bulletMap={bulletMap}
           />
         ) : (
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, margin: '0 0 1.5rem', color: '#111' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, margin: 0, color: '#111', flex: 1 }}>
             {document.title}
           </h1>
         )}
       </div>
-      <BulletTree documentId={document.id} zoomedBulletId={zoomedBulletId} />
+      <div style={{ marginTop: '1.5rem' }}>
+        <BulletTree documentId={document.id} zoomedBulletId={zoomedBulletId} />
+      </div>
     </div>
   );
 }

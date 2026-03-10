@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mobile & UI Polish
 status: ready_to_plan
-stopped_at: Completed 06-dark-mode-01-PLAN.md
-last_updated: "2026-03-10T15:29:16.175Z"
+stopped_at: Completed 06-dark-mode-03-PLAN.md
+last_updated: "2026-03-10T15:38:04.979Z"
 last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 9
-  completed_plans: 6
+  completed_plans: 8
 ---
 
 ---
@@ -68,6 +68,8 @@ Progress: [██░░░░░░░░] 50% (v1.0 complete, v1.1 not started)
 | Phase 05-mobile-layout-foundation P02 | 8 | 2 tasks | 4 files |
 | Phase 06-dark-mode P00 | 5 | 1 tasks | 1 files |
 | Phase 06-dark-mode P01 | 2 | 2 tasks | 2 files |
+| Phase 06-dark-mode P02 | 6 | 2 tasks | 14 files |
+| Phase 06-dark-mode P03 | 7 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -93,6 +95,10 @@ Recent decisions affecting current work:
 - [Phase 06-dark-mode]: Wave 0 TDD: 6 RED tests written before implementation — DRKM-01, DRKM-03, DRKM-04 covered by string-contains assertions on index.html and index.css
 - [Phase 06-dark-mode]: light mode --color-chip-date-text #b45309 (not #d97706) for WCAG AA 4.7:1 on #fef3c7
 - [Phase 06-dark-mode]: --color-row-active-bg token added with rgba light/dark variants for DocumentRow active state
+- [Phase 06-dark-mode]: UndoToast uses var(--color-bg-raised) for background; white text intentionally kept for contrast on dark raised backgrounds
+- [Phase 06-dark-mode]: ContextMenu onMouseEnter/Leave JS color assignments removed in favor of CSS .context-menu-item:hover rule
+- [Phase 06-dark-mode]: DocumentRow active state via .document-row--active class (not inline) so var(--color-row-active-bg) resolves correctly in both themes
+- [Phase 06-dark-mode]: LoginPage const styles object deleted entirely — all styles now in login-* CSS classes in index.css
 
 ### Pending Todos
 
@@ -105,6 +111,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-10T15:29:16.172Z
-Stopped at: Completed 06-dark-mode-01-PLAN.md
+Last session: 2026-03-10T15:38:04.976Z
+Stopped at: Completed 06-dark-mode-03-PLAN.md
 Resume file: None

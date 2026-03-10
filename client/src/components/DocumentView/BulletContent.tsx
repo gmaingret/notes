@@ -180,12 +180,15 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     await queryClient.invalidateQueries({ queryKey: ['bullets'] });
   }, [queryClient]);
 
-  // Sync content from props when not editing
+  // Sync content from server when bullet.content changes and we're not editing.
+  // Intentionally excludes isEditing from deps: on blur, handleBlur already sets localContent
+  // to the typed value; adding isEditing here would overwrite it with stale server content.
   useEffect(() => {
     if (!isEditing) {
       setLocalContent(bullet.content);
     }
-  }, [bullet.content, isEditing]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bullet.content]);
 
   // Inject styles once
   useEffect(() => {
@@ -346,6 +349,28 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       return;
     }
 
+    // ── Shift+Enter: toggle note/comment section ───────────────────────────
+    if (e.key === 'Enter' && e.shiftKey) {
+      e.preventDefault();
+      document.dispatchEvent(new CustomEvent('focus-note', { detail: { bulletId: bullet.id } }));
+      return;
+    }
+
+    // ── Tab: indent / outdent (works with or without edit mode) ───────────
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        if (bullet.parentId === null) return;
+        outdentBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
+      } else {
+        const siblings = getChildren(bulletMap, bullet.parentId);
+        const myIdx = siblings.findIndex(s => s.id === bullet.id);
+        if (myIdx === 0) return;
+        indentBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
+      }
+      return;
+    }
+
     // All keys below only apply in edit mode
     if (!isEditing) return;
 
@@ -485,21 +510,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
             },
           }
         );
-      }
-      return;
-    }
-
-    // ── Tab: indent / outdent ─────────────────────────────────────────────
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      if (e.shiftKey) {
-        if (bullet.parentId === null) return;
-        outdentBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
-      } else {
-        const siblings = getChildren(bulletMap, bullet.parentId);
-        const myIdx = siblings.findIndex(s => s.id === bullet.id);
-        if (myIdx === 0) return;
-        indentBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
       }
       return;
     }

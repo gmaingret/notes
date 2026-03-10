@@ -7,6 +7,7 @@ import type { FlatBullet, BulletMap } from './BulletTree';
 import { getChildren } from './BulletTree';
 import { useSetCollapsed, useMarkComplete, useSoftDeleteBullet } from '../../hooks/useBullets';
 import { useBulletAttachments, useDeleteAttachment, useUploadAttachment } from '../../hooks/useAttachments';
+import { useBookmarks } from '../../hooks/useBookmarks';
 import { BulletContent } from './BulletContent';
 import { ContextMenu } from './ContextMenu';
 import { NoteRow } from './NoteRow';
@@ -27,6 +28,8 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
   const markComplete = useMarkComplete();
   const softDelete = useSoftDeleteBullet();
   const { data: attachments = [] } = useBulletAttachments(bullet.id);
+  const { data: bookmarks = [] } = useBookmarks();
+  const isBookmarked = bookmarks.some(b => b.id === bullet.id);
   const deleteAttachment = useDeleteAttachment();
 
   // Hidden file input ref for ContextMenu 'Attach file' CustomEvent wiring
@@ -294,6 +297,11 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
         >
           •
         </div>
+        {isBookmarked && !isDragOverlay && (
+          <span style={{ fontSize: '0.6rem', lineHeight: '1.6rem', color: '#d97706', flexShrink: 0 }}>
+            🔖
+          </span>
+        )}
 
         {/* Content — not rendered in drag overlay (just the dot + text stub) */}
         <div style={{ flex: 1, minWidth: 0 }}>

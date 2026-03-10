@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useCreateDocument, useExportAllDocuments } from '../../hooks/useDocuments';
 import { DocumentList } from './DocumentList';
 import { TagBrowser } from './TagBrowser';
+import { BookmarkBrowser } from './BookmarkBrowser';
 import { useUiStore } from '../../store/uiStore';
 
 type SidebarProps = {
@@ -84,24 +85,24 @@ export function Sidebar({ activeDocId }: SidebarProps) {
 
         {/* Tab bar */}
         <div style={{ display: 'flex', borderBottom: '1px solid #e0e0e0' }}>
-          {(['docs', 'tags'] as const).map(tab => (
+          {(['docs', 'tags', 'bookmarks'] as const).map(tab => (
             <button key={tab} onClick={() => setSidebarTab(tab)}
               style={{
                 flex: 1, padding: '0.5rem', border: 'none', background: 'none', cursor: 'pointer',
-                fontSize: '0.8rem',
+                fontSize: '0.75rem',
                 fontWeight: sidebarTab === tab ? 600 : 400,
                 borderBottom: sidebarTab === tab ? '2px solid #333' : '2px solid transparent',
                 color: sidebarTab === tab ? '#111' : '#666',
               }}>
-              {tab === 'docs' ? 'Docs' : 'Tags'}
+              {tab === 'docs' ? 'Docs' : tab === 'tags' ? 'Tags' : '🔖'}
             </button>
           ))}
         </div>
         {/* Tab content */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {sidebarTab === 'docs'
-            ? <DocumentList activeDocId={activeDocId} />
-            : <TagBrowser />}
+          {sidebarTab === 'docs' ? <DocumentList activeDocId={activeDocId} />
+            : sidebarTab === 'tags' ? <TagBrowser />
+            : <BookmarkBrowser />}
         </div>
       </aside>
     </>

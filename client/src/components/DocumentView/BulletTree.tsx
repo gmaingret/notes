@@ -208,14 +208,13 @@ export function BulletTree({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      {focusedBulletId ? (
+      <DocumentToolbar
+        documentId={documentId}
+        hideCompleted={hideCompleted}
+        onToggleHideCompleted={() => setHideCompleted(h => !h)}
+      />
+      {focusedBulletId && (
         <FocusToolbar bulletId={focusedBulletId} documentId={documentId} />
-      ) : (
-        <DocumentToolbar
-          documentId={documentId}
-          hideCompleted={hideCompleted}
-          onToggleHideCompleted={() => setHideCompleted(h => !h)}
-        />
       )}
       <SortableContext
         items={visibleItems.map(f => f.id)}

@@ -36,6 +36,7 @@ function ImageAttachmentRow({ attachment, onDelete }: Props) {
   useEffect(() => {
     let objectUrl: string | null = null;
     apiClient.download(`/api/attachments/${attachment.id}/file`).then(async (res) => {
+      if (!res.ok) return;
       const blob = await res.blob();
       objectUrl = URL.createObjectURL(blob);
       setImgSrc(objectUrl);

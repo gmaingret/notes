@@ -13,7 +13,7 @@ Requirements for the Mobile & UI Polish milestone. Each maps to roadmap phases.
 - [ ] **MOBL-02**: Sidebar auto-closes when user taps outside it on mobile
 - [ ] **MOBL-03**: Sidebar has an explicit X close button on mobile
 - [ ] **MOBL-04**: Sidebar slides in/out with a smooth off-canvas transition
-- [ ] **MOBL-05**: All interactive elements have touch targets ≥44×44px
+- [x] **MOBL-05**: All interactive elements have touch targets ≥44×44px
 - [ ] **MOBL-06**: App layout uses 100dvh (not 100vh) for correct height on mobile browsers
 - [ ] **MOBL-07**: User can toggle sidebar on desktop with Ctrl/Cmd+E
 
@@ -90,7 +90,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MOBL-02 | Phase 5 | Pending |
 | MOBL-03 | Phase 5 | Pending |
 | MOBL-04 | Phase 5 | Pending |
-| MOBL-05 | Phase 5 | Pending |
+| MOBL-05 | Phase 5 | Complete |
 | MOBL-06 | Phase 5 | Pending |
 | MOBL-07 | Phase 5 | Pending |
 | DRKM-01 | Phase 6 | Pending |

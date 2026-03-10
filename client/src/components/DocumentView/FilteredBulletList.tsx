@@ -20,7 +20,7 @@ function highlight(content: string, query: string): string {
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return content.replace(
     new RegExp(escaped, 'gi'),
-    (match) => `<mark style="background:#fff3cd;border-radius:2px">${match}</mark>`
+    (match) => `<mark style="background:var(--color-highlight-bg);border-radius:2px">${match}</mark>`
   );
 }
 
@@ -35,10 +35,10 @@ export function FilteredBulletList({
     <div>
       <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>{title}</h2>
 
-      {isLoading && <div style={{ color: '#999' }}>Loading...</div>}
+      {isLoading && <div className="filtered-list-empty">Loading...</div>}
 
       {!isLoading && rows.length === 0 && (
-        <div style={{ color: '#999' }}>No results.</div>
+        <div className="filtered-list-empty">No results.</div>
       )}
 
       {!isLoading &&
@@ -48,7 +48,7 @@ export function FilteredBulletList({
             onClick={() => onRowClick(row)}
             style={{
               padding: '0.5rem 0',
-              borderBottom: '1px solid #f0f0f0',
+              borderBottom: '1px solid var(--color-border-subtle)',
               display: 'flex',
               gap: 8,
               cursor: 'pointer',
@@ -56,10 +56,10 @@ export function FilteredBulletList({
             }}
           >
             {/* Bullet dot */}
-            <span style={{ color: '#999', fontSize: '0.75rem', flexShrink: 0 }}>•</span>
+            <span className="filtered-bullet-dot" style={{ fontSize: '0.75rem', flexShrink: 0 }}>•</span>
 
             {/* Bullet content */}
-            <span style={{ flex: 1, fontSize: '0.9375rem', color: '#333' }}>
+            <span className="filtered-bullet-content" style={{ flex: 1, fontSize: '0.9375rem' }}>
               {row.highlightText ? (
                 <span
                   dangerouslySetInnerHTML={{
@@ -73,7 +73,8 @@ export function FilteredBulletList({
 
             {/* Document title */}
             <span
-              style={{ color: '#999', fontSize: '0.8rem', whiteSpace: 'nowrap', flexShrink: 0 }}
+              className="filtered-bullet-ts"
+              style={{ fontSize: '0.8rem', whiteSpace: 'nowrap', flexShrink: 0 }}
             >
               [{row.documentTitle}]
             </span>
@@ -85,13 +86,13 @@ export function FilteredBulletList({
                   e.stopPropagation();
                   onToggleBookmark(row);
                 }}
+                className="filtered-nav-icon"
                 style={{
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
                   padding: 0,
                   fontSize: '1rem',
-                  color: '#999',
                   flexShrink: 0,
                 }}
                 aria-label={row.isBookmarked ? 'Remove bookmark' : 'Add bookmark'}

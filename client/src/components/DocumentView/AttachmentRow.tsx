@@ -59,7 +59,8 @@ function ImageAttachmentRow({ attachment, onDelete }: Props) {
       )}
       <button
         onClick={onDelete}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: '1rem' }}
+        className="attachment-delete-btn"
+        style={{ fontSize: '1rem' }}
         title="Delete attachment"
       >
         ×
@@ -98,14 +99,15 @@ function PdfAttachmentRow({ attachment, onDelete }: Props) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 24, marginTop: 4 }}>
       <canvas
         ref={canvasRef}
-        style={{ cursor: 'pointer', border: '1px solid #ddd', borderRadius: 4 }}
+        style={{ cursor: 'pointer', border: '1px solid var(--color-border-default)', borderRadius: 4 }}
         onClick={handleClick}
         title={attachment.filename}
       />
-      <span style={{ fontSize: '0.85em', color: '#666' }}>{attachment.filename}</span>
+      <span className="attachment-filename">{attachment.filename}</span>
       <button
         onClick={onDelete}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: '1rem' }}
+        className="attachment-delete-btn"
+        style={{ fontSize: '1rem' }}
         title="Delete attachment"
       >
         ×
@@ -133,14 +135,16 @@ function OtherAttachmentRow({ attachment, onDelete }: Props) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 24, marginTop: 4 }}>
       <span style={{ fontSize: '1.1em' }}>📎</span>
       <span
-        style={{ fontSize: '0.85em', color: '#555', cursor: 'pointer', textDecoration: 'underline' }}
+        className="attachment-link"
+        style={{ fontSize: '0.85em', cursor: 'pointer', textDecoration: 'underline' }}
         onClick={handleClick}
       >
         {attachment.filename}
       </span>
       <button
         onClick={onDelete}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: '1rem' }}
+        className="attachment-delete-btn"
+        style={{ fontSize: '1rem' }}
         title="Delete attachment"
       >
         ×

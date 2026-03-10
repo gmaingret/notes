@@ -59,9 +59,9 @@ export function NoteRow({ bulletId, initialNote, focusTrigger = 0, onHide }: Pro
       role="textbox"
       contentEditable
       suppressContentEditableWarning
+      className="note-row-text"
       style={{
         fontSize: '0.85em',
-        color: '#888',
         marginLeft: 24,
         minHeight: '1em',
         outline: 'none',

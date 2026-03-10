@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 import { apiClient } from '../../api/client';
 import type { Attachment } from '../../hooks/useAttachments';
@@ -63,8 +64,9 @@ function ImageAttachmentRow({ attachment, onDelete }: Props) {
       >
         ×
       </button>
-      {lightboxOpen && imgSrc && (
-        <Lightbox src={imgSrc} onClose={() => setLightboxOpen(false)} />
+      {lightboxOpen && imgSrc && createPortal(
+        <Lightbox src={imgSrc} onClose={() => setLightboxOpen(false)} />,
+        document.body,
       )}
     </div>
   );

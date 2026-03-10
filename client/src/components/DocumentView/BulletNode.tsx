@@ -39,6 +39,8 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
   // noteVisible: true when Note button or 'Add note' context menu triggers focus-note CustomEvent
   // Allows NoteRow to render and focus even when bullet.note is null
   const [noteVisible, setNoteVisible] = useState(false);
+  // Incremented each time focus-note fires — triggers NoteRow to focus even if already mounted
+  const [noteFocusTrigger, setNoteFocusTrigger] = useState(0);
 
   // Listen for 'focus-note' CustomEvent dispatched by FocusToolbar and ContextMenu
   useEffect(() => {
@@ -46,6 +48,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
       const detail = (e as CustomEvent<{ bulletId: string }>).detail;
       if (detail.bulletId !== bullet.id) return;
       setNoteVisible(true);
+      setNoteFocusTrigger(c => c + 1);
     }
     document.addEventListener('focus-note', handler);
     return () => document.removeEventListener('focus-note', handler);
@@ -327,7 +330,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
             <NoteRow
               bulletId={bullet.id}
               initialNote={bullet.note}
-              focusOnMount={noteVisible && bullet.note === null}
+              focusTrigger={noteFocusTrigger}
             />
           )}
           {!isDragOverlay && attachments.map(a => (

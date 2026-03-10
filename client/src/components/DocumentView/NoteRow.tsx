@@ -1,13 +1,13 @@
-import { useRef, useLayoutEffect } from 'react';
+import { useRef, useLayoutEffect, useEffect } from 'react';
 import { usePatchNote } from '../../hooks/useBullets';
 
 type Props = {
   bulletId: string;
   initialNote: string | null;
-  focusOnMount?: boolean;
+  focusTrigger?: number;
 };
 
-export function NoteRow({ bulletId, initialNote, focusOnMount = false }: Props) {
+export function NoteRow({ bulletId, initialNote, focusTrigger = 0 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const patchNote = usePatchNote();
   // Keep a stable ref to the current initialNote for Escape revert
@@ -17,10 +17,14 @@ export function NoteRow({ bulletId, initialNote, focusOnMount = false }: Props) 
   useLayoutEffect(() => {
     if (!ref.current) return;
     ref.current.textContent = initialNote ?? '';
-    if (focusOnMount) {
-      ref.current.focus();
+  }, [initialNote]);
+
+  // Focus whenever focusTrigger increments (fires for both new and existing notes)
+  useEffect(() => {
+    if (focusTrigger > 0) {
+      ref.current?.focus();
     }
-  }, [initialNote, focusOnMount]);
+  }, [focusTrigger]);
 
   function handleBlur() {
     if (!ref.current) return;

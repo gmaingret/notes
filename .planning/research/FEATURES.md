@@ -1,8 +1,14 @@
 # Feature Research
 
-**Domain:** Outliner / Personal Knowledge Management (PKM) web app — Dynalist/Workflowy clone
-**Researched:** 2026-03-09
-**Confidence:** HIGH (core features verified against Dynalist/Workflowy official docs + help centers)
+**Domain:** Mobile UX polish + dark mode + quick-open palette (v1.1 milestone)
+**Researched:** 2026-03-10
+**Confidence:** HIGH (hamburger UX, dark mode WCAG, PWA manifest fields), MEDIUM (gesture feedback patterns, palette scope conventions)
+
+---
+
+## Scope Note
+
+This file covers only the **six new feature areas for v1.1**. The existing v1.0 core (infinite outliner, bullet CRUD, swipe gestures, search, tags, undo/redo, bookmarks, attachments, comments) is already shipped and is not re-researched here. The existing FEATURES.md content from 2026-03-09 remains the authoritative record for v1.0 table stakes.
 
 ---
 
@@ -10,204 +16,389 @@
 
 ### Table Stakes (Users Expect These)
 
-Features users assume any outliner has. Missing these = product feels broken, not incomplete.
+Features users assume exist in any modern mobile web app. Missing these means the app feels unfinished on mobile and in dark mode.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Infinite nesting of bullets | Core promise of the outliner genre — every tool has it | MEDIUM | Tree structure in DB; recursive rendering in UI |
-| Enter to create new bullet at same level | Foundational editing reflex from 30+ years of outliners | LOW | Must work identically to pressing Enter in a word processor |
-| Tab / Shift+Tab to indent / outdent | Universal outliner muscle memory — Dynalist, Workflowy, OmniOutliner all use it | LOW | Must preserve caret position; must work mid-sentence |
-| Collapse / expand bullets with children | Users navigate large outlines by hiding detail | LOW | Collapse state must persist across page refresh |
-| Drag-and-drop reordering (desktop) | Expected from all modern list UIs | HIGH | Cross-level drag is especially complex; use a battle-tested lib |
-| Ctrl+Z / Ctrl+Y undo/redo | Universal editing safety net | HIGH | Server-side persistence of undo stack is a key decision point |
-| Zoom into any bullet as root ("hoisting") | Workflowy invented this; it's now table stakes for the genre | MEDIUM | Replaces current view with bullet's subtree |
-| Breadcrumb navigation when zoomed | Pair feature with zoom — users lose orientation without it | LOW | Shows ancestors of current zoomed root; clickable |
-| Full-text search across all documents | Users rely on search as primary retrieval method | MEDIUM | Must be fast; instant-as-you-type preferred |
-| Markdown formatting (bold, italic, strikethrough, inline code, links) | Expected in any modern text tool; Dynalist and Workflowy both support it | MEDIUM | WYSIWYG-style inline rendering preferred over raw markdown preview |
-| Inline image rendering for image URLs / attachments | Users paste image URLs and expect them to render | LOW | Just render `<img>` tags for recognized patterns |
-| Mark bullets complete / checkbox | Dynalist and Workflowy both have this; used for tasks | LOW | Visual: strikethrough + 50% opacity. Ctrl+Enter shortcut |
-| Multiple documents | Workflowy's single-document limitation is widely cited as a weakness; Dynalist fixed it | LOW | Flat list (no folders) matches Workflowy/Dynalist pattern |
-| Document creation, rename, delete | Basic document management | LOW | — |
-| Keyboard shortcut: Ctrl+Up / Ctrl+Down to move bullet | Move bullets without drag — essential for keyboard-first users | LOW | Swap with previous/next sibling |
-| Keyboard shortcut: Ctrl+] / Ctrl+[ to zoom in/out | Standard in Dynalist; expected once zoom exists | LOW | — |
-| Keyboard shortcut: Ctrl+F to search within document | Universal browser/app shortcut | LOW | — |
-| Keyboard shortcut: Ctrl+Enter to mark done | Standard Dynalist shortcut | LOW | — |
-| Keyboard shortcut: Ctrl+B / Ctrl+I for bold/italic | Universal text formatting shortcuts | LOW | — |
-| #tag syntax rendered as clickable chips | Dynalist and Workflowy both have this; used for cross-cutting organization | LOW | Clicking tag = filter view to all bullets with that tag |
-| Tag browser / tag pane | Expected complement to #tags — where did I use this tag? | LOW | List of all tags with item counts |
-| Bookmarks for bullets and documents | Power users bookmark frequently visited nodes | LOW | Dedicated bookmarks panel; Ctrl+Shift+B |
-| Export as Markdown | Data portability is a basic expectation for any notes tool | LOW | Per-document export; flat markdown with heading levels for nesting |
-| "New users start with Inbox document" | Onboarding convention; avoids empty-state confusion | LOW | Created automatically on first login |
-
----
+| Sidebar hidden on mobile, full-width content | Every mobile app does this; visible sidebar on 375px screen is unusable | MEDIUM | CSS media query at ≤768px breakpoint; sidebar becomes a drawer overlay |
+| Hamburger button to open sidebar | Universal drawer disclosure pattern; users look for this instinctively | LOW | Fixed top-left position; min 44×44px touch target (WCAG 2.5.5) |
+| Sidebar auto-closes on outside tap | Users tap content to dismiss overlays — muscle memory from every mobile OS | LOW | Backdrop overlay with pointerdown listener; must not interfere with bullet drag |
+| Sidebar visible close button (X) | Outside-tap alone fails discoverability; users look for explicit close affordance | LOW | Top-right of drawer panel; do not rely only on backdrop dismiss |
+| System-preference dark mode | macOS/iOS/Android all have OS dark mode; users expect apps to follow it automatically | MEDIUM | `@media (prefers-color-scheme: dark)` + CSS custom property token system |
+| WCAG AA contrast in dark mode | A dark mode that fails contrast creates an accessibility regression worse than no dark mode | MEDIUM | Text ≥4.5:1; large text ≥3:1; UI controls/icons ≥3:1 (WCAG 1.4.3 and 1.4.11) |
+| Touch targets ≥44×44px on all interactive elements | WCAG 2.5.5 + Apple HIG; small targets = fat-finger errors and user frustration | LOW | Applies to: hamburger, sidebar items, bullet action icons, palette results |
+| Safe area insets respected (notch + home indicator) | iPhones with home indicator clip bottom content without CSS env() padding | LOW | Requires `viewport-fit=cover` in meta viewport + `padding-bottom: env(safe-area-inset-bottom)` on fixed elements |
+| PWA installable (Add to Home Screen prompt) | Users expect "app-like" tools to be installable; Dynalist and Workflowy both support this | LOW | Manifest with name, short_name, icons (192px + 512px), start_url, display: standalone; HTTPS already met |
+| App icon for home screen | Blank or generic icon destroys trust when installed | LOW | 192×192 PNG + 512×512 PNG minimum; maskable variant for Android adaptive icons |
 
 ### Differentiators (Competitive Advantage)
 
-Features that distinguish this app from Dynalist/Workflowy and justify building it.
+Features that go beyond expected — these make the mobile experience genuinely good rather than merely functional, or add power-user capabilities not present in Dynalist/Workflowy.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Server-side persisted undo/redo (50 levels) | Survives page refresh and browser crash — Dynalist's undo is session-only and lost on refresh | HIGH | Requires storing operation log in DB; replay on load. True differentiator vs. Dynalist. |
-| Self-hosted, zero vendor lock-in | Dynalist and Workflowy are SaaS with paywalls and shutdown risk; self-hosting = data ownership | MEDIUM | Docker-based deployment; all data in user's Postgres + volume |
-| No paywall on any core feature | Dynalist gates item finder, version history behind Pro ($7.99/mo) | LOW | Positioning decision; no tiers |
-| File attachments per bullet | Dynalist has attachments (Pro only); Workflowy lacks them; storing files adjacent to notes is powerful | MEDIUM | Store on Docker volume; serve via signed URLs or direct paths |
-| Comments per bullet (flat, plain text) | Lightweight annotation without full collaboration overhead | MEDIUM | Flat list per bullet; not threaded in v1 |
-| @mention syntax rendered as chips | Extends the tag pattern for people/context; useful for personal PKM | LOW | Similar rendering to #tags; clickable filter |
-| !!date syntax rendered as chips | Dates inline in bullets, not in a separate field like Dynalist's date picker | LOW | ISO-parseable format; clickable opens filtered date view |
-| Mobile swipe gestures (swipe-right = complete, swipe-left = delete) | Mobile UX is an afterthought in Dynalist/Workflowy; intentional gesture design is a gap to fill | MEDIUM | Long-press for context menu; swipe with reveal animation |
-| Mobile long-press context menu for indent/outdent/move | Touch users have no Tab key; context menu is the ergonomic solution | MEDIUM | Must not conflict with text selection long-press |
-| Bulk delete completed bullets | Quality-of-life for task users; clearing done items is a frequent action | LOW | Finds all completed bullets in current document; confirm → delete |
-| Ctrl+P / Ctrl+O quick-open for document navigation | Power users navigate by keyboard without touching the sidebar | LOW | Fuzzy-match document list; instant |
-
----
+| Quick-open palette (Ctrl+K) — documents + bullets | Power users navigate 50+ documents by keyboard; faster than sidebar scroll; Obsidian, Notesnook, Notion all have this | MEDIUM | Fuzzy search over document titles + bullet text; keyboard navigation (arrows + Enter + Escape) |
+| Palette shows recent documents when query is empty | Reduces keystrokes for the most common case: reopening a recent document | LOW | Piggybacks on existing document open tracking; no new persistence needed |
+| Swipe gesture color + icon reveal feedback | Bare swipes without color cues feel broken; Todoist/Things show red/green backing with icon appearing as you drag | MEDIUM | Translate bullet row on swipe; reveal colored backing layer (red=delete, green=complete); icon fades in after 30% threshold |
+| Swipe snap-back animation on cancelled swipe | Without a spring snap-back, aborted swipes feel jarring | LOW | CSS `transition: transform 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94)` on touch-end when threshold not met |
+| Lucide icon library (consistent, tree-shakable) | Coherent icon set elevates perceived quality; Lucide is the de facto standard for React apps in 2025 | LOW | 1000+ icons; import individually for tree-shaking; aria-hidden by default; add aria-label on standalone icon controls |
+| Inter + JetBrains Mono font pairing | Legible, modern typography pair; Inter is the de facto UI font; JetBrains Mono for code/inline-code; x-height harmony (0.72 vs 0.73 ratio) | LOW | Load via Google Fonts or self-host; font-display: swap to prevent FOIT; min 16px body, 1.5 line-height |
+| Ctrl/Cmd+E desktop sidebar toggle | Keyboard-first users expect sidebar toggle; VS Code pattern is well-known | LOW | Single keydown listener; no conflict with Ctrl+Z/Y/F/B/I/Enter existing shortcuts |
+| Haptic feedback at swipe commit threshold | Android: the moment a swipe commits should feel distinct from passive dragging | LOW | `navigator.vibrate(10)` at threshold crossing; check API availability — iOS Safari does NOT support Vibration API |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
-Features to deliberately NOT build in v1 — each one has a "why it hurts" explanation.
-
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Real-time collaboration / shared documents | Every notes app eventually gets this request | Requires operational transform or CRDT (huge complexity), presence indicators, conflict resolution, permissions model — entire secondary product | Privacy-first positioning: collaboration is explicitly excluded; market to solo users who want that |
-| Offline mode / service worker | Users want the app to work on planes | Service worker + sync = complex conflict resolution when coming back online; doubles storage (IndexedDB + Postgres) | Fast page loads; good UX on slow connections; defer to v2 |
-| Bidirectional links / backlinks (Roam/Obsidian style) | Power PKM users love networked thought | Fundamentally different information architecture than a hierarchical outliner; turns every bullet into a node in a graph; implies a wiki not an outliner | Stick to #tags and @mentions for cross-referencing; avoids scope explosion |
-| Graph view | Visually appealing; requested alongside backlinks | Only meaningful if bidirectional links exist; without them it's cosmetic; high implementation cost for low marginal value | — |
-| Folders for document organization | Users with many documents request folders | Workflowy proved flat + search + zoom is a complete substitute for folders; folders create nesting-of-nesting confusion in an already-nested app | Tags on documents; search; a well-sorted flat list |
-| Daily note / journal mode (Logseq/Roam style) | Useful for journaling workflows | Conflicts with the document-first model; creates dozens of auto-generated documents; complicates document list | Users can manually create dated documents in Inbox |
-| Calendar / agenda view for dates | !!date syntax implies calendar; users extrapolate | Requires a full calendar widget; date search is sufficient for v1 | Search by date range; Dynalist's Google Calendar integration is a v2+ idea |
-| Native mobile apps (iOS/Android) | Smooth mobile experience | Web-first is faster to ship; responsive web app covers 95% of use cases with zero app store overhead | Responsive web with touch gestures and PWA installability |
-| Admin panel / user management | Multi-user self-hosted implies admin needs | All users equal; self-hosted admins manage via Postgres directly; admin panels are full products of their own | Document Docker Compose + Postgres setup clearly |
-| Version history beyond 50-step undo | Users want "time machine" | Storing full document snapshots at every edit is expensive storage-wise; 50 steps of undo covers virtually all accident-recovery needs | 50-level server-side undo is already a strong guarantee |
-| Threaded / nested comments | Comment power-users want discussion threads | Threads are a collaboration product; flat comments are sufficient for personal annotations; threads require reply-to relationships, notifications, collapsing logic | Flat comments per bullet in v1 |
-| AI features (summarize, generate) | Trendy; every tool is adding AI | Adds API key management, cost, latency, privacy concerns for a self-hosted privacy-focused tool | Lean into privacy as a differentiator; users chose self-hosted to avoid AI data usage |
-| Zapier / webhook integrations | Power users want automation | Integration maintenance is ongoing; webhooks require outbound HTTP + retry logic; adds surface area | Provide export as Markdown; users can automate at the file/API level |
-| OPML import (from Dynalist/Workflowy) | Migration path for existing outliner users | Parsing OPML correctly preserves hierarchy but loses attachments, comments, colors; creates false expectations; becomes a support burden | Offer plain Markdown import/export; note OPML support is deferred |
+| Manual dark/light mode toggle button | Users want override control | Creates a third UI state (user preference vs OS preference) that must be persisted, synced, and surfaced in settings; doubles theming work; can get permanently out-of-sync with OS | Follow OS preference only via `prefers-color-scheme`; add manual toggle in v1.2 settings if users request it |
+| Full offline mode (service worker + cache) | Users want the app to work on planes | Service worker + cache invalidation conflicts with server-side undo/redo model; sync conflicts on reconnect; explicitly out of scope per PROJECT.md | PWA manifest for home screen install without service worker; fast server is the offline mitigation |
+| Animated sidebar with spring physics (Framer Motion) | "Premium" feel | Animation libraries like Framer Motion add 30KB+ to bundle; CSS `transition: transform 250ms ease-out` achieves 90% of the feel with zero dependencies | CSS transitions only; no animation library |
+| Full command palette (all app actions) | VS Code / Linear pattern | VS Code has hundreds of commands; this app has ~15 real actions; a full command layer adds discovery complexity without proportional value | Scope palette to navigation only (documents + bullets + bookmarks); action shortcuts remain keyboard bindings |
+| Per-document custom themes | Power user personalization | Multiplies token system complexity; every new theme must be WCAG-audited; creates visual inconsistency across docs | Single coherent light/dark pair; token system enables future expansion without implementing it now |
+| Bottom tab bar replacing hamburger | More thumb-friendly for primary nav | App has one primary workspace (the open document) plus secondary content (sidebar, search); a bottom tab bar implies multiple co-equal top-level sections that don't exist | Hamburger drawer matches Dynalist/Workflowy conventions users already know |
+| Animated hamburger icon (lines → X morphing) | Looks polished | CSS-only morphing hamburger animations often have layout reflow issues on older Android; unclear UX benefit over a static hamburger + a separate X inside the drawer | Static hamburger icon that opens drawer; explicit X button inside drawer to close |
+
+---
+
+## Feature Details by Category
+
+### 1. Hamburger Sidebar UX
+
+**Pattern:** Drawer overlay (not push-layout). Document content stays fixed; sidebar slides over it from the left.
+
+**Behavior checklist:**
+- Sidebar hidden by default on viewport width ≤768px
+- Hamburger button in app header, top-left; min 44×44px
+- Tap hamburger → sidebar translates from `translateX(-100%)` to `translateX(0)`; transition 250ms ease-out
+- Semi-transparent backdrop covers content behind sidebar (rgba(0,0,0,0.4))
+- Tap backdrop → sidebar closes (translateX(-100%)); transition 200ms ease-in
+- Tap any document in sidebar → navigate + auto-close sidebar
+- Escape key → close sidebar (mirrors standard modal behavior)
+- Sidebar contains visible X button top-right (not relying solely on backdrop)
+- On desktop (≥768px): sidebar always visible; hamburger hidden; Ctrl/Cmd+E toggles it
+- Sidebar width: 280–320px (Notion: 280px, Dynalist: ~240px; 280px is the standard)
+
+**Thumb reach note:** Hamburger at top-left is outside the natural thumb zone on large phones. This is acceptable because it is used at most once per session (switching documents), not on every interaction. High-frequency actions (new bullet, complete, search) should remain in the thumb-friendly bottom 40% of screen.
+
+**Desktop Ctrl/Cmd+E behavior:**
+- Toggle sidebar visibility (same behavior as sidebar being collapsed)
+- Store collapse state in localStorage so it persists across page refresh
+- No conflict with existing shortcuts: Ctrl+E is not currently bound
+
+### 2. Dark Mode Token System
+
+**Required WCAG AA contrast ratios (WCAG 2.1):**
+- Normal text on background: ≥4.5:1 (WCAG 1.4.3)
+- Large text (≥18pt or 14pt bold) on background: ≥3:1 (WCAG 1.4.3)
+- UI controls, borders, icons, focus rings vs adjacent color: ≥3:1 (WCAG 1.4.11)
+
+**Common dark mode contrast failures to avoid:**
+- Pure black (#000000) background with white text: harsh, causes halation
+- Pure white on dark: eye strain at night
+- Low-contrast disabled states (gray-on-gray): fails 3:1 on dark backgrounds
+- Focus rings disappearing in dark mode (focus ring color must contrast with dark background)
+
+**Recommended token structure:**
+```css
+:root {
+  /* Backgrounds */
+  --color-bg-base: #ffffff;
+  --color-bg-surface: #f8f9fa;
+  --color-bg-elevated: #ffffff;
+
+  /* Text */
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+
+  /* Interactive */
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+
+  /* Borders / Dividers */
+  --color-border: #e5e7eb;
+
+  /* Status */
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+
+  /* Focus */
+  --color-focus-ring: #3b82f6;
+
+  /* Swipe feedback */
+  --color-swipe-delete: #ef4444;
+  --color-swipe-complete: #10b981;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-base: #0f1115;
+    --color-bg-surface: #1a1d23;
+    --color-bg-elevated: #22262e;
+    --color-text-primary: #e9ecf1;
+    --color-text-secondary: #9ca3af;
+    --color-text-muted: #6b7280;
+    --color-accent: #58a6ff;
+    --color-accent-hover: #79b8ff;
+    --color-border: #30363d;
+    --color-success: #3fb950;
+    --color-danger: #f85149;
+    --color-focus-ring: #58a6ff;
+    --color-swipe-delete: #f85149;
+    --color-swipe-complete: #3fb950;
+  }
+}
+```
+
+**Naming discipline:** tokens describe purpose, not style (`--color-text-primary` not `--color-dark-gray`). This makes future palette changes non-breaking.
+
+**Additional dark mode adjustments:**
+- Shadows: reduce opacity in dark mode or eliminate; dark mode shadows look wrong
+- Images with white backgrounds: `filter: brightness(0.85)` to reduce glare
+- Markdown code blocks: surface token elevates them above base background
+
+### 3. Quick-Open Palette (Ctrl+K)
+
+**User expectations from Obsidian, Notesnook, Notion, Capacities:**
+
+| Behavior | Expected |
+|----------|----------|
+| Keyboard shortcut | Ctrl+K (Windows/Linux), Cmd+K (Mac); also Cmd+P accepted by power users |
+| Trigger from mobile | Search icon tap — Ctrl+K is keyboard-only, mobile needs an icon entry point |
+| Opening position | Centered modal overlay with backdrop; 600px wide max; responsive |
+| Auto-focus | Input field receives focus immediately on open |
+| Results when empty | "Recent documents" list (last 5-10 opened) |
+| Results when typing | Fuzzy match: documents by title, bullets by text, bookmarks by name |
+| Update speed | Debounced ~150ms; document title matches are instant (client-side); bullet matches need server call |
+| Keyboard navigation | ArrowUp/ArrowDown to move focus through results; Enter to select |
+| Dismiss | Escape key or click outside backdrop |
+| Result groups | Documents / Bullets / Bookmarks (clearly separated, labeled) |
+| Fuzzy tolerance | "inb" matches "Inbox"; "mtg nts" matches "Meeting Notes"; partial and out-of-order chars |
+
+**Scope for v1.1 (navigation only — no action commands):**
+- Fuzzy search documents by title (client-side, instant)
+- Fuzzy search bullets by text (server-side, debounced — reuse existing `/search` endpoint)
+- Fuzzy search bookmarks (client-side, instant)
+- Show recently opened documents when query is empty
+- Keyboard navigation through results
+
+**Scope NOT in v1.1:**
+- Action commands ("bold selection", "export document", "create new doc") — these stay as keyboard shortcuts
+- Tag navigation via palette
+- Date-based search within palette
+- Mobile bottom sheet variant
+
+**Fuzzy library options:**
+- Fuse.js: 16KB, excellent fuzzy matching, battle-tested, good for document/bookmark titles (client-side)
+- microfuzz: ~2KB, faster, from Nozbe (makers of Nozbe productivity app), good for simple string matching
+- Recommendation: microfuzz for document title matching (smaller); fall back to server full-text search for bullet content
+
+**Interaction with existing search:** The existing Ctrl+F search searches within the current document only. Ctrl+K palette searches across all documents. These are complementary and should not conflict.
+
+### 4. PWA Manifest — Required Fields
+
+**Minimum for Chrome/Edge install prompt (no service worker required as of Chrome 135+):**
+
+```json
+{
+  "name": "Notes",
+  "short_name": "Notes",
+  "description": "Self-hosted infinite outliner for personal knowledge management",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
+```
+
+**Additional recommended (Android richer install dialog):**
+```json
+{
+  "screenshots": [
+    { "src": "/screenshots/narrow-1.png", "sizes": "390x844", "type": "image/png", "form_factor": "narrow" },
+    { "src": "/screenshots/narrow-2.png", "sizes": "390x844", "type": "image/png", "form_factor": "narrow" }
+  ]
+}
+```
+
+**theme_color in dark mode:** The `<meta name="theme-color">` tag supports a `media` attribute:
+```html
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+```
+
+**HTML link:** `<link rel="manifest" href="/manifest.json">` in the `<head>`.
+
+**Service worker:** NOT needed. Offline mode is explicitly out of scope. Do not add a service worker to meet install criteria — Chrome 135+ no longer requires it.
+
+**HTTPS:** Already satisfied by Nginx + Let's Encrypt.
+
+**Install criteria summary:**
+1. Manifest present with required fields (name/short_name, icons 192+512, start_url, display)
+2. Served over HTTPS
+3. User has interacted with page (one click + 30 seconds minimum — automatic with normal use)
+
+### 5. Swipe Gesture Animation Polish
+
+**Current state:** Swipe right = complete, swipe left = delete, long-press = context menu. Already functional. v1.1 adds visual feedback quality.
+
+**Expected behavior (Todoist/Things/iOS Mail pattern):**
+1. User begins swipe → bullet row `translateX()` follows touch delta in real-time (no transition during active touch)
+2. Colored backing layer revealed behind the row: red for left (delete), green for right (complete)
+3. Icon (trash / checkmark from Lucide) on the backing layer fades in after 25–30% swipe threshold
+4. At ~50% threshold: icon scale-up (transform: scale(1.1)) signals "commit zone"
+5. On touch end:
+   - Threshold met: action executes; row animates out (translateX to ±100% + opacity 0)
+   - Threshold not met: row snaps back with ease-out transition (300ms)
+
+**CSS approach (no animation library needed):**
+```css
+.bullet-row {
+  position: relative;
+  transition: transform 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              opacity 200ms ease;
+}
+.bullet-row.is-swiping {
+  transition: none; /* disable transition during active touch — follows finger */
+}
+.swipe-backing-left,
+.swipe-backing-right {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+.swipe-backing-left { background: var(--color-swipe-delete); justify-content: flex-end; padding-right: 20px; }
+.swipe-backing-right { background: var(--color-swipe-complete); justify-content: flex-start; padding-left: 20px; }
+.bullet-row.swipe-threshold-reached .swipe-backing-left,
+.bullet-row.swipe-threshold-reached .swipe-backing-right {
+  opacity: 1;
+}
+```
+
+**Haptic feedback (Android only — iOS Safari does not support Vibration API):**
+- Check: `if ('vibrate' in navigator)` before calling
+- On threshold cross: `navigator.vibrate(10)` — single short pulse
+- On action commit: `navigator.vibrate(20)` — slightly longer pulse
+- Do NOT vibrate on every pixel of swipe movement — only at threshold events
+- Centralize in a helper: `function haptic(ms) { if ('vibrate' in navigator) navigator.vibrate(ms); }`
+
+### 6. Icon Library and Font Pairing
+
+**Lucide React — recommended icon library:**
+- 1,500+ icons; consistent 24×24 design grid; community-maintained fork of Feather Icons
+- Tree-shakable (ES modules): `import { Trash2, Check, ChevronRight } from 'lucide-react'` — only imported icons appear in bundle
+- First-class TypeScript support
+- All icons accept `size`, `color`, `strokeWidth` props and any SVG attribute
+- `aria-hidden="true"` by default; add `aria-label` when icon is the sole label for a control
+- Weekly npm downloads: 200,000+; 14,000+ GitHub stars (HIGH confidence, current)
+
+**Installation:** `npm install lucide-react`
+
+**Anti-pattern to avoid:** `import * as Icons from 'lucide-react'` — imports all 1,500 icons into bundle. Always use named imports.
+
+**Inter + JetBrains Mono font pairing:**
+- Inter: de facto standard for UI text; designed for screen readability; variable font available; x-height 0.72
+- JetBrains Mono: designed for code readability; ligatures; x-height 0.73 (matches Inter visually); free + open source
+- Pairing score: 88/100 (fontalternatives.com analysis); x-height harmony means same font-size looks visually consistent
+- Use Inter for: all UI text, sidebar, bullets, toolbar, palette results
+- Use JetBrains Mono for: inline code spans (backtick-delimited), code block content
+- Load strategy: Google Fonts CDN or self-host; `font-display: swap` to prevent invisible text during load
+
+**Font size minimums:**
+- Body/bullet text: 16px minimum
+- Secondary labels: 14px minimum (ensure contrast still passes WCAG at smaller size)
+- Code: 14px with JetBrains Mono is standard for inline code
 
 ---
 
 ## Feature Dependencies
 
 ```
-[Document Management]
-    └──requires──> [Auth / User Accounts]
+Dark Mode Token System
+    └──required-by──> ALL UI components in v1.1
+    └──must-implement-first──> (every other change should use tokens from day one)
 
-[Bullet CRUD + Nesting]
-    └──requires──> [Document Management]
+Responsive Layout (sidebar hidden on mobile)
+    └──required-by──> Hamburger button (needs hidden state to disclose)
+    └──required-by──> Swipe gesture polish (gestures should not fire when sidebar overlay is open)
+    └──bundled-with──> Safe area insets (single CSS refactor covers both)
 
-[Markdown Rendering]
-    └──requires──> [Bullet CRUD + Nesting]
+Lucide Icon Library
+    └──enhances──> Swipe gesture backing layer icons (trash, checkmark)
+    └──enhances──> Hamburger and sidebar close icons
+    └──enhances──> Quick-open palette icons (document, bullet, bookmark)
 
-[#tag / @mention / !!date syntax]
-    └──requires──> [Bullet CRUD + Nesting]
-    └──enhances──> [Search]
+Dark Mode Tokens
+    └──required-by──> Swipe backing colors (--color-swipe-delete, --color-swipe-complete)
+    └──required-by──> Palette backdrop and surface colors
 
-[Tag Browser]
-    └──requires──> [#tag syntax]
+Quick-Open Palette
+    └──reuses──> Existing document list (sidebar state — no new data fetch for doc titles)
+    └──reuses──> Existing /search endpoint (bullet text search)
+    └──requires──> Modal/overlay pattern (same as sidebar backdrop)
 
-[Search (full-text)]
-    └──requires──> [Bullet CRUD + Nesting]
+PWA Manifest
+    └──independent──> (standalone feature; no deps on other v1.1 features)
+    └──requires──> Icon assets (192px + 512px PNG) to be created first
 
-[Zoom into Bullet]
-    └──requires──> [Bullet CRUD + Nesting]
-
-[Breadcrumb Navigation]
-    └──requires──> [Zoom into Bullet]
-
-[Collapse / Expand]
-    └──requires──> [Bullet CRUD + Nesting]
-    └──requires persistence──> [Auth / User Accounts]
-
-[Server-Side Undo/Redo]
-    └──requires──> [Bullet CRUD + Nesting]
-    └──requires──> [Auth / User Accounts]
-    └──NOTE: must be designed before bulk operations or it becomes very hard to retrofit]
-
-[Drag-and-Drop Reorder (Desktop)]
-    └──requires──> [Bullet CRUD + Nesting]
-    └──requires──> [Undo/Redo] (drag is undoable)
-
-[Swipe Gestures (Mobile)]
-    └──requires──> [Bullet CRUD + Nesting]
-    └──enhances──> [Drag-and-Drop Reorder] (mobile substitute)
-
-[Complete Bullet]
-    └──requires──> [Bullet CRUD + Nesting]
-
-[Bulk Delete Completed]
-    └──requires──> [Complete Bullet]
-    └──requires──> [Undo/Redo] (bulk delete must be undoable)
-
-[Bookmarks]
-    └──requires──> [Bullet CRUD + Nesting]
-    └──requires──> [Auth / User Accounts]
-
-[Comments]
-    └──requires──> [Bullet CRUD + Nesting]
-    └──requires──> [Auth / User Accounts]
-
-[File Attachments]
-    └──requires──> [Bullet CRUD + Nesting]
-    └──requires──> [Auth / User Accounts]
-
-[Export as Markdown]
-    └──requires──> [Document Management]
-    └──requires──> [Bullet CRUD + Nesting]
+Font Pairing
+    └──independent──> (CSS font-family swap; no structural dependencies)
+    └──enhances──> Overall visual quality of dark mode (readable at small sizes in dim light)
 ```
 
 ### Dependency Notes
 
-- **Undo/Redo must be designed early:** If added after drag-and-drop, bulk operations, or attachments, retrofitting the operation log to cover all those action types is painful. Architect the undo log schema before implementing any mutating operation.
-- **Mobile gestures conflict with text selection long-press:** Long-press on mobile triggers native text selection. The context menu long-press must use a timer-based detection that cancels if text selection starts. This is a known implementation trap.
-- **Collapse state requires Auth:** Collapse state is per-user, so auth must exist before persisting collapse state. Don't implement collapse with localStorage — it won't survive a device switch.
-- **#tag / @mention / !!date enhance Search:** Once special syntax is rendered as chips, the search system should be able to filter by tag, mention, and date range — this shapes the search index schema from day one.
+- **Implement dark mode tokens first** — if any component is built before tokens exist, it will use hardcoded colors that must be retrofitted. Token system is the foundation all other v1.1 features rest on.
+- **Responsive layout and safe area insets are one refactor** — the same CSS pass that adds media queries should also add `env(safe-area-inset-*)` padding. Doing them separately doubles the CSS churn.
+- **Palette does not need new search infrastructure** — the existing `/search` endpoint handles bullet full-text search; document titles are already in sidebar state. The palette is a new UI over existing data.
+- **Gesture polish is additive CSS** — the existing touch handler in `gestures.ts` already has threshold detection callbacks. The v1.1 work adds CSS classes to the row and backing layers at each threshold, not new gesture logic.
+- **Lucide icons are a drop-in replacement** — existing ad-hoc SVGs can be replaced icon by icon; no architectural change required.
 
 ---
 
 ## MVP Definition
 
-### Launch With (v1)
+### v1.1 Launch (all features are in scope per PROJECT.md)
 
-Minimum viable product — validates the core outliner loop.
+Order matters — implement in this sequence to avoid rework:
 
-- [ ] Auth (email/password + Google SSO) — gate everything behind accounts
-- [ ] Document CRUD (create, rename, delete, flat list) — basic organization
-- [ ] Bullet CRUD with unlimited nesting — the core product
-- [ ] Indent / Outdent (Tab, Shift+Tab) — editing fundamentals
-- [ ] Collapse / Expand (persisted) — navigation without zoom
-- [ ] Zoom + Breadcrumb — makes deep nesting usable
-- [ ] Drag-and-drop reorder (desktop) — essential for reorganization
-- [ ] Ctrl+Up / Ctrl+Down move (keyboard) — keyboard-first power users
-- [ ] Markdown rendering (bold, italic, strikethrough, inline code, links) — text richness
-- [ ] Mark complete + bulk delete completed — task workflow
-- [ ] Full-text search across all documents — retrieval
-- [ ] #tag / @mention / !!date syntax + tag browser — light cross-referencing
-- [ ] Bookmarks — navigation shortcuts
-- [ ] Server-side undo/redo (50 steps, persisted) — safety net and differentiator
-- [ ] File attachments per bullet — media capture
-- [ ] Comments per bullet (flat) — annotation
-- [ ] Mobile swipe gestures + long-press context menu — mobile usability
-- [ ] Export document as Markdown — data portability
-- [ ] Keyboard shortcuts (full set matching Dynalist defaults) — power user ergonomics
-- [ ] New users start with Inbox document — onboarding
+- [ ] Dark mode token system — CSS custom properties; every other component uses tokens
+- [ ] Responsive mobile layout + safe area insets — CSS refactor; sidebar becomes drawer on mobile
+- [ ] Hamburger + backdrop + sidebar close button + Ctrl/Cmd+E desktop toggle
+- [ ] Lucide icon library — replace existing SVGs; bundled naturally with layout refactor
+- [ ] Inter + JetBrains Mono font pairing — CSS font-family changes
+- [ ] PWA manifest + icon assets — manifest.json + HTML link tag
+- [ ] Swipe gesture color/icon feedback — CSS backing layers + threshold classes
+- [ ] Quick-open palette (Ctrl+K) — modal overlay + fuzzy doc/bullet/bookmark search
 
-### Add After Validation (v1.x)
+### Defer to v1.2
 
-Features to add once core loop is confirmed working.
-
-- [ ] PWA manifest + install prompt — makes mobile feel native without app store
-- [ ] Dynalist/Workflowy Markdown import — migration path for existing users (once export format is validated)
-- [ ] Date range filtering from !!date syntax — extends the date chip value
-- [ ] Customizable keyboard shortcuts — power user quality-of-life
-- [ ] List density options (cozy / compact) — personalization without complexity
-
-### Future Consideration (v2+)
-
-Features to defer until product-market fit is established.
-
-- [ ] Offline mode — requires service worker + sync conflict resolution; large scope
-- [ ] Google Calendar sync for !!dates — useful but external API dependency
-- [ ] OPML export — niche format; plain Markdown covers most use cases
-- [ ] Folder hierarchy for documents — only if flat list proves insufficient at scale
-- [ ] AI-powered search / summarize — evaluate after user base established
+- [ ] Manual dark/light override toggle — add to settings if user-requested
+- [ ] Offline support / service worker — explicitly out of scope
+- [ ] Palette action commands — navigation-only is sufficient for v1.1
+- [ ] Screenshots in PWA manifest — nice for Android install dialog; not blocking install
 
 ---
 
@@ -215,76 +406,123 @@ Features to defer until product-market fit is established.
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Bullet CRUD + nesting + collapse | HIGH | MEDIUM | P1 |
-| Indent / outdent + keyboard shortcuts | HIGH | LOW | P1 |
-| Zoom + breadcrumb | HIGH | MEDIUM | P1 |
-| Full-text search | HIGH | MEDIUM | P1 |
-| Drag-and-drop reorder | HIGH | HIGH | P1 |
-| Server-side undo/redo | HIGH | HIGH | P1 |
-| Markdown rendering | HIGH | MEDIUM | P1 |
-| Mark complete + bulk delete | MEDIUM | LOW | P1 |
-| #tag / @mention / !!date syntax | MEDIUM | MEDIUM | P1 |
-| Mobile swipe gestures | MEDIUM | MEDIUM | P1 |
-| File attachments | MEDIUM | MEDIUM | P1 |
-| Comments per bullet | MEDIUM | MEDIUM | P1 |
-| Bookmarks | MEDIUM | LOW | P1 |
-| Export as Markdown | MEDIUM | LOW | P1 |
-| Tag browser pane | LOW | LOW | P2 |
-| PWA manifest | LOW | LOW | P2 |
-| Customizable shortcuts | LOW | MEDIUM | P2 |
-| List density options | LOW | LOW | P2 |
-| Dynalist import | LOW | MEDIUM | P3 |
-| Offline mode | MEDIUM | HIGH | P3 |
-| OPML export | LOW | MEDIUM | P3 |
-| Bidirectional links | MEDIUM | HIGH | P3 (out of scope v1) |
-| Collaboration / sharing | HIGH | HIGH | P3 (out of scope permanently) |
+| Dark mode token system | HIGH | MEDIUM | P1 — foundation; implement first |
+| Responsive mobile layout | HIGH | MEDIUM | P1 — nothing else works on mobile without this |
+| Safe area insets | MEDIUM | LOW | P1 — bundle with responsive layout refactor |
+| Hamburger + auto-close sidebar | HIGH | LOW | P1 — without it mobile users can't navigate |
+| Sidebar explicit close button | MEDIUM | LOW | P1 — accessibility + discoverability |
+| Ctrl/Cmd+E desktop toggle | LOW | LOW | P2 — power user quality-of-life |
+| PWA manifest + icons | HIGH | LOW | P1 — low effort, high perceived value |
+| Lucide icon library | MEDIUM | LOW | P1 — visual coherence; bundle with layout work |
+| Inter + JetBrains Mono fonts | MEDIUM | LOW | P1 — CSS change; immediate quality uplift |
+| Swipe gesture color/icon reveal | MEDIUM | MEDIUM | P2 — existing gestures work; this is polish |
+| Swipe snap-back animation | LOW | LOW | P2 — bundle with swipe color work |
+| Haptic swipe feedback | LOW | LOW | P3 — Android only; graceful skip on iOS |
+| Quick-open palette (docs + bookmarks) | HIGH | MEDIUM | P2 — high value; needs token + layout done first |
+| Quick-open palette (bullet search) | HIGH | MEDIUM | P2 — extension of palette; server call |
+| Mobile entry point for palette | MEDIUM | LOW | P2 — search icon on toolbar; Ctrl+K is keyboard-only |
 
 **Priority key:**
-- P1: Must have for launch
-- P2: Should have, add when possible
-- P3: Nice to have, future consideration or explicitly out of scope
+- P1: Must have for v1.1 launch — without these the milestone fails
+- P2: Should have in v1.1 — high value, bundle with surrounding work
+- P3: Nice to have — include only if no complexity risk
 
 ---
 
 ## Competitor Feature Analysis
 
-| Feature | Dynalist | Workflowy | Roam Research | Our Approach |
-|---------|----------|-----------|---------------|--------------|
-| Infinite nesting | Yes | Yes | Yes (block-based) | Yes — core |
-| Zoom + breadcrumb | Yes | Yes | Yes | Yes — core |
-| Collapse / expand | Yes | Yes | Yes | Yes, persisted in DB |
-| Multiple documents | Yes | No (single outline) | Yes (pages) | Yes, flat list |
-| Markdown | Yes (rich) | No (plain text) | Limited | Yes — WYSIWYG inline |
-| #tags | Yes | Yes | Yes (linked refs) | Yes + @mentions + !!dates |
-| Full-text search | Yes | Yes (instant) | Yes | Yes |
-| File attachments | Yes (Pro only) | No | No | Yes, included free |
-| Comments | No | No | Block comments | Yes, flat per bullet |
-| Undo/redo | Session-only | Session-only | Session-only | Persisted 50 steps — differentiator |
-| Export | OPML, HTML, text | OPML | Markdown, JSON | Markdown |
-| Import | Workflowy OPML | None | — | Deferred to v1.x |
-| Bookmarks | Yes | No | No | Yes |
-| Mobile apps | iOS + Android | iOS + Android | iOS | Web only, responsive + gestures |
-| Offline | Yes (desktop apps) | Yes (desktop apps) | No | Deferred |
-| Self-hosted | No | No | No | Yes — core value |
-| Paywall | Pro features gated | Limited free tier | $15/month | No paywall — all features free |
-| Collaboration | Yes | Yes | Yes | Explicitly excluded |
+| Feature | Dynalist | Workflowy | Notion | Our v1.1 Approach |
+|---------|----------|-----------|--------|-------------------|
+| Mobile hamburger sidebar | Drawer overlay | Drawer overlay | Bottom sheet / sidebar | Drawer overlay (matches Dynalist pattern) |
+| Dark mode | System-follow | System-follow | System + manual toggle | System-follow only (no manual toggle in v1.1) |
+| Quick-open palette | Ctrl+K (docs only) | Ctrl+K (docs) | Ctrl+K (full command palette) | Ctrl+K (docs + bullets + bookmarks; no action commands) |
+| PWA installable | Yes | Yes | Yes | Yes via manifest (no service worker needed) |
+| Icon library | Custom SVGs | Minimal | Lucide-based | Lucide |
+| Typography | System font | System font | Custom (Notion font) | Inter (UI) + JetBrains Mono (code) |
+| Swipe gestures with feedback | Color reveal | Minimal | No swipe | Color reveal + icon + snap-back |
+| Haptic feedback | Not on web | Not on web | Not on web | Android only via Vibration API |
+| Safe area insets | Yes (iOS app) | Yes (iOS app) | Yes | Yes via CSS env() |
+
+---
+
+## Mobile-Specific UX Patterns
+
+### Thumb Reach Zones
+
+On a typical 6-inch phone held one-handed:
+
+| Zone | Location | Suitable For |
+|------|----------|--------------|
+| Easy (natural) | Bottom 40%, center | High-frequency: new bullet, complete, search input |
+| Reachable | Middle 30% | Moderate-frequency: toolbar buttons, sidebar items |
+| Stretch (hard) | Top 30%, far corners | Low-frequency: hamburger (once/session), settings |
+
+**Implications for v1.1:**
+- Hamburger at top-left is acceptable — it is used once per session to switch documents
+- If a floating action button (FAB) for "new document" is considered in a future milestone, bottom-right is the correct thumb-friendly placement
+- Sidebar document items should be ≥48px tall (48px is Material Design's minimum; 44px is Apple HIG minimum)
+- Quick-open palette results: 48px row height; finger-sized tap targets
+
+### Safe Area Insets — Implementation Pattern
+
+```css
+/* Requires in HTML: <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"> */
+
+.app-header {
+  padding-top: max(env(safe-area-inset-top), 16px);
+}
+
+.sidebar {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Any fixed bottom bars */
+.bottom-toolbar {
+  padding-bottom: max(env(safe-area-inset-bottom), 8px);
+}
+```
+
+Without `viewport-fit=cover`, `env(safe-area-inset-*)` returns 0 — the meta viewport tag change is required.
+
+### Touch Target Minimums
+
+| Element | Minimum Size | Standard |
+|---------|--------------|----------|
+| Hamburger button | 44×44px | WCAG 2.5.5, Apple HIG |
+| Sidebar document items | 44px height, full width | WCAG 2.5.5 |
+| Bullet expand/collapse caret | 44×44px tap area (visual can be smaller) | WCAG 2.5.5 |
+| Palette result rows | 48px height | Material Design |
+| Swipe action icon area | Visual only — swipe gesture initiates action, not icon tap | N/A |
+| Close (X) button | 44×44px | WCAG 2.5.5 |
 
 ---
 
 ## Sources
 
-- [Dynalist Features Full List](https://dynalist.io/features/full)
-- [Dynalist Keyboard Shortcut Reference](https://help.dynalist.io/article/91-keyboard-shortcut-reference)
-- [Dynalist vs Workflowy Differences](https://help.dynalist.io/article/123-how-is-dynalist-different-from-workflowy)
-- [Workflowy vs Dynalist Comparison — Slant](https://www.slant.co/versus/4412/15546/~workflowy_vs_dynalist)
-- [10 Best Outliner Apps 2026 — bloggingx.com](https://bloggingx.com/best-outliner-apps/)
-- [Dynalist User Reviews — Capterra](https://www.capterra.com/p/150742/Dynalist/reviews/)
-- [Dynalist Forum: Product Discontinued Thread](https://talk.dynalist.io/t/product-discontinued/8761) (confirms Dynalist is in maintenance mode; Obsidian is the company's focus)
-- [Evolution of Outliners](https://molodtsov.me/2020/07/outliners/)
-- [Mobile Gesture Best Practices — Material Design 3](https://m3.material.io/foundations/interaction/gestures)
-- [Touch Gesture Controls — Smashing Magazine](https://www.smashingmagazine.com/2017/02/touch-gesture-controls-mobile-interfaces/)
+- [Mobile Navigation UX Best Practices (2026) — designstudiouiux.com](https://www.designstudiouiux.com/blog/mobile-navigation-ux/)
+- [Mobile UX Thumb Zones 2025 — elaris.software](https://elaris.software/blog/mobile-ux-thumb-zones-2025/)
+- [Command Palette UX Patterns — Mobbin glossary](https://mobbin.com/glossary/command-palette)
+- [Command Palette — UX Patterns for Developers](https://uxpatterns.dev/patterns/advanced/command-palette)
+- [Maggie Appleton on Command K Bars](https://maggieappleton.com/command-bar)
+- [Notesnook 3.0.27 Command Palette Launch — AlternativeTo, Feb 2025](https://alternativeto.net/news/2025/2/notesnook-3-0-27-introduces-a-command-palette-support-for-markdown-pasting-and-more/)
+- [PWA Install Criteria — web.dev](https://web.dev/articles/install-criteria)
+- [PWA Web App Manifest — web.dev/learn](https://web.dev/learn/pwa/web-app-manifest)
+- [Making PWAs Installable — MDN](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable)
+- [PWA 2025 Web Almanac — HTTP Archive](https://almanac.httparchive.org/en/2025/pwa)
+- [Dark Mode Accessibility Guide (WCAG 2.1 AA) — blog.greeden.me, Feb 2026](https://blog.greeden.me/en/2026/02/23/complete-accessibility-guide-for-dark-mode-and-high-contrast-color-design-contrast-validation-respecting-os-settings-icons-images-and-focus-visibility-wcag-2-1-aa/)
+- [Color Contrast WCAG Guide 2025 — allaccessible.org](https://www.allaccessible.org/blog/color-contrast-accessibility-wcag-guide-2025)
+- [CSS env() Safe Area Insets — MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/env)
+- [Chrome Android Edge-to-Edge Migration Guide — developer.chrome.com, Feb 2025](https://developer.chrome.com/docs/css-ui/edge-to-edge)
+- [Lucide React — lucide.dev](https://lucide.dev/guide/packages/lucide-react)
+- [Inter + JetBrains Mono Pairing Score 88/100 — fontalternatives.com](https://fontalternatives.com/pairings/inter-and-jetbrains-mono/)
+- [JetBrains Mono — jetbrains.com](https://www.jetbrains.com/lp/mono/)
+- [Best Fonts for Web Design 2025 — shakuro.com](https://shakuro.com/blog/best-fonts-for-web-design)
+- [WebHaptics for React — cssscript.com](https://www.cssscript.com/haptic-feedback-web/)
+- [2025 Haptics Guide — saropa-contacts.medium.com](https://saropa-contacts.medium.com/2025-guide-to-haptics-enhancing-mobile-ux-with-tactile-feedback-676dd5937774)
+- [Motion for React Gestures — motion.dev](https://motion.dev/docs/react-gestures)
+- [microfuzz fuzzy library — github.com/Nozbe/microfuzz](https://github.com/Nozbe/microfuzz)
 
 ---
 
-*Feature research for: Outliner / PKM web app (Dynalist/Workflowy clone, self-hosted)*
-*Researched: 2026-03-09*
+*Feature research for: Notes v1.1 Mobile & UI Polish milestone*
+*Researched: 2026-03-10*

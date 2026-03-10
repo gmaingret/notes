@@ -1,137 +1,84 @@
 # Requirements: Notes
 
-**Defined:** 2026-03-09
+**Defined:** 2026-03-10
 **Core Value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
 
-## v1 Requirements
+## v1.1 Requirements
 
-### Authentication
+Requirements for the Mobile & UI Polish milestone. Each maps to roadmap phases.
 
-- [x] **AUTH-01**: User can register an account with email and password
-- [x] **AUTH-02**: User can log in with email and password (JWT session, persists across refresh)
-- [x] **AUTH-03**: User can log in with Google SSO (OAuth 2.0)
-- [x] **AUTH-04**: User can log out via sidebar button
-- [x] **AUTH-05**: New user automatically gets a blank "Inbox" document on first login
+### Mobile Layout
 
-### Documents
+- [x] **MOBL-01**: User can open the sidebar on mobile via a hamburger button in the header
+- [x] **MOBL-02**: Sidebar auto-closes when user taps outside it on mobile
+- [x] **MOBL-03**: Sidebar has an explicit X close button on mobile
+- [x] **MOBL-04**: Sidebar slides in/out with a smooth off-canvas transition
+- [x] **MOBL-05**: All interactive elements have touch targets ≥44×44px
+- [x] **MOBL-06**: App layout uses 100dvh (not 100vh) for correct height on mobile browsers
+- [x] **MOBL-07**: User can toggle sidebar on desktop with Ctrl/Cmd+E
 
-- [x] **DOC-01**: User can create a new document (flat list, no folders)
-- [x] **DOC-02**: User can rename a document
-- [x] **DOC-03**: User can delete a document (with confirmation)
-- [x] **DOC-04**: User can reorder documents via drag in the sidebar
-- [x] **DOC-05**: User can navigate between documents by clicking in the sidebar
-- [x] **DOC-06**: User can export a single document as a Markdown file
-- [x] **DOC-07**: User can export all documents as a Markdown archive
+### Dark Mode
 
-### Bullet Editing
+- [ ] **DRKM-01**: App automatically switches to dark theme when OS is in dark mode
+- [ ] **DRKM-02**: All text/background color pairs meet WCAG AA in both light and dark themes
+- [ ] **DRKM-03**: No white flash occurs on hard refresh in dark OS preference (FOUC prevention)
+- [ ] **DRKM-04**: Browser chrome (scrollbars, inputs) adopts the active theme via color-scheme
 
-- [x] **BULL-01**: User can create a new bullet by pressing Enter
-- [x] **BULL-02**: User can indent a bullet (Tab / toolbar / context menu)
-- [x] **BULL-03**: User can outdent a bullet (Shift+Tab / toolbar / context menu)
-- [x] **BULL-04**: User can move a bullet up or down (toolbar / keyboard shortcuts / context menu)
-- [x] **BULL-05**: User can reorder bullets via drag-and-drop (maintains children; desktop + mobile)
-- [x] **BULL-06**: User can collapse a bullet with children (chevron glyph; persisted per user)
-- [x] **BULL-07**: User can zoom into a bullet to view it as the full-screen root
-- [x] **BULL-08**: User can navigate back out via breadcrumb bar (click any ancestor to zoom to that level)
-- [x] **BULL-09**: Bullet text supports inline markdown: **bold**, *italic*, ~~strikethrough~~, [links](url), ![image](url)
-- [x] **BULL-10**: Markdown renders on blur/Enter/Esc; raw markdown shows while editing (Dynalist-style live toggle)
-- [x] **BULL-11**: User can soft-delete a bullet (undo restores it with all children)
-- [x] **BULL-12**: User can mark a bullet complete (strikethrough + 50% opacity, stays in position)
-- [x] **BULL-13**: User can hide completed bullets via "Hide completed" toolbar toggle
-- [x] **BULL-14**: User can bulk delete all completed bullets (irreversible; permanently purges)
-- [x] **BULL-15**: Desktop: right-click bullet → context menu (indent, outdent, move, complete, delete, bookmark, attachment, comment)
-- [x] **BULL-16**: Mobile: long press bullet → context menu (same actions)
+### Visual Design
 
-### Keyboard Shortcuts (Desktop)
+- [ ] **VISL-01**: All Unicode/emoji icons replaced with Lucide React SVG components
+- [ ] **VISL-02**: UI text uses self-hosted Inter variable font (no Google Fonts)
+- [ ] **VISL-03**: Inline code and tag chips use self-hosted JetBrains Mono variable font
 
-- [x] **KB-01**: Enter = new bullet below current
-- [x] **KB-02**: Tab = indent; Shift+Tab = outdent
-- [x] **KB-03**: Ctrl/Cmd+↑↓ = move bullet up/down
-- [x] **KB-04**: Ctrl/Cmd+] = zoom in; Ctrl/Cmd+[ = zoom out to parent
-- [x] **KB-05**: Ctrl/Cmd+Z = undo; Ctrl/Cmd+Y = redo
-- [x] **KB-06**: Ctrl/Cmd+B = bold; Ctrl/Cmd+I = italic
-- [x] **KB-07**: Ctrl/Cmd+F = open search; Ctrl/Cmd+* = bookmarks; Ctrl/Cmd+E = toggle sidebar
+### PWA
 
-### Mobile Touch (Responsive)
+- [ ] **PWA-01**: App has a valid PWA manifest enabling Add to Home Screen
+- [ ] **PWA-02**: App has 192×192 and 512×512 PNG icons for home screen
+- [ ] **PWA-03**: App opens in standalone mode when launched from home screen
 
-- [x] **MOB-01**: Swipe right on bullet = mark complete
-- [x] **MOB-02**: Swipe left on bullet = soft delete (undo available)
-- [x] **MOB-03**: Long press = context menu
-- [x] **MOB-04**: Touch-friendly drag handles for bullet reordering
-- [x] **MOB-05**: Focus toolbar (appears above keyboard when bullet selected): indent | outdent | ↑ | ↓ | undo | redo | attachment | comment | bookmark | complete | delete
+### Gestures
 
-### Special Syntax & Tags
+- [ ] **GEST-01**: Swiping right reveals a green backing with checkmark icon proportional to drag distance
+- [ ] **GEST-02**: Swiping left reveals a red backing with trash icon proportional to drag distance
+- [ ] **GEST-03**: Cancelled swipe snaps back to rest with ease-out animation
+- [ ] **GEST-04**: Committed swipe animates the row out before it disappears
+- [ ] **GEST-05**: dnd-kit drag sensor uses delay-based activation so it never intercepts horizontal swipes
 
-- [x] **TAG-01**: `#tag` syntax creates a tag, renders as a clickable chip in bullet text
-- [x] **TAG-02**: `@mention` syntax renders as a clickable chip (personal label)
-- [x] **TAG-03**: `!!` syntax opens a date/time picker; renders as a 📅 date chip
-- [x] **TAG-04**: Sidebar Tab 2: Tag Browser lists all unique #tags, @mentions, !!dates across user's documents with bullet counts
-- [x] **TAG-05**: Clicking a tag in the Tag Browser opens a filtered view of all matching bullets
+### Quick-Open Palette
 
-### Search
-
-- [x] **SRCH-01**: User can search across all personal documents (full-text)
-- [x] **SRCH-02**: Search supports #tag, @mention, and !!date query syntax
-- [x] **SRCH-03**: Search results show matching bullets; clicking a result opens it in zoomed focus view
-- [x] **SRCH-04**: Search accessible via no-focus toolbar button and Ctrl/Cmd+F keyboard shortcut
-
-### Bookmarks
-
-- [x] **BM-01**: User can bookmark a bullet (via focus toolbar or context menu)
-- [x] **BM-02**: No-focus toolbar "Bookmarks" button shows a dedicated screen of all bookmarked bullets
-- [x] **BM-03**: Clicking a bookmark opens the bullet in zoomed focus view
-
-### Comments
-
-- [x] **CMT-01**: Bullets with comments show a small note icon indicator
-- [x] **CMT-02**: Clicking the note icon opens a right-edge slide-in side panel with flat comment list
-- [x] **CMT-03**: User can add a plain-text comment to any bullet
-- [x] **CMT-04**: User can delete their own comments
-
-### Attachments
-
-- [x] **ATT-01**: User can attach a file to a bullet (any file type, 100MB max)
-- [x] **ATT-02**: Upload accessible via focus toolbar button or context menu
-- [x] **ATT-03**: Images render as inline previews within the bullet
-- [x] **ATT-04**: PDFs show a thumbnail preview
-- [x] **ATT-05**: Other file types show a download icon + filename
-- [x] **ATT-06**: Files stored on Docker volume mount
-
-### Undo / Redo
-
-- [x] **UNDO-01**: User can undo the last action (text edits + structural changes: indent, reorder, delete)
-- [x] **UNDO-02**: Undo history is 50 levels deep, global per user (not per document)
-- [x] **UNDO-03**: Undo history is server-side and persists across page refresh and app restart
-- [x] **UNDO-04**: Undoing a bullet deletion restores the bullet and all its children
+- [ ] **QKOP-01**: User can open the quick-open palette with Ctrl+K from anywhere in the app
+- [ ] **QKOP-02**: Palette shows recent documents when opened with no query typed
+- [ ] **QKOP-03**: Typing in the palette instantly fuzzy-matches document titles from cache
+- [ ] **QKOP-04**: Typing ≥2 characters also searches bullet content via existing search endpoint
+- [ ] **QKOP-05**: Bookmarks appear in palette results
+- [ ] **QKOP-06**: User can navigate results with arrow keys and open with Enter
+- [ ] **QKOP-07**: Palette closes on Escape or click outside
 
 ## v2 Requirements
 
-### Enhanced Mobile
+Deferred to future milestones. Tracked but not in current roadmap.
 
-- **MOB-V2-01**: Progressive Web App (PWA) manifest for home screen installation
-- **MOB-V2-02**: Quick-open palette (fuzzy document + bullet search)
+### Dark Mode
 
-### Collaboration (Not Planned)
+- **DRKM-05**: User can manually override the system dark/light preference via a toggle in settings
 
-- Shared documents, real-time collaboration — explicitly out of scope, no v2 plan
+### PWA
+
+- **PWA-04**: Installed app on Android shows richer install prompt (requires service worker)
+
+### Quick-Open Palette
+
+- **QKOP-08**: Palette supports action commands (formatting, settings) beyond navigation
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Native mobile apps (iOS/Android) | Web-first; responsive web covers the use case |
-| Offline mode | Service worker complexity; requires conflict resolution; defer |
-| Push notifications | No collaboration = nothing to notify about |
-| Document sharing / workspaces | Privacy-first design; no sharing by intent |
-| Folders | Flat document list matches Dynalist/Workflowy pattern |
-| Agenda / calendar view | Different product; use !!date syntax + tag browser instead |
-| Import from Dynalist/Workflowy | Complexity with format variability; defer |
-| Threaded comments | Flat comments sufficient for personal use |
-| Version history beyond 50-step undo | Explicit limit; database cost of full history |
-| Admin panel / user roles | All users equal; open registration |
-| Bidirectional links (Roam-style) | Different product category; scope creep |
-| AI features | Out of scope for focused outliner clone |
-| Real-time sync | No collaboration = no need |
+| Offline mode | Service worker cache invalidation conflicts with server-side undo/redo; explicitly out of scope per PROJECT.md |
+| Manual dark mode toggle | Creates three-state complexity (system/light/dark) requiring settings UI; defer to v1.2 |
+| iOS-specific workarounds | User preference — standard cross-browser patterns only |
+| Framer Motion animation library | CSS transitions sufficient; add only if proven inadequate on real device |
+| Full command palette (VS Code style) | ~15 real actions — navigation-only is appropriate for this app's scale |
 
 ## Traceability
 
@@ -139,78 +86,41 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Complete |
-| AUTH-02 | Phase 1 | Complete |
-| AUTH-03 | Phase 1 | Complete |
-| AUTH-04 | Phase 1 | Complete |
-| AUTH-05 | Phase 1 | Complete |
-| DOC-01 | Phase 1 | Complete |
-| DOC-02 | Phase 1 | Complete |
-| DOC-03 | Phase 1 | Complete |
-| DOC-04 | Phase 1 | Complete |
-| DOC-05 | Phase 1 | Complete |
-| DOC-06 | Phase 1 | Complete |
-| DOC-07 | Phase 1 | Complete |
-| BULL-01 | Phase 2 | Complete |
-| BULL-02 | Phase 2 | Complete |
-| BULL-03 | Phase 2 | Complete |
-| BULL-04 | Phase 2 | Complete |
-| BULL-05 | Phase 2 | Complete |
-| BULL-06 | Phase 2 | Complete |
-| BULL-07 | Phase 2 | Complete |
-| BULL-08 | Phase 2 | Complete |
-| BULL-09 | Phase 3 | Complete |
-| BULL-10 | Phase 3 | Complete |
-| BULL-11 | Phase 2 | Complete |
-| BULL-12 | Phase 2 | Complete |
-| BULL-13 | Phase 2 | Complete |
-| BULL-14 | Phase 2 | Complete |
-| BULL-15 | Phase 2 | Complete |
-| BULL-16 | Phase 4 | Complete |
-| KB-01 | Phase 2 | Complete |
-| KB-02 | Phase 2 | Complete |
-| KB-03 | Phase 2 | Complete |
-| KB-04 | Phase 2 | Complete |
-| KB-05 | Phase 2 | Complete |
-| KB-06 | Phase 2 | Complete |
-| KB-07 | Phase 2 | Complete |
-| MOB-01 | Phase 4 | Complete |
-| MOB-02 | Phase 4 | Complete |
-| MOB-03 | Phase 4 | Complete |
-| MOB-04 | Phase 4 | Complete |
-| MOB-05 | Phase 4 | Complete |
-| TAG-01 | Phase 3 | Complete |
-| TAG-02 | Phase 3 | Complete |
-| TAG-03 | Phase 3 | Complete |
-| TAG-04 | Phase 3 | Complete |
-| TAG-05 | Phase 3 | Complete |
-| SRCH-01 | Phase 3 | Complete |
-| SRCH-02 | Phase 3 | Complete |
-| SRCH-03 | Phase 3 | Complete |
-| SRCH-04 | Phase 3 | Complete |
-| BM-01 | Phase 3 | Complete |
-| BM-02 | Phase 3 | Complete |
-| BM-03 | Phase 3 | Complete |
-| CMT-01 | Phase 4 | Complete |
-| CMT-02 | Phase 4 | Complete |
-| CMT-03 | Phase 4 | Complete |
-| CMT-04 | Phase 4 | Complete |
-| ATT-01 | Phase 4 | Complete |
-| ATT-02 | Phase 4 | Complete |
-| ATT-03 | Phase 4 | Complete |
-| ATT-04 | Phase 4 | Complete |
-| ATT-05 | Phase 4 | Complete |
-| ATT-06 | Phase 4 | Complete |
-| UNDO-01 | Phase 2 | Complete |
-| UNDO-02 | Phase 2 | Complete |
-| UNDO-03 | Phase 2 | Complete |
-| UNDO-04 | Phase 2 | Complete |
+| MOBL-01 | Phase 5 | Complete |
+| MOBL-02 | Phase 5 | Complete |
+| MOBL-03 | Phase 5 | Complete |
+| MOBL-04 | Phase 5 | Complete |
+| MOBL-05 | Phase 5 | Complete |
+| MOBL-06 | Phase 5 | Complete |
+| MOBL-07 | Phase 5 | Complete |
+| DRKM-01 | Phase 6 | Pending |
+| DRKM-02 | Phase 6 | Pending |
+| DRKM-03 | Phase 6 | Pending |
+| DRKM-04 | Phase 6 | Pending |
+| VISL-01 | Phase 7 | Pending |
+| VISL-02 | Phase 7 | Pending |
+| VISL-03 | Phase 7 | Pending |
+| PWA-01 | Phase 7 | Pending |
+| PWA-02 | Phase 7 | Pending |
+| PWA-03 | Phase 7 | Pending |
+| GEST-01 | Phase 8 | Pending |
+| GEST-02 | Phase 8 | Pending |
+| GEST-03 | Phase 8 | Pending |
+| GEST-04 | Phase 8 | Pending |
+| GEST-05 | Phase 8 | Pending |
+| QKOP-01 | Phase 8 | Pending |
+| QKOP-02 | Phase 8 | Pending |
+| QKOP-03 | Phase 8 | Pending |
+| QKOP-04 | Phase 8 | Pending |
+| QKOP-05 | Phase 8 | Pending |
+| QKOP-06 | Phase 8 | Pending |
+| QKOP-07 | Phase 8 | Pending |
 
 **Coverage:**
-- v1 requirements: 66 total
-- Mapped to phases: 66
-- Unmapped: 0
+- v1.1 requirements: 27 total
+- Mapped to phases: 27
+- Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-03-09*
-*Last updated: 2026-03-09 — traceability updated after roadmap creation (4 phases)*
+*Requirements defined: 2026-03-10*
+*Last updated: 2026-03-10 after roadmap creation*

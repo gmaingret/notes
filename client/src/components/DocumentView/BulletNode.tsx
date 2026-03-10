@@ -281,6 +281,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
         {/* Dot — drag handle + click to zoom */}
         {/* MOB-04: touch drag handled by dnd-kit PointerSensor; touch-action:none on dot enables drag without text selection */}
         <div
+          className="bullet-dot"
           style={{
             width: 16,
             flexShrink: 0,
@@ -326,11 +327,12 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
             bulletMap={isDragOverlay ? {} : bulletMap}
             isDragOverlay={isDragOverlay}
           />
-          {!isDragOverlay && (bullet.note !== null || noteVisible) && (
+          {!isDragOverlay && (!!bullet.note?.trim() || noteVisible) && (
             <NoteRow
               bulletId={bullet.id}
               initialNote={bullet.note}
               focusTrigger={noteFocusTrigger}
+              onHide={() => setNoteVisible(false)}
             />
           )}
           {!isDragOverlay && attachments.map(a => (

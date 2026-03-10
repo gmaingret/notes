@@ -59,8 +59,10 @@ export function Breadcrumb({ documentTitle, zoomedBulletId, bulletMap }: Props) 
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    display: 'inline-block',
+    display: 'inline-flex',
+    alignItems: 'center',
     verticalAlign: 'middle',
+    minHeight: 44,
   };
 
   const clickableHoverStyle = {

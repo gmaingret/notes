@@ -1,326 +1,196 @@
 # Project Research Summary
 
-**Project:** Self-Hosted Outliner / PKM Web App (Dynalist/Workflowy Clone)
-**Domain:** Infinite outliner, personal knowledge management, self-hosted SaaS replacement
-**Researched:** 2026-03-09
-**Confidence:** MEDIUM-HIGH
+**Project:** Notes v1.1 — Mobile & UI Polish
+**Domain:** Self-hosted multi-user outliner (Dynalist/Workflowy clone) — mobile experience, dark mode, PWA, quick-open palette
+**Researched:** 2026-03-10
+**Confidence:** HIGH
 
 ## Executive Summary
 
-This is a self-hosted, multi-user infinite outliner in the tradition of Dynalist and Workflowy, differentiated by data ownership (no vendor lock-in), persistent server-side undo/redo, file attachments, and intentional mobile UX. Research across all four domains converges on a clear, well-trodden architecture: React 19 + TipTap 3 (or plain contenteditable) on the frontend, Express 5 + Drizzle ORM on the backend, PostgreSQL 16/17 with an adjacency list tree model and float fractional indexing for ordering. This stack is strongly supported by official documentation and community consensus. The core product loop — create a bullet, nest it, reorder it, collapse it, undo a mistake — is both the first thing to build and the hardest thing to get right.
+The v1.1 milestone is a UI polish and mobile hardening layer on top of an already-working v1.0 outliner. The core stack (React 19, Vite 7, Express 5, Drizzle, TanStack Query, Zustand, dnd-kit) is locked and validated in production. The six new feature areas — responsive mobile layout with hamburger sidebar, system dark mode, Lucide icon library, self-hosted font pairing, PWA manifest, and a Ctrl+K quick-open palette — are all well-researched with clear implementation paths. No new architectural patterns are needed; the work is additive CSS refactoring plus two new components (`HamburgerButton` and `QuickOpenPalette`). All five new npm packages (`lucide-react`, `@fontsource-variable/inter`, `@fontsource-variable/jetbrains-mono`, `cmdk`, `vite-plugin-pwa`) have been verified against the npm registry as of 2026-03-10 and confirmed compatible with the existing React 19 / Vite 7 stack.
 
-The single most consequential architectural decision is the undo/redo system: it must be designed before any mutating operation ships, because retrofitting a server-persisted command log after features like drag-and-drop, bulk delete, and attachment upload are in place is prohibitively expensive. The second most consequential decision is tree data modeling — adjacency list with `FLOAT8` midpoint ordering is the correct choice; the fractional indexing string-key variant introduces a PostgreSQL collation trap that has caused production incidents at other projects. Both of these must be locked in at schema creation time, not revisited later.
+The recommended approach is to build in strict dependency order: CSS color tokens first (foundation for all other features), then responsive layout (foundation for swipe gesture polish and correct sidebar behavior on mobile), then dark mode component migration (large surface area but mechanical find-and-replace), then the parallel tracks of icons/fonts, PWA manifest, and swipe gesture polish, and finally the quick-open palette (which reuses existing data hooks and the established modal pattern from SearchModal). This order avoids the single most expensive rework scenario: building components with hardcoded inline hex colors before the token system exists, which would require a second migration pass.
 
-The main risk profile is not technical novelty — all individual components (tree rendering, contenteditable editors, JWT auth, file uploads) are well-documented. The risk is accumulated complexity from the intersection of features: undo must cover drag-and-drop reorder, bulk delete, subtree delete with cascade, and attachment deletion. Mobile touch must coexist with native scroll and text selection. The mitigation is disciplined phase ordering: build the data layer and undo system correctly before adding any user-facing complexity on top of it.
-
----
+The critical risks are all known and avoidable. The most dangerous is dnd-kit's PointerSensor with its low 5px activation distance intercepting horizontal swipe gestures before they reach the custom gesture handler — this must be fixed by switching to a 250ms delay-based activation before any swipe polish work begins, and must be validated on a physical iPhone (Chrome DevTools emulation does not reproduce the conflict). The second highest risk is the dark mode migration: the existing codebase uses inline styles almost exclusively, and CSS variables cannot override inline style attributes. Every color literal must be migrated before the `@media (prefers-color-scheme: dark)` override can take effect. Both risks have specific file locations documented and clear prevention strategies.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The backend runs Node.js 22 LTS with Express 5 (stable since April 2025), Drizzle ORM 0.45.x for TypeScript-native DB access, and PostgreSQL 16/17 as the sole data store. Drizzle is preferred over Prisma because its code-first TypeScript schema avoids Docker build-time code generation and its SQL-close API makes recursive CTEs readable. Auth is JWT-only (no sessions): short-lived access tokens (15 min) plus a long-lived refresh token in an `httpOnly` cookie, issued by both email/password (passport-local) and Google OAuth (passport-google-oauth20).
+The v1.0 foundation stack is validated and unchanged. For v1.1, five additions are needed in the client only. All package versions were verified against the npm registry on 2026-03-10. Dark mode requires no new library — CSS custom properties with `@media (prefers-color-scheme: dark)` handles it natively with zero dependency and universal browser support. The `motion` (Framer Motion) animation library is explicitly optional and should be deferred until CSS transitions are proven insufficient for swipe snap-back physics on a physical device.
 
-The frontend is React 19 + Vite 6 with TanStack Query 5 for server state and Zustand 5 for UI state (expand/collapse, focused bullet, undo indicator). The editor per bullet is a plain `contenteditable` span with a custom keyboard handler — NOT a single TipTap document — because ProseMirror's document model conflicts with the outliner's tree-of-siblings model. TipTap is available for rich inline formatting if needed but each bullet remains its own isolated editor instance. Drag-and-drop uses @dnd-kit (react-beautiful-dnd is deprecated).
+**Core v1.1 technologies:**
+- `lucide-react ^0.577.0`: SVG icon components replacing Unicode/emoji — tree-shakable at named import, 1,400+ icons, React 19 compatible
+- `@fontsource-variable/inter ^5.2.8`: Self-hosted UI font — variable font (single file for all weights), eliminates Google Fonts third-party network dependency
+- `@fontsource-variable/jetbrains-mono ^5.2.8`: Self-hosted monospace font for code/tags — x-height 0.73 matches Inter's 0.72, visually harmonious pairing
+- `cmdk ^1.1.1`: Headless command palette — ARIA-compliant (combobox role, focus trap, activedescendant), built-in fuzzy search, React 19 compatible, actively maintained (kbar alternative last updated 2022)
+- `vite-plugin-pwa ^1.2.0`: PWA manifest generation — Vite 7 support added in v1.0.1, confirmed compatible with project's Vite 7.3.1
+- CSS custom properties (built-in): Dark mode token system — zero dependency, `@media (prefers-color-scheme: dark)` on `:root`, universal browser support
+- `motion ^12.35.2` (optional): Spring-physics swipe snap-back — defer until CSS `transition: transform 300ms cubic-bezier(...)` is tested on physical device and found insufficient
 
-**Core technologies:**
-- Node.js 22 LTS + Express 5.2.x: backend runtime — LTS through 2027, async error handling built in
-- PostgreSQL 16/17: primary data store — recursive CTEs for tree traversal are first-class
-- Drizzle ORM 0.45.x: DB access — TypeScript-native, SQL-close API, no code-gen step
-- React 19 + Vite 6: frontend — largest ecosystem, concurrent features for complex tree renders
-- TanStack Query 5 + Zustand 5: state — optimistic updates with rollback built in
-- @dnd-kit/core + @dnd-kit/sortable: drag-and-drop — accessible, touch/keyboard, actively maintained
-- passport + passport-local + passport-google-oauth20 + passport-jwt: auth — battle-tested, pluggable
-- multer 1.4.x (disk storage): file uploads — writes to Docker volume; multer 2.0.x is available but confirm CVE status before upgrading
-- zod 3.x: runtime validation — shared schemas between server and client
+**Critical existing constraint:** Drizzle ORM is pinned at 0.40.0 (not 0.45.x — 0.45.x has a broken npm package missing `index.cjs`). This is a v1.0 constraint with no v1.1 impact; do not upgrade.
 
 ### Expected Features
 
-Research against Dynalist, Workflowy, and community reviews establishes a clear feature hierarchy. Note that Dynalist is in maintenance mode (company focus shifted to Obsidian), which means users migrating from Dynalist are an addressable market.
+**Must have (table stakes — mobile users expect these):**
+- Sidebar hidden on mobile (≤768px), full-width content — a visible 240px sidebar on a 375px screen is unusable
+- Hamburger button (min 44×44px) in app header to open sidebar — universal drawer disclosure pattern; instinctive
+- Sidebar auto-close on outside tap + explicit X close button — both required; tap-outside alone fails discoverability
+- System-preference dark mode (`prefers-color-scheme`) — macOS, iOS, Android all have OS dark mode; apps that ignore it feel broken
+- WCAG AA contrast in dark mode — text ≥4.5:1 ratio, UI controls ≥3:1 (failing creates an accessibility regression worse than no dark mode)
+- Touch targets ≥44×44px on all interactive elements — WCAG 2.5.5 and Apple HIG
+- Safe area insets via `env(safe-area-inset-*)` with `viewport-fit=cover` — iPhones clip bottom content under home indicator without this
+- PWA installable (Add to Home Screen) — Dynalist and Workflowy both support this; users expect installable tools
+- App icon for home screen — 192×192 and 512×512 PNG; blank icon destroys trust when installed
 
-**Must have — table stakes (users assume these exist):**
-- Infinite nesting with unlimited depth
-- Enter to create sibling, Tab/Shift+Tab to indent/outdent
-- Collapse/expand with server-side persistence per user
-- Zoom into any bullet as root with breadcrumb navigation
-- Drag-and-drop reorder (desktop)
-- Ctrl+Z / Ctrl+Y undo/redo (server-persisted, 50 steps)
-- Full-text search across all documents
-- Markdown rendering: bold, italic, strikethrough, inline code, links (WYSIWYG, not raw preview)
-- Mark complete (checkbox), bulk delete completed
-- Multiple documents (flat list, no folders)
-- Full keyboard shortcut set matching Dynalist defaults
-- #tag / @mention / !!date syntax rendered as chips
-- Tag browser pane
-- Bookmarks for bullets and documents
-- Export document as Markdown
-- New users start with an Inbox document
+**Should have (differentiators — competitive advantage for v1.1):**
+- Quick-open palette (Ctrl+K) — navigation across documents, bullets, and bookmarks; power users navigate 50+ documents; Obsidian, Notesnook, Notion all have this
+- Swipe gesture color/icon reveal feedback — bare swipes without visual backing feel broken; Todoist/Things pattern (colored backing layer revealed as user drags)
+- Swipe snap-back animation on cancelled swipe — CSS `transition`, no library needed; aborted swipes feel jarring without it
+- Lucide icon library replacing Unicode characters — visual coherence; emoji render at system font size and ignore CSS color tokens (dark mode incompatible)
+- Inter + JetBrains Mono font pairing — 88/100 pairing score; legible, modern; Inter is the de facto 2025 React UI font
+- Ctrl/Cmd+E desktop sidebar toggle — already implemented in `useGlobalKeyboard`; just needs the CSS layout wired to respond to it
+- Recent documents shown when palette is opened with no query — reduces keystrokes for the most common case
 
-**Should have — differentiators that justify building this:**
-- Server-side persisted undo/redo (50 steps, survives refresh) — Dynalist's undo is session-only
-- Self-hosted, zero vendor lock-in — no SaaS paywall or shutdown risk
-- File attachments per bullet (free, not gated behind Pro)
-- Comments per bullet (flat, plain text) — Dynalist has no comments
-- Mobile swipe gestures (swipe-right = complete, swipe-left = delete)
-- Mobile long-press context menu for indent/outdent/move
-- @mention and !!date chip syntax beyond basic #tags
-- Bulk delete completed bullets
-- Ctrl+P / Ctrl+O quick-open for keyboard document navigation
-
-**Defer to v2+:**
-- Offline mode (service worker + sync conflict resolution — large scope)
-- Real-time collaboration (CRDT/OT — explicitly excluded; privacy-first positioning)
-- Bidirectional backlinks / graph view (different information architecture)
-- Native iOS/Android apps (responsive web + PWA covers most needs)
-- Folder hierarchy for documents (flat list + search is sufficient)
-- AI features (conflicts with self-hosted privacy positioning)
-- OPML import (deferred to v1.x after Markdown export is validated)
-- Daily note / journal mode (Logseq-style — conflicts with document-first model)
+**Defer to v1.2:**
+- Manual dark/light toggle — creates a three-state complexity (system/light/dark) requiring persistence, settings UI, and sync; follow OS only for v1.1
+- Full offline mode — explicitly out of scope per PROJECT.md; service worker cache invalidation conflicts with server-side undo/redo model
+- Palette action commands — navigation-only is sufficient; VS Code command depth not warranted at this app's scale (~15 real actions)
+- Screenshots in PWA manifest — nice for Android richer install dialog; not blocking home screen installation
 
 ### Architecture Approach
 
-The system is a standard three-tier web app: React SPA in the browser over HTTP/REST to a Node.js/Express API server, backed by a single PostgreSQL database and a Docker volume for file storage. There is no WebSocket layer (no real-time collaboration). The tree data model is an adjacency list (`bullets` table with `parent_id` self-reference and `FLOAT8 position` for sibling ordering). The client receives a flat array of all bullets on document load and builds the tree in memory using a `parent_id` map — this avoids N+1 queries and makes zoom-into-bullet instant since all nodes are already loaded.
+The codebase uses a flat `src/` component tree with inline styles dominating throughout. Architecture research was conducted by directly reading source files, giving HIGH confidence on all integration points. Two key findings from source inspection: (1) `sidebarOpen` already exists in `uiStore` and `Ctrl+E` is already wired in `useGlobalKeyboard` — the sidebar simply never visually responds because no CSS applies an off-canvas transform based on that state; the layout fix is purely CSS. (2) `SearchModal.tsx` already demonstrates the exact overlay pattern — backdrop, centered box, debounced input, result list — that the `QuickOpenPalette` needs. It is a template, not a competing concern, and the two should remain separate components with different behavior rather than being merged.
 
-The undo system is a server-side command table (`undo_events`) with `forward_op`/`inverse_op` JSONB pairs and a cursor pointer per user. Every mutating API call wraps its DB operation and undo event insertion in a single transaction. Undo/redo is O(1) — apply one inverse op, no event replay needed. The server owns undo entirely; the client only sends `POST /api/undo` or `POST /api/redo`.
+**Major components and their v1.1 roles:**
+1. `index.css` — expanded from ~13 lines to the CSS token system foundation; all `--color-*` variables and layout classes live here; no component works correctly in dark mode until this exists
+2. `AppPage.tsx` — gains CSS layout class + `data-sidebar-open` attribute wiring; mounts `<QuickOpenPalette>`
+3. `Sidebar.tsx` — gains CSS class on `<aside>` for off-canvas transform; must remain always-mounted (conditional unmounting evicts React Query caches for DocumentList, TagBrowser — causes flicker and unnecessary refetches)
+4. `HamburgerButton` — new, small; calls `setSidebarOpen(true)`; hidden on desktop via CSS media query
+5. `QuickOpenPalette.tsx` — new component; fuzzy-filters `useDocuments()` cache client-side for instant document results; reuses `useSearch` hook for bullet content search (same hook SearchModal uses); wired via `quickOpenOpen: boolean` in `uiStore` (not persisted — transient)
+6. `FocusToolbar.tsx` — highest-priority target for dark mode migration; densest concentration of hardcoded hex inline styles (`background: '#fff'`, `color: '#444'`, `color: '#e55'`, `borderTop: '1px solid #e5e7eb'`) that will silently fail in dark mode
+7. `useGlobalKeyboard` in `useUndo.ts` — gains `Ctrl+K` handler; all global shortcuts must be registered here, never in individual components
 
-**Major components:**
-1. Auth layer (Express + passport) — issues JWT pairs, protects all API routes, verifies Google OAuth codes server-side
-2. Bullet API + Service layer — CRUD, move/indent/outdent with semantic endpoints, undo event recording in every mutation transaction
-3. Tree State (client, `useReducer`) — normalized `{ [id]: BulletNode }` map; optimistic updates with rollback; single document boundary
-4. BulletNode (recursive React component) — contenteditable per bullet, keyboard handler, chip parsing, drag handle, collapse toggle
-5. Undo system (server) — `undo_events` + `undo_cursors` tables; pruned to 50 per user; schema-versioned payloads
-6. Attachment service — multer disk storage to `/data/attachments/{user_id}/`, metadata in `attachments` table, ownership-verified download
-7. Full-text search — PostgreSQL GIN index on stored `tsvector` generated column; query via `GET /api/search?q=`
+**Key patterns to follow:**
+- CSS custom properties for theming — not React context, not ThemeProvider, not styled-components
+- Off-canvas sidebar via CSS `transform: translateX(-100%)` — sidebar always in DOM, never conditionally unmounted
+- Client-side fuzzy filter for quick-open documents (`useDocuments()` cache is warm from session start); server `useSearch` for bullet content (debounced, ≥2 chars)
+- All global keyboard shortcuts registered in one centralized `useGlobalKeyboard` handler in `useUndo.ts`
 
 ### Critical Pitfalls
 
-All seven pitfalls identified in research are consequential. The top five are:
+1. **FocusToolbar invisible in dark mode (inline styles override CSS variables)** — CSS custom properties cannot override inline `style` attribute values (inline styles have highest cascade specificity). Run a complete migration pass — convert every hardcoded hex color literal in TSX files to CSS class + `var(--color-*)` references — before wiring the `@media (prefers-color-scheme: dark)` override. Grep for `style=\{\{.*#` across all TSX files; result must be zero before dark mode is wired.
 
-1. **Fractional indexing collation trap** — String-key fractional indexing (the npm library pattern) breaks under PostgreSQL's glibc collation, which compares `aZ > aa` case-insensitively. This hit PayloadCMS in production (May 2025). Prevention: use `FLOAT8` midpoint positioning from schema creation, not string keys. This decision cannot be changed after data exists.
+2. **dnd-kit PointerSensor intercepts horizontal swipe gestures** — `activationConstraint: { distance: 5 }` in `BulletTree.tsx` fires after any 5px movement, including fast horizontal swipes. Change to `{ delay: 250, tolerance: 5 }` — a 250ms press naturally distinguishes vertical drag-to-reorder from fast horizontal swipe-to-complete/delete. Test on a physical iPhone before closing this pitfall; Chrome DevTools emulation does not reproduce the conflict.
 
-2. **Undo subtree corruption on delete** — Undoing a bullet delete restores the parent but not the cascade-deleted children unless the undo payload explicitly records all descendant IDs. Prevention: use soft delete (`deleted_at`) throughout; the inverse of "delete subtree" is "set `deleted_at = NULL` on bullet X" — PostgreSQL cascades handle descendants. The undo event stores a compact `{ id, subtree_ids[] }` payload, not full snapshots.
+3. **Dark mode FOUC — white flash before React mounts** — React effects fire after the first browser paint; any theme state initialized in `useEffect` produces a visible white flash on hard refresh for users with dark OS preference. Prevention: add a synchronous inline `<script>` block in `client/index.html` before the `<script type="module">` that loads the React bundle; it reads `window.matchMedia('(prefers-color-scheme: dark)').matches` and calls `document.documentElement.setAttribute('data-theme', 'dark')` synchronously before any paint.
 
-3. **Drag parent-into-child cycle** — Dropping a bullet onto its own descendant creates a cycle in the adjacency list. Any recursive CTE then loops infinitely. Prevention: server-side ancestry check on every move endpoint (rejects if target parent_id is in the dragged node's descendant set); client-side marks descendant drop zones invalid at drag start.
+4. **iOS Safari 100dvh clips sidebar bottom** — `height: 100vh` on the sidebar overlay or full-height layout elements is calculated as total viewport including the collapsed address bar on iOS Safari. Use `height: 100dvh` (dynamic viewport height, Safari 15.4+) with `height: 100vh` as a fallback. Add `padding-bottom: env(safe-area-inset-bottom)` to the sidebar scroll container for home-indicator clearance on iPhone X+. Test on a physical device — desktop testing shows no problem.
 
-4. **iOS virtual keyboard breaks layout and focus** — iOS Safari refuses programmatic `.focus()` calls not originating from a direct user interaction event, so Enter-to-create-new-bullet fails to open the keyboard on iOS. `position: fixed` toolbars appear behind the keyboard. Prevention: keep new-bullet focus in the same synchronous event handler as the Enter keypress; use `visualViewport.addEventListener('resize')` for layout adjustment; no bottom fixed elements.
+5. **PWA service worker caches `/api/*` responses — stale data after deploys** — default Workbox configuration caches API responses with `cache-first` or `stale-while-revalidate`. After any server restart or deploy, installed PWA users see old bullet data. Configure `runtimeCaching` with `NetworkOnly` for all `/api/*` routes, or skip the service worker entirely (Chrome 135+ allows home screen installation without one — HTTPS + manifest is sufficient).
 
-5. **Undo history schema corruption after deploy** — Payload format changes in `undo_events` JSONB break old records silently. Prevention: add `schema_version INTEGER` column to `undo_events` at table creation; handlers skip records with unknown versions; background cron prunes to 50 per user.
+6. **iOS Safari auto-zoom on `contenteditable` elements with font-size < 16px** — Safari zooms the viewport on focus for any `input` or `contenteditable` with computed font-size below 16px. The new Inter font applied at a design size below 16px will trigger this on every bullet tap. Add `font-size: max(16px, 1em)` globally to all `[contenteditable]` and `<input>` in `index.css`. Cannot be reproduced in DevTools; requires a physical iPhone.
 
----
+7. **Ctrl+K keyboard shortcut must live in the centralized handler** — adding a separate `window.addEventListener('keydown', ...)` inside the palette component creates a second global listener with unpredictable firing order. On Firefox, `Ctrl+K` is a native browser shortcut (focuses address bar); the app handler must call `e.preventDefault()` reliably. Add `Ctrl+K` directly as a new branch in `useGlobalKeyboard` in `useUndo.ts`, following the same pattern as the existing `Ctrl+F`, `Ctrl+E`, `Ctrl+Z` handlers.
 
 ## Implications for Roadmap
 
-Based on combined research, the dependency graph forces a specific ordering. The undo system must wrap every mutation, so it must be designed before any feature that mutates data ships. The tree model must be schema-correct from day one (float ordering, soft delete, GIN index). Mobile UX is a layered concern that sits on top of a working desktop editor.
+Based on the dependency graph documented in ARCHITECTURE.md and the feature prioritization in FEATURES.md, a 4-phase structure is recommended. This matches the build order validated by direct source inspection.
 
-### Phase 1: Foundation — Auth, Schema, and Document CRUD
+### Phase 1: Mobile Layout Foundation
+**Rationale:** Everything in v1.1 depends on CSS tokens existing and the sidebar being correctly responsive. Layout is the frame; colors, icons, and the palette all sit inside it. The dnd-kit swipe/drag conflict must be fixed here before swipe gesture polish begins in Phase 4 — it is a prerequisite, not an afterthought.
+**Delivers:** CSS token foundation in `index.css` (light values only — dark values added in Phase 2), responsive sidebar with hamburger open/close, backdrop overlay, off-canvas slide animation (250ms ease-out), sidebar auto-close on outside tap and Escape key, Ctrl/Cmd+E desktop toggle (already wired — just needs CSS), safe area insets, 100dvh fix, iOS font-zoom fix (`font-size: max(16px, 1em)` on `[contenteditable]`), defensive FocusToolbar clamp for iOS 26 visualViewport regression.
+**Addresses features:** Sidebar hidden on mobile, hamburger button, auto-close, explicit X button, safe area insets, touch targets ≥44px, Ctrl/Cmd+E toggle.
+**Avoids pitfalls:** dnd-kit sensor conflict (change activation constraint first in `BulletTree.tsx`), iOS 100dvh clip, iOS contenteditable auto-zoom, FocusToolbar stuck mid-screen on iOS 26 keyboard dismiss.
+**Research flag:** Standard patterns, no additional research needed. All integration points read directly from source with HIGH confidence.
 
-**Rationale:** Everything else requires auth and a stable DB schema. The schema cannot be refactored after data exists (position column type, soft-delete pattern, FTS generated column, undo table schema version). Auth must be end-to-end before any protected route can be meaningfully tested. This is the riskiest phase from a correctness standpoint.
+### Phase 2: Dark Mode
+**Rationale:** Dark mode is the largest surface-area change in v1.1 — it touches nearly every component file. It must happen as a single coherent pass; partial migration leaves the app broken in dark mode with some elements themed and others displaying hardcoded light colors. Sequenced after layout (Phase 1) to avoid re-converting colors in rearranged layout elements. The FOUC-prevention inline script must be the absolute first step within this phase.
+**Delivers:** Complete CSS custom property token system (`--color-*`) with `@media (prefers-color-scheme: dark)` override, FOUC-prevention synchronous inline script in `index.html`, full migration of all inline hex color literals to CSS `var()` references across all component files, WCAG AA contrast compliance verified, `color-scheme: light dark` on `<html>` so browser chrome (scrollbars, form inputs) also themes.
+**Uses:** CSS custom properties only — no new libraries.
+**Implements:** Token system that swipe backing layer colors (`--color-swipe-delete`, `--color-swipe-complete`) and palette backdrop/surface colors depend on.
+**Avoids pitfalls:** FocusToolbar invisible in dark mode (complete inline style migration as the first task of this phase), FOUC on hard refresh (inline script before any other dark mode wiring).
+**Research flag:** Standard patterns — CSS custom properties and `prefers-color-scheme` are universal and well-documented. Validate WCAG contrast ratios with a contrast checker tool (e.g., WebAIM Contrast Checker) during implementation for the specific dark palette values.
 
-**Delivers:** Working login (email/password + Google OAuth), document creation/rename/delete, flat document list, new-user Inbox creation. Backend API only; minimal frontend.
+### Phase 3: Icons, Fonts, and PWA Manifest
+**Rationale:** These three features are independent of each other once the token system (Phase 2) exists — icon colors can reference `var(--color-*)` rather than hardcoded hex, fonts are a CSS `font-family` change, and the manifest is static file addition. Grouped into one phase because they are all additive, low-risk, no-logic changes that can be validated in a single deployment. PWA manifest is the highest ratio of perceived user value to implementation effort in the entire milestone.
+**Delivers:** Lucide icon library replacing all Unicode characters and emoji in FocusToolbar (11 buttons), Sidebar, DocumentToolbar, and BulletNode; Inter variable font as UI font; JetBrains Mono variable font for inline code and tag chips; PWA manifest (`manifest.json` with 192px + 512px icons, `display: standalone`) enabling "Add to Home Screen" on iOS and Android.
+**Uses:** `lucide-react`, `@fontsource-variable/inter`, `@fontsource-variable/jetbrains-mono`, static `manifest.json` in `public/` (preferred over `vite-plugin-pwa` given offline mode is out of scope).
+**Avoids pitfalls:** PWA service worker caching API responses (use static manifest without service worker — Chrome 135+ allows installation without one), icon wildcard import bloating bundle (named imports only: `import { Trash2, Check } from 'lucide-react'`).
+**Research flag:** Standard patterns for icons and fonts. Verify PWA installability with Lighthouse PWA audit after deployment — confirm install criteria are met on both iOS Safari (manual Add to Home Screen) and Chrome Android (install prompt).
 
-**Addresses:** Auth, Document CRUD, Inbox onboarding (from FEATURES.md table stakes)
-
-**Avoids:**
-- Fractional indexing collation trap: lock in `FLOAT8` position from schema creation
-- Soft delete missing: add `deleted_at` to bullets table at creation
-- GIN index missing: add stored `search_vector` generated column + GIN index at migration time
-- Undo schema version: add `schema_version` column to `undo_events` at table creation
-
-**Research flag:** Standard patterns — JWT auth with passport and Drizzle migrations are well-documented. Skip `research-phase`.
-
----
-
-### Phase 2: Core Tree Editor — Bullet CRUD, Keyboard, Collapse
-
-**Rationale:** The core outliner loop (create, nest, collapse, navigate) must work end-to-end before undo is layered on top. Architecture research explicitly sequences this before undo because undo requires knowing the exact inverse of each operation — impossible to define until operations are stable.
-
-**Delivers:** Bullet create/update/delete, Tab/Shift+Tab indent/outdent, collapse/expand (server-persisted), zoom + breadcrumb, keyboard shortcuts (Enter, Backspace on empty, Ctrl+Up/Down move), and the basic tree rendering in React.
-
-**Uses:** contenteditable per bullet (not ProseMirror document), `useReducer` normalized state map, optimistic updates, `GET /api/documents/:id/bullets` bulk load with client-side tree reconstruction.
-
-**Implements:** BulletNode, BulletContent (contenteditable + keyboard handler), BulletTree (recursive), DocSidebar, Breadcrumbs
-
-**Avoids:**
-- iOS keyboard focus: keep new-bullet focus synchronous in Enter handler; test on real iOS device before phase is considered done
-- Integer position: float midpoint everywhere; `SELECT ... FOR UPDATE` on sibling rows inside move transaction
-- localStorage for collapse state: `is_collapsed` in DB, debounced PATCH
-
-**Research flag:** Tree rendering patterns are well-documented. The keyboard handler (Enter/Tab/Backspace edge cases) has no single canonical reference — consider a targeted `research-phase` for keyboard event edge cases on mobile Safari.
-
----
-
-### Phase 3: Undo/Redo System
-
-**Rationale:** FEATURES.md flags undo as "must be designed before bulk operations or it becomes very hard to retrofit." ARCHITECTURE.md sequences undo after mutation endpoints are stable for the same reason. This phase wraps all Phase 2 mutations with undo event recording in a single transaction per operation.
-
-**Delivers:** Server-persisted 50-step undo/redo, Ctrl+Z/Ctrl+Y keyboard bindings, undo status indicator, undo covering all Phase 2 operations (create, update, delete, move, indent, outdent, collapse).
-
-**Implements:** `undo_events` + `undo_cursors` tables (already created in Phase 1 with `schema_version`), `undoService.record()` wrapper called by every mutation, `POST /api/undo`, `POST /api/redo`, `GET /api/undo/status`
-
-**Avoids:**
-- Subtree undo corruption: soft-delete inverse covers entire subtree; undo payload stores `subtree_ids[]` for hard-delete recovery scenarios
-- Unbounded growth: cron job prunes to 50 per user after each undo write
-- Schema mismatch after deploy: `schema_version` checked before parsing; unknown versions skipped
-
-**Research flag:** Command-pattern undo is well-documented. The exact forward/inverse payload schema for each operation type is project-specific — no research needed, define it internally.
-
----
-
-### Phase 4: Drag-and-Drop Reorder
-
-**Rationale:** Drag-and-drop depends on stable tree state (Phase 2) and must be undoable (Phase 3). Sequencing it after undo means drag-and-drop's undo event can be wired into the existing system rather than requiring the undo system to be retrofitted around it.
-
-**Delivers:** Desktop drag-and-drop reorder within and across nesting levels, insertion line indicator (not full ghost), drag undo.
-
-**Uses:** @dnd-kit/core + @dnd-kit/sortable, `POST /api/bullets/:id/move` with semantic `after_id` rather than raw position float
-
-**Avoids:**
-- Parent-into-child cycle: client marks descendant drop zones invalid at drag start; server rejects any move where target parent_id is in dragged node's descendant set
-- Race condition on position: `SELECT ... FOR UPDATE` on sibling rows inside move transaction; position computed inside DB transaction
-
-**Research flag:** @dnd-kit tree patterns exist in community docs but nested tree drag-and-drop (cross-level) is complex. Consider a targeted `research-phase` for @dnd-kit tree sortable patterns before implementation.
-
----
-
-### Phase 5: Markdown, Search, and Syntax Chips
-
-**Rationale:** These three features share a dependency on stable bullet content (Phase 2) and benefit from being built together: the FTS index is already created in Phase 1 schema; chip parsing (#tag, @mention, !!date) informs the search filter schema; tag browser is a natural companion to chip rendering.
-
-**Delivers:** WYSIWYG inline markdown (bold, italic, strikethrough, code, links), full-text search with instant-as-you-type, #tag / @mention / !!date chip rendering, tag browser pane, bookmarks.
-
-**Uses:** PostgreSQL GIN index on `search_vector` (already in schema), regex-based chip parsing in `BulletContent` (does not modify stored text), `GET /api/search?q=` endpoint
-
-**Avoids:**
-- tsvector at query time: use stored generated column — `EXPLAIN ANALYZE` must show GIN index hit, not Seq Scan
-- N+1 for tag counts: single JOIN query for tag browser, not one query per tag
-- Inline markdown cursor jump: only re-render markdown decorations outside cursor paragraph
-
-**Research flag:** Standard patterns — PostgreSQL FTS and TipTap/contenteditable formatting are well-documented. Skip `research-phase`.
-
----
-
-### Phase 6: Attachments and Comments
-
-**Rationale:** Both depend on stable bullet CRUD (Phase 2) and undo (Phase 3). File uploads are independent of tree logic and can be parallelized within this phase. Comments are the simplest feature in scope.
-
-**Delivers:** File attachments per bullet (upload, download, delete), attachment undo, flat comments per bullet (add, delete), comment count badge on BulletNode.
-
-**Uses:** multer 1.4.x disk storage to `/data/attachments/{user_id}/`, `attachments` table, `comments` table, `GET /api/bullets/:id/comments`, `POST /api/attachments`
-
-**Avoids:**
-- Docker volume permissions: `RUN chown -R node:node /data/attachments` in Dockerfile; test fresh-deploy → upload → restart → re-download cycle
-- MIME type validation: check both `Content-Type` header and magic bytes; serve via `Content-Disposition: attachment` to prevent inline execution
-- File size: enforce 100MB limit in Multer config before file reaches disk
-
-**Research flag:** Standard patterns — multer + Docker volume is well-documented. Skip `research-phase`.
-
----
-
-### Phase 7: Mobile Touch Gestures
-
-**Rationale:** Mobile UX is a layered concern on top of the working desktop editor. Sequencing it last avoids iOS-specific constraints bleeding into the core keyboard handling decisions made in Phase 2. This phase also benefits from having undo (Phase 3) available to power the "swipe-delete undo" toast.
-
-**Delivers:** Swipe-right (complete), swipe-left (delete with undo toast), long-press context menu (indent/outdent/move/bookmark), responsive layout with visualViewport-aware keyboard compensation.
-
-**Avoids:**
-- iOS touch gesture conflicts with native scroll: `touch-action: pan-y` on bullet rows; minimum 60px swipe threshold; 30-degree angle tolerance
-- Long-press vs text selection conflict: timer-based detection that cancels if text selection starts
-- Fixed bottom toolbar behind keyboard: `visualViewport` offset compensation; no `position: fixed` at bottom
-
-**Research flag:** iOS Safari touch behavior is non-standard and evolves. Targeted `research-phase` recommended to check current state of `visualViewport` API and `touch-action` on iOS 17/18 before implementation.
-
----
-
-### Phase 8: Polish and Export
-
-**Rationale:** Polish features (export, PWA manifest, keyboard shortcut completeness, onboarding) are independent of all other phases and best deferred until the core product loop is validated.
-
-**Delivers:** Export document as Markdown, complete keyboard shortcut set, Ctrl+P / Ctrl+O quick-open, PWA manifest + install prompt, list density options.
-
-**Research flag:** Standard patterns. Skip `research-phase`.
-
----
+### Phase 4: Swipe Gesture Polish and Quick-Open Palette
+**Rationale:** Swipe gesture polish is additive CSS on top of already-working gesture logic (`gestures.ts` threshold callbacks already fire at 40% swipe). The quick-open palette is the most new-logic item in the milestone but reuses existing data hooks. Both are sequenced last because they benefit from stable layout (Phase 1 — swipe gestures should not fire when sidebar overlay is open), dark mode tokens for backing layer colors and palette surface (Phase 2), and Lucide icons for swipe action icons (Phase 3 — trash and checkmark icons in the backing layer).
+**Delivers:** Swipe color/icon reveal (red backing for delete-left, green for complete-right), icon fades in after 25–30% threshold, scale-up at commit zone (~50%), row animates out on commit, snap-back with ease-out on cancelled swipe, optional Android haptic feedback via `navigator.vibrate()` (gracefully skipped on iOS Safari which does not support Vibration API). Quick-open palette triggered by Ctrl+K — instant fuzzy document title matching from warm `useDocuments()` cache, bullet content search via existing `/api/search` endpoint (debounced 150ms, ≥2 chars), bookmark matching, keyboard navigation (arrow keys + Enter + Escape), recent documents shown on empty query (last 5–10 opened).
+**Uses:** `cmdk` for palette UI rendering and built-in fuzzy search (command-score); existing `useDocuments()`, `useSearch()`, `useBookmarks()` hooks — no new API endpoints.
+**Implements:** `QuickOpenPalette.tsx` (new component), `quickOpenOpen: boolean` state in `uiStore`, `Ctrl+K` handler added to `useGlobalKeyboard` in `useUndo.ts`.
+**Avoids pitfalls:** Ctrl+K registered in centralized `useGlobalKeyboard` (never inside the palette component or a separate `window.addEventListener`), palette kept separate from `SearchModal` (different UX: instant client-side doc results vs debounced full-text bullet search), `isContentEditable` guard bypassed for `Ctrl+K` so palette opens even when a bullet is being edited.
+**Research flag:** Standard patterns throughout. cmdk API is well-documented. No additional research phase needed.
 
 ### Phase Ordering Rationale
 
-The ordering derives directly from the dependency graph in FEATURES.md and the build order in ARCHITECTURE.md:
-
-- **Schema first:** Position column type, soft delete, FTS index, and undo schema version cannot be changed after data exists. All must be set in Phase 1 migrations.
-- **Undo before complexity:** Undo (Phase 3) must come before drag-and-drop (Phase 4), bulk delete (Phase 5), and attachments (Phase 6) — each of those operations needs an undo record, and the system must be designed before the operations are finalized.
-- **Desktop before mobile:** The mobile gesture layer (Phase 7) sits on top of a stable desktop interaction model. Building mobile gestures before the keyboard handler is finalized would cause repeated rework.
-- **Avoiding the three traps:** The sequencing prevents the three most expensive retrofits identified in research: adding undo after features exist, changing the position column type after data exists, and adding ancestry validation to drag-and-drop after the move endpoint is already in use.
+- CSS tokens must precede all components — components referencing `var(--color-*)` before tokens exist in `index.css` produce `transparent` values silently, not errors.
+- Layout must precede swipe gesture polish — swipe gestures should not fire when the sidebar overlay is open, and the layout changes in Phase 1 establish this constraint correctly.
+- Dark mode is sequenced before icons and PWA — icon SVG colors must reference `var(--color-*)` tokens (available after Phase 2), and the FOUC-prevention script in `index.html` is cleaner to add before the manifest `<link>` tag is present.
+- Icons, fonts, and PWA are parallel-capable once the token system exists; grouping them avoids three separate deployments for low-risk additive changes.
+- The quick-open palette is last — it is the only feature with meaningful new component logic and benefits from all prior phases being stable and validated.
 
 ### Research Flags
 
-Phases needing deeper research during planning:
-- **Phase 2 (Core Tree Editor):** Keyboard event edge cases on mobile Safari (Enter → new bullet focus; Tab in contenteditable). No single canonical reference. Targeted research recommended before sprint planning.
-- **Phase 4 (Drag-and-Drop):** @dnd-kit nested tree drag patterns for cross-level moves. Community docs exist but are sparse for this specific use case. Targeted research recommended.
-- **Phase 7 (Mobile Gestures):** iOS Safari `visualViewport` API behavior and `touch-action` support on iOS 17/18. Behavior evolves between OS versions; verify current state before implementation.
+Phases likely needing deeper research during planning:
+- None. All four phases have well-documented implementation paths. Architecture research was conducted against actual source files with HIGH confidence on every integration point.
 
-Phases with standard, well-documented patterns (skip `research-phase`):
-- **Phase 1 (Foundation):** JWT auth + passport + Drizzle migrations are canonical patterns with official documentation.
-- **Phase 3 (Undo):** Command-pattern undo with forward/inverse op pairs is well-documented.
-- **Phase 5 (Search/Markdown):** PostgreSQL FTS with stored tsvector + GIN index is covered by official PostgreSQL docs and multiple high-quality tutorials.
-- **Phase 6 (Attachments/Comments):** Multer + Docker volume pattern is straightforward; official multer docs are sufficient.
-- **Phase 8 (Polish/Export):** All standard web patterns; no novel integration.
-
----
+Phases with standard patterns (skip research-phase during roadmap execution):
+- **Phase 1 (Mobile Layout):** CSS off-canvas sidebar transform and dnd-kit sensor configuration are documented patterns. All integration points verified in source.
+- **Phase 2 (Dark Mode):** CSS custom properties + `prefers-color-scheme` is universal; WCAG contrast ratios are normative standard. The only implementation task is mechanical find-and-replace of inline hex values.
+- **Phase 3 (Icons/Fonts/PWA):** npm package installations + static file additions. Lighthouse PWA audit provides automated verification of install criteria.
+- **Phase 4 (Swipe/Palette):** cmdk API is simple and well-documented. Palette reuses existing `useDocuments()` and `useSearch()` hooks with no new endpoints.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | MEDIUM-HIGH | Core technologies verified via official docs and npm. Drizzle 1.0-beta status is evolving — stay on 0.45.x stable. Multer 2.0.x CVE fix noted; confirm before using. |
-| Features | HIGH | Cross-referenced against Dynalist/Workflowy official docs, help centers, and user reviews. Dynalist being in maintenance mode (confirmed via forum) strengthens the case for a self-hosted alternative. |
-| Architecture | HIGH | Tree model, undo pattern, and file storage approach are verified against multiple authoritative sources including PostgreSQL official docs. API shape and frontend hierarchy are MEDIUM (project-specific, no single reference). |
-| Pitfalls | HIGH (DB/tree) / MEDIUM (mobile UX) | Fractional indexing collation trap is documented by a real production incident (PayloadCMS May 2025). Mobile Safari keyboard behavior sourced from ProseMirror/CodeMirror issue threads — behavior may shift across OS versions. |
+| Stack | HIGH | All 5 new package versions verified against npm registry 2026-03-10; Vite 7 compatibility for `vite-plugin-pwa` confirmed in release notes; React 19 compatibility confirmed for all packages |
+| Features | HIGH | Feature list cross-validated against Dynalist, Workflowy, Notion, and Obsidian behavior; WCAG 2.1 contrast ratios are normative standard (1.4.3, 1.4.11, 2.5.5); competitor feature matrix documented |
+| Architecture | HIGH | Integration points read directly from actual source files: `AppPage.tsx`, `Sidebar.tsx`, `uiStore.ts`, `useUndo.ts`, `gestures.ts`, `BulletTree.tsx`, `index.css`, `FocusToolbar.tsx`, `SearchModal.tsx` |
+| Pitfalls | HIGH | All pitfalls traced to specific files and line numbers in the v1.0 codebase; iOS-specific bugs sourced from Apple Developer Forums (thread #800125) and WebKit bug tracker (bug #237851); dnd-kit conflict sourced from GitHub issues #435 and #791 |
 
-**Overall confidence:** MEDIUM-HIGH
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Drizzle 1.0-beta:** Drizzle ORM 1.0-beta exists as of research date. Stay on 0.45.x stable for this project. Revisit when 1.0 reaches stable release.
-- **Multer version:** Research recommends 1.4.x stable but also notes 2.0.2 fixes two high-severity CVEs. Confirm the CVE scope and whether they apply to this use case before locking the version.
-- **contenteditable vs TipTap per bullet:** ARCHITECTURE.md recommends plain contenteditable. STACK.md recommends TipTap per bullet instance. Both sources agree that each bullet is its own editor instance (not a single document). The choice between raw contenteditable and TipTap should be resolved in Phase 2 planning — TipTap adds formatting extension support with less keyboard-handler boilerplate; raw contenteditable avoids ProseMirror abstraction overhead.
-- **iOS Safari keyboard focus:** This is the highest-risk mobile interaction. Testing on a real iOS device is explicitly required before Phase 2 is considered done. Simulator behavior does not match device behavior for this specific case.
-- **Registration gating:** With open registration and file attachments, disk exhaustion is a realistic risk for a self-hosted instance with exposed registration. Consider an invite-code or admin-approved registration model before public deployment.
-
----
+- **iOS 26 visualViewport regression (WebKit bug #237851):** The defensive clamp in `computeKeyboardOffset` is documented as the mitigation (return 0 if computed offset exceeds 60% of `window.innerHeight`). Full validation requires a physical device running iOS 26 stable when it ships. Add "FocusToolbar stays at screen bottom after keyboard dismiss on iOS 26" as an acceptance criterion for Phase 1, flagged as requiring future validation.
+- **PWA install prompt on Android vs iOS:** iOS Safari does not fire the standard `beforeinstallprompt` event and uses its own "Add to Home Screen" UX flow. A service worker is not required for this flow. Chrome Android's `beforeinstallprompt` (richer install dialog) does require a service worker. If the Android install prompt (not just manual Add to Home Screen) is a hard requirement, a minimal service worker with `NetworkOnly` for `/api/*` is needed. Resolution: the static manifest-only approach (no service worker) is recommended for v1.1; document the Android limitation in release notes.
+- **`motion` animation library decision:** Research recommends attempting CSS `transition: transform 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94)` first for swipe snap-back. The decision to add `motion` (+35KB gzipped) should be made during Phase 4 implementation after testing on a physical iOS device — not during planning.
+- **Manual dark mode override:** System-preference-only is correct for v1.1 scope per PROJECT.md. The token system is designed to accept a `data-theme="dark"` attribute on `<html>` set by a `uiStore` field — adding the toggle in v1.2 is a one-line state addition plus a settings UI button. Not a gap in architecture; just a deferred feature.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [TipTap 3.0 stable announcement](https://tiptap.dev/blog/release-notes/tiptap-3-0-is-stable) — TipTap 3.20.x current stable
-- [Express 5 stable announcement](https://expressjs.com/2024/10/15/v5-release.html) — Express 5.2.x current
-- [React versions page](https://react.dev/versions) — React 19.2 confirmed current
-- [PostgreSQL WITH Queries (CTE) — Official Docs](https://www.postgresql.org/docs/current/queries-with.html) — recursive CTE patterns
-- [PostgreSQL ltree docs](https://www.postgresql.org/docs/18/ltree.html) — GIST index size limits confirming adjacency list preference
-- [PayloadCMS Issue #12397](https://github.com/payloadcms/payload/issues/12397) — fractional indexing collation bug production incident (May 2025)
-- [The PostgreSQL Collation Trap That Breaks Fractional Indexing — Jökull Sólberg](https://www.solberg.is/fractional-indexing-gotcha) — January 2026
-- [Optimizing Full Text Search with Postgres tsvector — Thoughtbot](https://thoughtbot.com/blog/optimizing-full-text-search-with-postgres-tsvector-columns-and-triggers) — GIN index pattern
-- [Cycle Detection for Recursive Search — SQLforDevs](https://sqlfordevs.com/cycle-detection-recursive-query) — drag cycle prevention
-- [Handling Permissions with Docker Volumes — Deni Bertovic](https://denibertovic.com/posts/handling-permissions-with-docker-volumes/) — volume ownership pattern
-- [VirtualKeyboard API — MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/API/VirtualKeyboard_API) — iOS keyboard handling
-- [TanStack Query v5 optimistic updates docs](https://tanstack.com/query/v5/docs/react/guides/optimistic-updates) — mutation/optimistic pattern
-- [Dynalist Features Full List](https://dynalist.io/features/full) — table stakes verification
-- [Dynalist Keyboard Shortcut Reference](https://help.dynalist.io/article/91-keyboard-shortcut-reference) — shortcut set
-- [Dynalist Forum: Product Discontinued Thread](https://talk.dynalist.io/t/product-discontinued/8761) — maintenance mode confirmation
+- Direct source inspection (2026-03-10): `client/src/pages/AppPage.tsx`, `Sidebar.tsx`, `store/uiStore.ts`, `hooks/useUndo.ts`, `gestures.ts`, `BulletTree.tsx`, `index.css`, `FocusToolbar.tsx`, `SearchModal.tsx`, `package.json`
+- https://www.npmjs.com/package/lucide-react — version 0.577.0 verified 2026-03-10
+- https://www.npmjs.com/package/vite-plugin-pwa — version 1.2.0; Vite 7 support from v1.0.1 confirmed in release notes
+- https://www.npmjs.com/package/cmdk — version 1.1.1 verified 2026-03-10; kbar last published 2022
+- https://www.npmjs.com/package/@fontsource-variable/inter — version 5.2.8 verified 2026-03-10
+- https://www.npmjs.com/package/@fontsource-variable/jetbrains-mono — version 5.2.8 verified 2026-03-10
+- https://bugs.webkit.org/show_bug.cgi?id=237851 — iOS 26 visualViewport regression documented
+- https://developer.apple.com/forums/thread/800125 — Apple Developer Forums iOS 26 keyboard regression
+- https://web.dev/articles/install-criteria — PWA install criteria; Chrome 135+ no service worker required
+- WCAG 2.1 SC 1.4.3, 1.4.11, 2.5.5 — contrast and touch target normative requirements
+- dnd-kit GitHub issues #435, #791 — PointerSensor mobile touch conflict documented
 
 ### Secondary (MEDIUM confidence)
-- [Drizzle ORM npm](https://www.npmjs.com/package/drizzle-orm) — 0.45.x current; 1.0-beta noted
-- [Better Stack: Drizzle vs Prisma](https://betterstack.com/community/guides/scaling-nodejs/drizzle-vs-prisma/) — Drizzle recommendation for self-hosted Express
-- [Ackee blog: Hierarchical models in PostgreSQL](https://www.ackee.agency/blog/hierarchical-models-in-postgresql) — adjacency list analysis
-- [Steve Ruiz: Fractional Indexing](https://www.steveruiz.me/posts/reordering-fractional-indices) — fractional indexing technique
-- [Liveblocks: Rich text editor framework 2025](https://liveblocks.io/blog/which-rich-text-editor-framework-should-you-choose-in-2025) — TipTap vs ProseMirror vs Slate
-- [Undo/redo state with event sourcing — Eric Jinks (2025)](https://ericjinks.com/blog/2025/event-sourcing/) — command-based undo pattern
-- [Building Complex Nested Drag and Drop UIs — Kustomer Engineering](https://medium.com/kustomerengineering/building-complex-nested-drag-and-drop-user-interfaces-with-react-dnd-87ae5b72c803) — nested DnD patterns
-- [PostgreSQL: Speeding up recursive queries — CYBERTEC](https://www.cybertec-postgresql.com/en/postgresql-speeding-up-recursive-queries-and-hierarchic-data/) — CTE performance
-- [ProseMirror iOS mobile keyboard issues — GitHub Issues](https://github.com/ProseMirror/prosemirror/issues/627) — iOS Safari keyboard behavior
-- [Mobile Gesture Best Practices — Material Design 3](https://m3.material.io/foundations/interaction/gestures) — swipe gesture UX
-- [Workflowy vs Dynalist Comparison — Slant](https://www.slant.co/versus/4412/15546/~workflowy_vs_dynalist) — feature comparison
-- npmtrends cross-reference — passport, jsonwebtoken, bcryptjs version confirmation
+- https://lucide.dev/guide/packages/lucide-react — tree-shaking via named imports confirmed
+- https://fontalternatives.com/pairings/inter-and-jetbrains-mono/ — Inter + JetBrains Mono pairing score 88/100; x-height harmony analysis
+- https://css-tricks.com/16px-or-larger-text-prevents-ios-form-zoom/ — iOS contenteditable zoom threshold documented
+- https://www.joshwcomeau.com/react/dark-mode/ — dark mode FOUC prevention via inline script
+- https://notanumber.in/blog/fixing-react-dark-mode-flickering — React SPA dark mode FOUC solution
+- Competitor analysis: Dynalist, Workflowy, Notion, Obsidian behavior observed for dark mode, hamburger sidebar, and Ctrl+K palette patterns
+
+### Tertiary (LOW confidence)
+- `motion` bundle size estimate (~35KB gzipped) — from library documentation; not independently measured for this specific Vite 7 build configuration
+- microfuzz (https://github.com/Nozbe/microfuzz) — lightweight alternative to Fuse.js for client-side fuzzy matching; viable but cmdk's built-in command-score is sufficient and reduces dependencies
 
 ---
-
-*Research completed: 2026-03-09*
+*Research completed: 2026-03-10*
 *Ready for roadmap: yes*

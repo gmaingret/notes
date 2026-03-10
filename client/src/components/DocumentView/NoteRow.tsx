@@ -5,9 +5,10 @@ type Props = {
   bulletId: string;
   initialNote: string | null;
   focusTrigger?: number;
+  onHide?: () => void;
 };
 
-export function NoteRow({ bulletId, initialNote, focusTrigger = 0 }: Props) {
+export function NoteRow({ bulletId, initialNote, focusTrigger = 0, onHide }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const patchNote = usePatchNote();
   // Keep a stable ref to the current initialNote for Escape revert
@@ -28,10 +29,12 @@ export function NoteRow({ bulletId, initialNote, focusTrigger = 0 }: Props) {
 
   function handleBlur() {
     if (!ref.current) return;
-    const current = ref.current.textContent ?? '';
-    const original = initialNoteRef.current ?? '';
-    if (current === original) return;
-    patchNote.mutate({ id: bulletId, note: current || null });
+    const current = (ref.current.textContent ?? '').trim();
+    const original = (initialNoteRef.current ?? '').trim();
+    if (current !== original) {
+      patchNote.mutate({ id: bulletId, note: current || null });
+    }
+    if (!current) onHide?.();
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {

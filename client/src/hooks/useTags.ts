@@ -8,6 +8,7 @@ export function useTagCounts() {
   return useQuery<TagCount[]>({
     queryKey: ['tags'],
     queryFn: () => apiClient.get<TagCount[]>('/api/tags'),
+    staleTime: 0,
   });
 }
 
@@ -16,5 +17,6 @@ export function useTagBullets(chipType: string, value: string, enabled: boolean)
     queryKey: ['tag-bullets', chipType, value],
     queryFn: () => apiClient.get<TagBulletRow[]>(`/api/tags/${chipType}/${value}/bullets`),
     enabled,
+    staleTime: 0,
   });
 }

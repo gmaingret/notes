@@ -40,7 +40,12 @@ Full details: [`.planning/milestones/v1.0-ROADMAP.md`](milestones/v1.0-ROADMAP.m
   3. Tapping outside the open sidebar or the X button closes the sidebar
   4. All buttons and interactive elements are tappable without precision — minimum 44×44px touch targets
   5. The app fills the visible browser viewport correctly on mobile (no content clipped by address bar or home indicator)
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 05-00-PLAN.md — Test scaffold (mobileLayout.test.tsx, RED state)
+- [ ] 05-01-PLAN.md — Viewport fix, sidebar off-canvas transform, X button, Ctrl+E
+- [ ] 05-02-PLAN.md — Hamburger button, sticky header, dnd-kit TouchSensor
+- [ ] 05-03-PLAN.md — Touch target audit + human verification checkpoint
 
 ### Phase 6: Dark Mode
 **Goal**: Users with a dark OS preference see a fully themed dark interface with no white flash on load and no unthemed elements
@@ -84,7 +89,7 @@ Full details: [`.planning/milestones/v1.0-ROADMAP.md`](milestones/v1.0-ROADMAP.m
 | 2. Core Outliner | v1.0 | 8/8 | Complete | 2026-03-09 |
 | 3. Rich Content | v1.0 | 9/9 | Complete | 2026-03-09 |
 | 4. Attachments, Comments, and Mobile | v1.0 | 9/9 | Complete | 2026-03-10 |
-| 5. Mobile Layout Foundation | v1.1 | 0/? | Not started | - |
+| 5. Mobile Layout Foundation | v1.1 | 0/4 | Not started | - |
 | 6. Dark Mode | v1.1 | 0/? | Not started | - |
 | 7. Icons, Fonts, and PWA | v1.1 | 0/? | Not started | - |
 | 8. Swipe Polish and Quick-Open Palette | v1.1 | 0/? | Not started | - |

@@ -89,7 +89,7 @@ export function DocumentRow({ document, isActive }: Props) {
             border: '1px solid var(--color-focus-ring)',
             borderRadius: 3,
             padding: '0.125rem 0.25rem',
-            fontSize: '0.875rem',
+            fontSize: '1rem',
             outline: 'none',
           }}
           autoFocus
@@ -98,7 +98,7 @@ export function DocumentRow({ document, isActive }: Props) {
       ) : (
         <span style={{
           flex: 1,
-          fontSize: '0.875rem',
+          fontSize: '1rem',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -112,7 +112,7 @@ export function DocumentRow({ document, isActive }: Props) {
         <button className="doc-row-btn" style={{
           padding: '0.125rem 0.25rem',
           borderRadius: 3,
-          fontSize: '0.875rem',
+          fontSize: '1rem',
           lineHeight: 1,
         }} title="Document options">
           ⋯
@@ -165,5 +165,5 @@ const menuItemBaseStyle = {
   border: 'none',
   cursor: 'pointer',
   textAlign: 'left' as const,
-  fontSize: '0.875rem',
+  fontSize: '1rem',
 } as const;

@@ -100,7 +100,7 @@ export function Breadcrumb({ documentTitle, zoomedBulletId, bulletMap }: Props) 
         onMouseEnter={e => Object.assign((e.target as HTMLElement).style, clickableHoverStyle)}
         onMouseLeave={e => Object.assign((e.target as HTMLElement).style, { textDecoration: 'none' })}
       >
-        {truncate(documentTitle)}
+        🏠
       </span>
 
       {/* Ancestors */}

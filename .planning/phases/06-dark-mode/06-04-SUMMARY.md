@@ -101,3 +101,9 @@ None - no external service configuration required.
 ---
 *Phase: 06-dark-mode*
 *Completed: 2026-03-10*
+
+## Self-Check: PASSED
+
+- client/index.html: FOUND
+- .planning/phases/06-dark-mode/06-04-SUMMARY.md: FOUND
+- Commit 1c67168 (feat - FOUC script): FOUND

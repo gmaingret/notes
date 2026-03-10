@@ -140,7 +140,21 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
     setSwipeX(dx);
   }
 
-  function handleRowPointerUp() {
+  function handleRowPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    // Touch captures pointer to row — detect dot tap here (handleDotPointerUp never fires on touch)
+    if (pointerDownPos.current && e.pointerType === 'touch') {
+      const dx = e.clientX - pointerDownPos.current.x;
+      const dy = e.clientY - pointerDownPos.current.y;
+      pointerDownPos.current = null;
+      if (Math.sqrt(dx * dx + dy * dy) < 5 && swipeX === 0) {
+        navigate(`#bullet/${bullet.id}`);
+        isPointerDown.current = false;
+        setIsSwiping(false);
+        setSwipeX(0);
+        return;
+      }
+    }
+
     if (!isPointerDown.current) return;
     isPointerDown.current = false;
     setIsSwiping(false);
@@ -202,7 +216,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
         display: 'flex',
         alignItems: 'flex-start',
         paddingLeft: depth * 24,
-        textDecoration: bullet.isComplete ? 'line-through' : 'none',
+        textDecoration: 'none',
         touchAction: 'pan-y',
         overflow: 'hidden',
         ...style,
@@ -252,42 +266,19 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
           position: 'relative',
         }}
       >
-        {/* Chevron column — always reserves space, only shows icon when children exist */}
-        {!isDragOverlay && (
-          <div
-            className="bullet-chevron"
-            style={{
-              width: 16,
-              flexShrink: 0,
-              cursor: hasChildren ? 'pointer' : 'default',
-              userSelect: 'none',
-              fontSize: '0.75rem',
-              lineHeight: '1.6rem',
-            }}
-            onClick={() => {
-              if (hasChildren) {
-                setCollapsed.mutate({
-                  id: bullet.id,
-                  documentId: bullet.documentId,
-                  isCollapsed: !bullet.isCollapsed,
-                });
-              }
-            }}
-          >
-            {hasChildren ? (bullet.isCollapsed ? '▶' : '▾') : null}
-          </div>
-        )}
-
         {/* Dot — drag handle + click to zoom */}
         {/* MOB-04: touch drag handled by dnd-kit PointerSensor; touch-action:none on dot enables drag without text selection */}
         <div
           className="bullet-dot bullet-timestamp"
           style={{
-            width: 16,
+            width: 28,
             flexShrink: 0,
             cursor: isDragOverlay ? 'grabbing' : 'grab',
             userSelect: 'none',
+            fontSize: '1.5rem',
             lineHeight: '1.6rem',
+            display: 'flex',
+            alignItems: 'center',
             touchAction: 'none',
           }}
           {...(isDragOverlay ? {} : attributes)}
@@ -307,7 +298,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
         )}
 
         {/* Content — not rendered in drag overlay (just the dot + text stub) */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, textDecoration: bullet.isComplete ? 'line-through' : 'none' }}>
           {!isDragOverlay && (
             <input
               ref={attachFileInputRef}
@@ -351,6 +342,35 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
             document.body,
           )}
         </div>
+
+        {/* Chevron — right side, always reserves space, only shows icon when children exist */}
+        {!isDragOverlay && (
+          <div
+            className="bullet-chevron"
+            style={{
+              width: 20,
+              flexShrink: 0,
+              cursor: hasChildren ? 'pointer' : 'default',
+              userSelect: 'none',
+              fontSize: '0.5rem',
+              lineHeight: '1.6rem',
+              textAlign: 'center',
+            }}
+            onClick={() => {
+              if (hasChildren) {
+                setCollapsed.mutate({
+                  id: bullet.id,
+                  documentId: bullet.documentId,
+                  isCollapsed: !bullet.isCollapsed,
+                });
+              }
+            }}
+          >
+            {hasChildren ? (
+              <span style={{ display: 'inline-block', transform: bullet.isCollapsed ? 'none' : 'rotate(90deg)', transition: 'transform 0.15s ease' }}>▶</span>
+            ) : null}
+          </div>
+        )}
       </div>
 
       {showUndoToast && <UndoToast onDismiss={() => setShowUndoToast(false)} />}

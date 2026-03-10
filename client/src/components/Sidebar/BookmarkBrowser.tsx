@@ -9,12 +9,12 @@ export function BookmarkBrowser() {
   const removeBookmark = useRemoveBookmark();
 
   if (isLoading) {
-    return <div style={{ padding: '1rem', fontSize: '0.85rem' }} className="bookmark-browser-loading">Loading…</div>;
+    return <div style={{ padding: '1rem', fontSize: '1rem' }} className="bookmark-browser-loading">Loading…</div>;
   }
 
   if (bookmarks.length === 0) {
     return (
-      <div style={{ padding: '1rem', fontSize: '0.85rem' }} className="bookmark-browser-empty">
+      <div style={{ padding: '1rem', fontSize: '1rem' }} className="bookmark-browser-empty">
         No bookmarks yet. Star a bullet to bookmark it.
       </div>
     );
@@ -39,7 +39,7 @@ export function BookmarkBrowser() {
             {b.documentTitle}
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
-            <span style={{ fontSize: '0.85rem', flex: 1, lineHeight: 1.4 }} className="bookmark-content">
+            <span style={{ fontSize: '1rem', flex: 1, lineHeight: 1.4 }} className="bookmark-content">
               {b.content || <em className="bookmark-empty-bullet">Empty bullet</em>}
             </span>
             <button
@@ -49,7 +49,7 @@ export function BookmarkBrowser() {
               }}
               className="bookmark-remove-btn"
               style={{
-                fontSize: '0.85rem',
+                fontSize: '1rem',
                 padding: '0 2px',
                 lineHeight: 1,
                 flexShrink: 0,

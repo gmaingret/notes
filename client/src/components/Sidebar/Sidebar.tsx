@@ -33,7 +33,7 @@ export function Sidebar({ activeDocId }: SidebarProps) {
       <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
         {/* Header — position:relative here so the dropdown anchors to the full header width */}
         <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--color-border-default)', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
-          <span style={{ flex: 1, fontWeight: 600, fontSize: '0.875rem' }}>Notes</span>
+          <span style={{ flex: 1, fontWeight: 600, fontSize: '1rem' }}>Notes</span>
 
           <div>
             <button onClick={() => setShowSidebarMenu(v => !v)} className="sidebar-icon-btn" style={iconButtonBase} title="More options">⋯</button>
@@ -117,5 +117,5 @@ const dropdownStyle = {
 const dropdownItemBase = {
   display: 'block', width: '100%', padding: '0.5rem 0.75rem',
   background: 'none', border: 'none', cursor: 'pointer',
-  textAlign: 'left' as const, fontSize: '0.875rem',
+  textAlign: 'left' as const, fontSize: '1rem',
 };

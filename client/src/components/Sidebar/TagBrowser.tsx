@@ -33,12 +33,12 @@ export function TagBrowser() {
           onChange={e => setFilterText(e.target.value)}
           style={{
             width: '100%', boxSizing: 'border-box', padding: '0.3rem 0.5rem',
-            border: '1px solid var(--color-border-default)', borderRadius: 4, fontSize: '0.8rem',
+            border: '1px solid var(--color-border-default)', borderRadius: 4, fontSize: '0.95rem',
             background: 'var(--color-bg-base)', outline: 'none',
           }}
         />
       </div>
-      {isLoading && <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.8rem' }} className="tag-browser-loading">Loading...</div>}
+      {isLoading && <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.95rem' }} className="tag-browser-loading">Loading...</div>}
       {groups.map(group => {
         const items = filtered.filter(t => t.chipType === group.type);
         if (items.length === 0) return null;
@@ -55,18 +55,18 @@ export function TagBrowser() {
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   width: '100%', padding: '0.3rem 0.75rem',
-                  textAlign: 'left', fontSize: '0.85rem',
+                  textAlign: 'left', fontSize: '1rem',
                 }}
               >
                 <span>{group.prefix}{tag.value}</span>
-                <span style={{ fontSize: '0.75rem' }} className="tag-count">{tag.count}</span>
+                <span style={{ fontSize: '0.875rem' }} className="tag-count">{tag.count}</span>
               </button>
             ))}
           </div>
         );
       })}
       {!isLoading && filtered.length === 0 && (
-        <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.8rem' }} className="tag-browser-empty">No tags found.</div>
+        <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.95rem' }} className="tag-browser-empty">No tags found.</div>
       )}
     </div>
   );

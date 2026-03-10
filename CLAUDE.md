@@ -33,6 +33,17 @@
 - When the phase is approved by the user, open a PR and merge the phase branch into `main`.
 
 ## Deployment Workflow
-1. Develop and commit code to the GitHub repository.
-2. On the application server (`192.168.1.50`), pull changes and rebuild/restart Docker containers.
-3. Verify the application is accessible at `https://notes.gregorymaingret.fr`.
+
+**STRICT ORDER — never push to git before the user confirms it works on the server.**
+
+1. **Deploy to server first via scp** — copy changed files directly to `/root/notes` on `192.168.1.50`, then rebuild Docker:
+   ```bash
+   scp -r <local-file-or-dir> root@192.168.1.50:/root/notes/<path>
+   ssh root@192.168.1.50 "cd /root/notes && docker compose up -d --build"
+   ```
+2. **Wait for user confirmation** — do not proceed until the user says it works at `https://notes.gregorymaingret.fr`.
+3. **Only after confirmation**: commit, push to the phase branch, create PR, wait for CI, merge to `main`.
+4. After merge, sync the server from `main` (no rebuild needed — Docker image already has the code from step 1):
+   ```bash
+   ssh root@192.168.1.50 "cd /root/notes && git checkout main && git pull origin main"
+   ```

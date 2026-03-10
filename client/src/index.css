@@ -1,3 +1,5 @@
+html { font-size: 20px; }
+
 /* === Color tokens === */
 :root {
   /* Backgrounds */
@@ -159,9 +161,9 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Ro
 
 /* === Desktop sidebar === */
 .sidebar {
-  width: 240px;
-  min-width: 240px;
-  max-width: 240px;
+  width: 300px;
+  min-width: 300px;
+  max-width: 300px;
   border-right: 1px solid var(--color-border-default);
   display: flex;
   flex-direction: column;
@@ -179,8 +181,8 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Ro
     position: fixed !important;
     top: 0;
     left: 0;
-    width: 240px !important;
-    max-width: 240px !important;
+    width: 300px !important;
+    max-width: 300px !important;
     height: 100dvh;
     z-index: 1000;
     transform: translateX(-100%);
@@ -289,7 +291,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Ro
 .doc-row-delete { color: var(--color-accent-red); }
 .doc-row-dropdown-item:hover { background: var(--color-bg-surface); }
 
-.sidebar-tab { color: var(--color-text-muted); border-bottom: 2px solid transparent; background: transparent; border-left: none; border-right: none; border-top: none; cursor: pointer; padding: 0.5rem 1rem; }
+.sidebar-tab { color: var(--color-text-muted); border-bottom: 2px solid transparent; background: transparent; border-left: none; border-right: none; border-top: none; cursor: pointer; padding: 0.75rem 1rem; font-size: 1rem; }
 .sidebar-tab--active { color: var(--color-text-primary); border-bottom-color: var(--color-text-primary); }
 .sidebar-icon-btn { color: var(--color-text-muted); background: transparent; border: none; cursor: pointer; }
 .sidebar-menu-item { color: var(--color-text-secondary); }

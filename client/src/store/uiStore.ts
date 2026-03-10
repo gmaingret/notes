@@ -41,7 +41,6 @@ export const useUiStore = create<UiStore>()(
       name: 'notes-ui',
       partialize: (state) => ({
         lastOpenedDocId: state.lastOpenedDocId,
-        sidebarOpen: state.sidebarOpen,
       }),
     }
   )

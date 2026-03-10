@@ -13,9 +13,13 @@ import {
 } from '@dnd-kit/sortable';
 import { DocumentRow } from './DocumentRow';
 
-type Props = { activeDocId: string | null };
+type Props = {
+  activeDocId: string | null;
+  pendingRenameId?: string | null;
+  onRenameComplete?: () => void;
+};
 
-export function DocumentList({ activeDocId }: Props) {
+export function DocumentList({ activeDocId, pendingRenameId, onRenameComplete }: Props) {
   const { data: docs = [], isLoading } = useDocuments();
   const { mutate: reorder } = useReorderDocument();
 
@@ -51,7 +55,13 @@ export function DocumentList({ activeDocId }: Props) {
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={docs.map(d => d.id)} strategy={verticalListSortingStrategy}>
         {docs.map(doc => (
-          <DocumentRow key={doc.id} document={doc} isActive={doc.id === activeDocId} />
+          <DocumentRow
+            key={doc.id}
+            document={doc}
+            isActive={doc.id === activeDocId}
+            initiallyRenaming={doc.id === pendingRenameId}
+            onRenameComplete={doc.id === pendingRenameId ? onRenameComplete : undefined}
+          />
         ))}
       </SortableContext>
     </DndContext>

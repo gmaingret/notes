@@ -300,6 +300,7 @@ body { margin: 0; font-family: 'Inter Variable', sans-serif; }
 .sidebar-tab--active { color: var(--color-text-primary); border-bottom-color: var(--color-text-primary); }
 .sidebar-icon-btn { color: var(--color-text-muted); background: transparent; border: none; cursor: pointer; }
 .sidebar-menu-item { color: var(--color-text-secondary); }
+.sidebar-footer-btn:hover { background: var(--color-bg-surface); }
 
 .tag-browser-loading { color: var(--color-text-faint); }
 .tag-section-header { color: var(--color-text-faint); font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.05em; }

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mobile & UI Polish
 status: ready_to_plan
-stopped_at: Completed 07.1-00-PLAN.md
-last_updated: "2026-03-10T19:15:00.358Z"
+stopped_at: Completed 07.1-01-PLAN.md
+last_updated: "2026-03-10T19:20:54.381Z"
 last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 18
-  completed_plans: 15
+  completed_plans: 16
   percent: 94
 ---
 
@@ -108,6 +108,7 @@ Progress: [██░░░░░░░░] 50% (v1.0 complete, v1.1 not started)
 | Phase 07-icons-fonts-and-pwa P04 | 8 | 2 tasks | 3 files |
 | Phase 07 P05 | 8 | 1 tasks | 6 files |
 | Phase 07.1-ui-polish-tweaks P00 | 4 | 1 tasks | 1 files |
+| Phase 07.1-ui-polish-tweaks P01 | 4 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -150,6 +151,7 @@ Recent decisions affecting current work:
 - [Phase 07-05]: Generated PNG icons committed to git — not regenerated on server — avoids sharp binary in Docker image
 - [Phase 07-05]: No apple-touch-icon or apple-mobile-web-app-capable meta tags — deprecated per MDN/RESEARCH.md anti-patterns
 - [Phase 07.1-ui-polish-tweaks]: Phase 7.1 TDD Wave 0: 21 RED test assertions in uiPolish.test.ts cover all 4 Phase 7.1 behaviors before any implementation
+- [Phase 07.1-ui-polish-tweaks]: FocusToolbar Lucide icons placed between React and @tanstack imports; BulletNode paddingTop/paddingBottom on outer dnd-kit ref div only
 
 ### Roadmap Evolution
 
@@ -166,6 +168,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-10T19:15:00.354Z
-Stopped at: Completed 07.1-00-PLAN.md
+Last session: 2026-03-10T19:20:54.373Z
+Stopped at: Completed 07.1-01-PLAN.md
 Resume file: None

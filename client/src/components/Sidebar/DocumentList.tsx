@@ -44,8 +44,8 @@ export function DocumentList({ activeDocId }: Props) {
     reorder({ id: String(active.id), afterId });
   };
 
-  if (isLoading) return <div style={{ padding: '1rem', color: '#999', fontSize: '0.875rem' }}>Loading...</div>;
-  if (docs.length === 0) return <div style={{ padding: '1rem', color: '#999', fontSize: '0.875rem' }}>No documents</div>;
+  if (isLoading) return <div style={{ padding: '1rem', fontSize: '1rem' }} className="doc-list-empty">Loading...</div>;
+  if (docs.length === 0) return <div style={{ padding: '1rem', fontSize: '1rem' }} className="doc-list-empty">No documents</div>;
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

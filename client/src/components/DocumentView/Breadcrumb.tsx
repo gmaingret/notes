@@ -48,12 +48,10 @@ export function Breadcrumb({ documentTitle, zoomedBulletId, bulletMap }: Props) 
 
   const separatorStyle: React.CSSProperties = {
     margin: '0 0.4rem',
-    color: '#aaa',
     userSelect: 'none',
   };
 
   const clickableStyle: React.CSSProperties = {
-    color: '#666',
     cursor: 'pointer',
     maxWidth: '15ch',
     overflow: 'hidden',
@@ -70,7 +68,6 @@ export function Breadcrumb({ documentTitle, zoomedBulletId, bulletMap }: Props) 
   };
 
   const currentStyle: React.CSSProperties = {
-    color: '#333',
     maxWidth: '20ch',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -95,6 +92,7 @@ export function Breadcrumb({ documentTitle, zoomedBulletId, bulletMap }: Props) 
       <span
         role="button"
         tabIndex={0}
+        className="breadcrumb-ancestor"
         style={clickableStyle}
         title={documentTitle}
         onClick={() => navigate('')}
@@ -102,19 +100,20 @@ export function Breadcrumb({ documentTitle, zoomedBulletId, bulletMap }: Props) 
         onMouseEnter={e => Object.assign((e.target as HTMLElement).style, clickableHoverStyle)}
         onMouseLeave={e => Object.assign((e.target as HTMLElement).style, { textDecoration: 'none' })}
       >
-        {truncate(documentTitle)}
+        🏠
       </span>
 
       {/* Ancestors */}
       {displayedAncestors.map((item, idx) => (
         <span key={item.isEllipsis ? `ellipsis-${idx}` : item.bullet!.id} style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={separatorStyle} aria-hidden="true">›</span>
+          <span className="breadcrumb-separator" style={separatorStyle} aria-hidden="true">›</span>
           {item.isEllipsis ? (
-            <span style={{ color: '#aaa', userSelect: 'none' }}>…</span>
+            <span className="breadcrumb-ellipsis" style={{ userSelect: 'none' }}>…</span>
           ) : (
             <span
               role="button"
               tabIndex={0}
+              className="breadcrumb-ancestor"
               style={clickableStyle}
               title={item.bullet!.content}
               onClick={() => navigate(`#bullet/${item.bullet!.id}`)}
@@ -131,8 +130,8 @@ export function Breadcrumb({ documentTitle, zoomedBulletId, bulletMap }: Props) 
       {/* Current bullet — not clickable */}
       {currentBullet && (
         <>
-          <span style={separatorStyle} aria-hidden="true">›</span>
-          <span style={currentStyle} title={currentBullet.content}>
+          <span className="breadcrumb-separator" style={separatorStyle} aria-hidden="true">›</span>
+          <span className="breadcrumb-current" style={currentStyle} title={currentBullet.content}>
             {truncate(currentBullet.content)}
           </span>
         </>

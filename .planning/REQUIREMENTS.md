@@ -19,10 +19,10 @@ Requirements for the Mobile & UI Polish milestone. Each maps to roadmap phases.
 
 ### Dark Mode
 
-- [ ] **DRKM-01**: App automatically switches to dark theme when OS is in dark mode
-- [ ] **DRKM-02**: All text/background color pairs meet WCAG AA in both light and dark themes
-- [ ] **DRKM-03**: No white flash occurs on hard refresh in dark OS preference (FOUC prevention)
-- [ ] **DRKM-04**: Browser chrome (scrollbars, inputs) adopts the active theme via color-scheme
+- [x] **DRKM-01**: App automatically switches to dark theme when OS is in dark mode
+- [x] **DRKM-02**: All text/background color pairs meet WCAG AA in both light and dark themes
+- [x] **DRKM-03**: No white flash occurs on hard refresh in dark OS preference (FOUC prevention)
+- [x] **DRKM-04**: Browser chrome (scrollbars, inputs) adopts the active theme via color-scheme
 
 ### Visual Design
 
@@ -93,10 +93,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MOBL-05 | Phase 5 | Complete |
 | MOBL-06 | Phase 5 | Complete |
 | MOBL-07 | Phase 5 | Complete |
-| DRKM-01 | Phase 6 | Pending |
-| DRKM-02 | Phase 6 | Pending |
-| DRKM-03 | Phase 6 | Pending |
-| DRKM-04 | Phase 6 | Pending |
+| DRKM-01 | Phase 6 | Complete |
+| DRKM-02 | Phase 6 | Complete |
+| DRKM-03 | Phase 6 | Complete |
+| DRKM-04 | Phase 6 | Complete |
 | VISL-01 | Phase 7 | Pending |
 | VISL-02 | Phase 7 | Pending |
 | VISL-03 | Phase 7 | Pending |

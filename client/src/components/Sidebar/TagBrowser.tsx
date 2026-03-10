@@ -33,39 +33,40 @@ export function TagBrowser() {
           onChange={e => setFilterText(e.target.value)}
           style={{
             width: '100%', boxSizing: 'border-box', padding: '0.3rem 0.5rem',
-            border: '1px solid #e0e0e0', borderRadius: 4, fontSize: '0.8rem',
-            background: '#fff', outline: 'none',
+            border: '1px solid var(--color-border-default)', borderRadius: 4, fontSize: '0.95rem',
+            background: 'var(--color-bg-base)', outline: 'none',
           }}
         />
       </div>
-      {isLoading && <div style={{ padding: '0.5rem 0.75rem', color: '#999', fontSize: '0.8rem' }}>Loading...</div>}
+      {isLoading && <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.95rem' }} className="tag-browser-loading">Loading...</div>}
       {groups.map(group => {
         const items = filtered.filter(t => t.chipType === group.type);
         if (items.length === 0) return null;
         return (
           <div key={group.type}>
-            <div style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ padding: '0.4rem 0.75rem', fontWeight: 600 }} className="tag-section-header">
               {group.label}
             </div>
             {items.map(tag => (
               <button
                 key={`${tag.chipType}-${tag.value}`}
                 onClick={() => handleTagClick(tag.chipType, tag.value)}
+                className="tag-btn"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  width: '100%', padding: '0.3rem 0.75rem', border: 'none', background: 'none',
-                  cursor: 'pointer', textAlign: 'left', fontSize: '0.85rem', color: '#333',
+                  width: '100%', padding: '0.3rem 0.75rem',
+                  textAlign: 'left', fontSize: '1rem',
                 }}
               >
                 <span>{group.prefix}{tag.value}</span>
-                <span style={{ fontSize: '0.75rem', color: '#999' }}>{tag.count}</span>
+                <span style={{ fontSize: '0.875rem' }} className="tag-count">{tag.count}</span>
               </button>
             ))}
           </div>
         );
       })}
       {!isLoading && filtered.length === 0 && (
-        <div style={{ padding: '0.5rem 0.75rem', color: '#999', fontSize: '0.8rem' }}>No tags found.</div>
+        <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.95rem' }} className="tag-browser-empty">No tags found.</div>
       )}
     </div>
   );

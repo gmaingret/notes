@@ -31,13 +31,14 @@ export function DocumentToolbar({ documentId, hideCompleted, onToggleHideComplet
           gap: 8,
           alignItems: 'center',
           padding: '4px 0',
-          borderBottom: '1px solid #f0f0f0',
+          borderBottom: '1px solid var(--color-border-subtle)',
           marginBottom: 8,
         }}
       >
         <button
           onClick={() => setSearchOpen(true)}
-          style={{ fontSize: '0.8rem', color: '#666', background: 'none', border: 'none', cursor: 'pointer' }}
+          className="toolbar-btn"
+          style={{ fontSize: '0.8rem', background: 'none', border: 'none', cursor: 'pointer' }}
           title="Search (Ctrl+F)"
         >
           Search
@@ -45,9 +46,9 @@ export function DocumentToolbar({ documentId, hideCompleted, onToggleHideComplet
 
         <button
           onClick={onToggleHideCompleted}
+          className={hideCompleted ? 'toolbar-btn--active' : 'toolbar-btn--inactive'}
           style={{
             fontSize: '0.8rem',
-            color: hideCompleted ? '#4A90E2' : '#999',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
@@ -57,9 +58,9 @@ export function DocumentToolbar({ documentId, hideCompleted, onToggleHideComplet
         </button>
         <button
           onClick={handleDeleteCompleted}
+          className="toolbar-btn--destructive"
           style={{
             fontSize: '0.8rem',
-            color: '#e55',
             background: 'none',
             border: 'none',
             cursor: 'pointer',

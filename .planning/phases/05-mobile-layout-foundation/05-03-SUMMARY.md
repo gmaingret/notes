@@ -116,6 +116,17 @@ Then verify all 7 MOBL requirements at https://notes.gregorymaingret.fr using mo
 - Phase 8 (swipe polish) can reference `.bullet-dot` class and `iconButtonStyle` pattern established here
 - No blockers — all automated tests GREEN
 
+## Self-Check: PASSED
+
+- FOUND: client/src/index.css (with .bullet-dot::after rule)
+- FOUND: client/src/components/Sidebar/Sidebar.tsx (iconButtonStyle minWidth/minHeight 44)
+- FOUND: client/src/components/DocumentView/BulletNode.tsx (className="bullet-dot")
+- FOUND: client/src/components/DocumentView/FocusToolbar.tsx (btnStyle minWidth/minHeight 44)
+- FOUND: client/src/components/DocumentView/Breadcrumb.tsx (minHeight 44)
+- FOUND: .planning/phases/05-mobile-layout-foundation/05-03-SUMMARY.md
+- FOUND commit: 548cb1c (task 1 feat commit)
+- Server deployed and container rebuilt successfully
+
 ---
 *Phase: 05-mobile-layout-foundation*
 *Completed: 2026-03-10*

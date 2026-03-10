@@ -83,46 +83,6 @@ function placeCursorAtEnd(el: HTMLDivElement) {
   sel?.addRange(range);
 }
 
-// ─── Shake animation style ─────────────────────────────────────────────────────
-
-const SHAKE_STYLE = `
-@keyframes bullet-shake {
-  0%,100% { transform: translateX(0); }
-  25%      { transform: translateX(-4px); }
-  75%      { transform: translateX(4px); }
-}
-.bullet-shake {
-  animation: bullet-shake 400ms ease;
-}
-`;
-
-let shakeStyleInjected = false;
-function ensureShakeStyle() {
-  if (shakeStyleInjected) return;
-  const style = document.createElement('style');
-  style.textContent = SHAKE_STYLE;
-  document.head.appendChild(style);
-  shakeStyleInjected = true;
-}
-
-// ─── Chip styles ───────────────────────────────────────────────────────────────
-
-const CHIP_STYLE = `
-.chip { display: inline-block; border-radius: 3px; padding: 0 4px; font-size: 0.85em; cursor: pointer; font-weight: 500; }
-.chip-tag { background: #e8f0fe; color: #1a56db; }
-.chip-mention { background: #f3e8fd; color: #7c3aed; }
-.chip-date { background: #fef3c7; color: #d97706; }
-`;
-
-let chipStyleInjected = false;
-function ensureChipStyle() {
-  if (chipStyleInjected) return;
-  const style = document.createElement('style');
-  style.textContent = CHIP_STYLE;
-  document.head.appendChild(style);
-  chipStyleInjected = true;
-}
-
 // ─── Date picker helper ────────────────────────────────────────────────────────
 
 function triggerDatePicker(onDate: (date: string) => void) {
@@ -189,12 +149,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bullet.content]);
-
-  // Inject styles once
-  useEffect(() => {
-    ensureShakeStyle();
-    ensureChipStyle();
-  }, []);
 
   // Update div content when editing mode changes
   useLayoutEffect(() => {
@@ -695,7 +649,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         style={{
           flex: 1,
           fontSize: '0.9375rem',
-          color: '#333',
           lineHeight: 1.6,
           minHeight: '1.6em',
           wordBreak: 'break-word',
@@ -728,7 +681,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         flex: 1,
         outline: 'none',
         fontSize: '0.9375rem',
-        color: '#333',
         lineHeight: 1.6,
         minHeight: '1.6em',
         wordBreak: 'break-word',

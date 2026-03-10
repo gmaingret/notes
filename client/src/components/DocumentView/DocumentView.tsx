@@ -75,11 +75,11 @@ export function DocumentView({ document }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
         {!sidebarOpen && (
           <button
-            className="hamburger-btn"
+            className="hamburger-btn doc-hamburger"
             onClick={() => setSidebarOpen(true)}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: '1.25rem', color: '#666', lineHeight: 1,
+              fontSize: '1.25rem', lineHeight: 1,
               minWidth: 36, minHeight: 36, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: '0.25rem',
@@ -96,7 +96,7 @@ export function DocumentView({ document }: Props) {
             bulletMap={bulletMap}
           />
         ) : (
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, margin: 0, color: '#111', flex: 1 }}>
+          <h1 className="doc-title" style={{ fontSize: '1.5rem', fontWeight: 600, margin: 0, flex: 1 }}>
             {document.title}
           </h1>
         )}

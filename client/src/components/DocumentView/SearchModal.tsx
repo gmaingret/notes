@@ -39,7 +39,7 @@ export function SearchModal({ onClose }: Props) {
     <>
       {/* Backdrop */}
       <div
-        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000 }}
+        style={{ position: 'fixed', inset: 0, background: 'var(--color-bg-overlay)', zIndex: 1000 }}
         onClick={onClose}
       />
       {/* Modal box */}
@@ -50,7 +50,7 @@ export function SearchModal({ onClose }: Props) {
           left: '50%',
           transform: 'translateX(-50%)',
           width: 'min(600px, 90vw)',
-          background: '#fff',
+          background: 'var(--color-bg-raised)',
           borderRadius: 8,
           boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
           zIndex: 1001,
@@ -72,14 +72,14 @@ export function SearchModal({ onClose }: Props) {
             border: 'none',
             outline: 'none',
             fontSize: '1rem',
-            borderBottom: '1px solid #e0e0e0',
-            color: '#333',
+            borderBottom: '1px solid var(--color-border-default)',
+            color: 'var(--color-text-secondary)',
           }}
         />
         {/* Results */}
         <div style={{ maxHeight: 400, overflowY: 'auto' }}>
           {debouncedQuery.length < 2 && (
-            <div style={{ padding: '0.75rem 1rem', color: '#999', fontSize: '0.875rem' }}>
+            <div className="search-modal-empty" style={{ padding: '0.75rem 1rem', fontSize: '0.875rem' }}>
               Type to search...
             </div>
           )}

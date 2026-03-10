@@ -9,12 +9,12 @@ export function BookmarkBrowser() {
   const removeBookmark = useRemoveBookmark();
 
   if (isLoading) {
-    return <div style={{ padding: '1rem', color: '#999', fontSize: '0.85rem' }}>Loading…</div>;
+    return <div style={{ padding: '1rem', fontSize: '1rem' }} className="bookmark-browser-loading">Loading…</div>;
   }
 
   if (bookmarks.length === 0) {
     return (
-      <div style={{ padding: '1rem', color: '#bbb', fontSize: '0.85rem' }}>
+      <div style={{ padding: '1rem', fontSize: '1rem' }} className="bookmark-browser-empty">
         No bookmarks yet. Star a bullet to bookmark it.
       </div>
     );
@@ -27,7 +27,7 @@ export function BookmarkBrowser() {
           key={b.id}
           style={{
             padding: '0.5rem 0.75rem',
-            borderBottom: '1px solid #f0f0f0',
+            borderBottom: '1px solid var(--color-border-subtle)',
             cursor: 'pointer',
           }}
           onClick={() => {
@@ -35,24 +35,21 @@ export function BookmarkBrowser() {
             setCanvasView({ type: 'document' });
           }}
         >
-          <div style={{ fontSize: '0.7rem', color: '#999', marginBottom: 2 }}>
+          <div style={{ fontSize: '0.7rem', marginBottom: 2 }} className="bookmark-date">
             {b.documentTitle}
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
-            <span style={{ fontSize: '0.85rem', color: '#333', flex: 1, lineHeight: 1.4 }}>
-              {b.content || <em style={{ color: '#bbb' }}>Empty bullet</em>}
+            <span style={{ fontSize: '1rem', flex: 1, lineHeight: 1.4 }} className="bookmark-content">
+              {b.content || <em className="bookmark-empty-bullet">Empty bullet</em>}
             </span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 removeBookmark.mutate(b.id);
               }}
+              className="bookmark-remove-btn"
               style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: '#ccc',
-                fontSize: '0.85rem',
+                fontSize: '1rem',
                 padding: '0 2px',
                 lineHeight: 1,
                 flexShrink: 0,

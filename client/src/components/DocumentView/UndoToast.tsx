@@ -28,7 +28,7 @@ export function UndoToast({ onDismiss }: Props) {
         bottom: 80,
         left: '50%',
         transform: 'translateX(-50%)',
-        background: '#333',
+        background: 'var(--color-bg-raised)',
         color: '#fff',
         padding: '8px 16px',
         borderRadius: 4,

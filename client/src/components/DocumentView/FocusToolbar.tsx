@@ -33,7 +33,6 @@ const btnStyle: React.CSSProperties = {
   cursor: 'pointer',
   fontSize: '1rem',
   padding: '4px 6px',
-  color: '#444',
   borderRadius: 4,
   lineHeight: 1,
   minWidth: 44,
@@ -159,8 +158,8 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
         bottom: keyboardOffset,
         left: 0,
         right: 0,
-        background: '#fff',
-        borderTop: '1px solid #e5e7eb',
+        background: 'var(--color-bg-base)',
+        borderTop: '1px solid var(--color-border-default)',
         display: 'flex',
         gap: 4,
         padding: '6px 8px',
@@ -169,6 +168,7 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
       }}
     >
       <button
+        className="focus-toolbar-btn"
         style={{ ...btnStyle, opacity: hasPreviousSibling ? 1 : 0.3 }}
         onClick={handleIndent}
         title="Indent"
@@ -176,6 +176,7 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
         &#8677;
       </button>
       <button
+        className="focus-toolbar-btn"
         style={{ ...btnStyle, opacity: bullet.parentId !== null ? 1 : 0.3 }}
         onClick={handleOutdent}
         title="Outdent"
@@ -183,6 +184,7 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
         &#8676;
       </button>
       <button
+        className="focus-toolbar-btn"
         style={{ ...btnStyle, opacity: hasPreviousSibling ? 1 : 0.3 }}
         onClick={handleMoveUp}
         title="Move Up"
@@ -190,43 +192,47 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
         &#8593;
       </button>
       <button
+        className="focus-toolbar-btn"
         style={{ ...btnStyle, opacity: hasNextSibling ? 1 : 0.3 }}
         onClick={handleMoveDown}
         title="Move Down"
       >
         &#8595;
       </button>
-      <button style={btnStyle} onClick={() => void handleUndo()} title="Undo">
+      <button className="focus-toolbar-btn" style={btnStyle} onClick={() => void handleUndo()} title="Undo">
         &#8617;
       </button>
-      <button style={btnStyle} onClick={() => void handleRedo()} title="Redo">
+      <button className="focus-toolbar-btn" style={btnStyle} onClick={() => void handleRedo()} title="Redo">
         &#8618;
       </button>
-      <button style={btnStyle} onClick={handleAttach} title="Attach file">
+      <button className="focus-toolbar-btn" style={btnStyle} onClick={handleAttach} title="Attach file">
         &#128206;
       </button>
       <button
-        style={{ ...btnStyle, color: hasNote ? '#4A90E2' : '#444' }}
+        className={`focus-toolbar-btn${hasNote ? ' focus-toolbar-btn--note-active' : ''}`}
+        style={btnStyle}
         onClick={handleNote}
         title="Note"
       >
         &#128172;
       </button>
       <button
-        style={{ ...btnStyle, color: isBookmarked ? '#d97706' : '#444' }}
+        className={`focus-toolbar-btn${isBookmarked ? ' focus-toolbar-btn--bookmark-active' : ''}`}
+        style={btnStyle}
         onClick={handleBookmark}
         title="Bookmark"
       >
         &#128278;
       </button>
       <button
-        style={{ ...btnStyle, color: bullet.isComplete ? '#22c55e' : '#444' }}
+        className={`focus-toolbar-btn${bullet.isComplete ? ' focus-toolbar-btn--complete-active' : ''}`}
+        style={btnStyle}
         onClick={handleComplete}
         title="Mark complete"
       >
         &#10003;
       </button>
-      <button style={{ ...btnStyle, color: '#e55' }} onClick={handleDelete} title="Delete">
+      <button className="focus-toolbar-btn focus-toolbar-btn--delete" style={btnStyle} onClick={handleDelete} title="Delete">
         &#128465;
       </button>
     </div>

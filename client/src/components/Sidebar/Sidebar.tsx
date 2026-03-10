@@ -32,11 +32,11 @@ export function Sidebar({ activeDocId }: SidebarProps) {
 
       <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
         {/* Header — position:relative here so the dropdown anchors to the full header width */}
-        <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
-          <span style={{ flex: 1, fontWeight: 600, fontSize: '0.875rem' }}>Notes</span>
+        <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--color-border-default)', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
+          <span style={{ flex: 1, fontWeight: 600, fontSize: '1rem' }}>Notes</span>
 
           <div>
-            <button onClick={() => setShowSidebarMenu(v => !v)} style={iconButtonStyle} title="More options">⋯</button>
+            <button onClick={() => setShowSidebarMenu(v => !v)} className="sidebar-icon-btn" style={iconButtonBase} title="More options">⋯</button>
             {showSidebarMenu && (
               <>
                 {/* Transparent overlay — tapping outside the dropdown closes it (mobile + desktop) */}
@@ -45,8 +45,8 @@ export function Sidebar({ activeDocId }: SidebarProps) {
                   onClick={() => setShowSidebarMenu(false)}
                 />
                 <div style={dropdownStyle}>
-                  <button style={dropdownItemStyle} onClick={() => { exportAll(); setShowSidebarMenu(false); }}>Export all documents</button>
-                  <button style={dropdownItemStyle} onClick={() => { handleLogout(); setShowSidebarMenu(false); }}>Logout</button>
+                  <button style={dropdownItemBase} className="sidebar-menu-item" onClick={() => { exportAll(); setShowSidebarMenu(false); }}>Export all documents</button>
+                  <button style={dropdownItemBase} className="sidebar-menu-item" onClick={() => { handleLogout(); setShowSidebarMenu(false); }}>Logout</button>
                 </div>
               </>
             )}
@@ -55,28 +55,27 @@ export function Sidebar({ activeDocId }: SidebarProps) {
           {/* X close — only shown on mobile via CSS (.mobile-close-btn display:none on desktop).
                Do NOT apply display via inline style here — CSS controls visibility. */}
           <button
-            className="mobile-close-btn"
+            className="mobile-close-btn sidebar-icon-btn"
             onClick={() => setSidebarOpen(false)}
-            style={closeBtnStyle}
+            style={closeBtnBase}
             title="Close sidebar"
             aria-label="Close sidebar"
           >
             ✕
           </button>
 
-          <button onClick={handleCreate} style={iconButtonStyle} title="New document">+</button>
+          <button onClick={handleCreate} className="sidebar-icon-btn" style={iconButtonBase} title="New document">+</button>
         </div>
 
         {/* Tab bar */}
-        <div style={{ display: 'flex', borderBottom: '1px solid #e0e0e0' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border-default)' }}>
           {(['docs', 'tags', 'bookmarks'] as const).map(tab => (
             <button key={tab} onClick={() => setSidebarTab(tab)}
+              className={`sidebar-tab${sidebarTab === tab ? ' sidebar-tab--active' : ''}`}
               style={{
-                flex: 1, padding: '0.5rem', border: 'none', background: 'none', cursor: 'pointer',
+                flex: 1, border: 'none', background: 'none', cursor: 'pointer',
                 fontSize: '0.75rem',
                 fontWeight: sidebarTab === tab ? 600 : 400,
-                borderBottom: sidebarTab === tab ? '2px solid #333' : '2px solid transparent',
-                color: sidebarTab === tab ? '#111' : '#666',
               }}>
               {tab === 'docs' ? 'Docs' : tab === 'tags' ? 'Tags' : '🔖'}
             </button>
@@ -93,32 +92,30 @@ export function Sidebar({ activeDocId }: SidebarProps) {
   );
 }
 
-const iconButtonStyle = {
-  background: 'none', border: 'none', cursor: 'pointer',
+const iconButtonBase = {
   padding: '0.25rem 0.375rem', borderRadius: 4,
-  fontSize: '1rem', color: '#666', lineHeight: 1,
+  fontSize: '1rem', lineHeight: 1,
   minWidth: 44, minHeight: 44, display: 'flex',
   alignItems: 'center', justifyContent: 'center',
 } as const;
 
-// Same as iconButtonStyle but WITHOUT display — lets CSS (.mobile-close-btn) control
+// Same as iconButtonBase but WITHOUT display — lets CSS (.mobile-close-btn) control
 // visibility so the X button is hidden on desktop and shown on mobile.
-const closeBtnStyle = {
-  background: 'none', border: 'none', cursor: 'pointer',
+const closeBtnBase = {
   padding: '0.25rem 0.375rem', borderRadius: 4,
-  fontSize: '1rem', color: '#666', lineHeight: 1,
+  fontSize: '1rem', lineHeight: 1,
   minWidth: 44, minHeight: 44,
   alignItems: 'center', justifyContent: 'center',
 } as const;
 
 const dropdownStyle = {
   position: 'absolute' as const, right: 0, top: '100%',
-  background: '#fff', border: '1px solid #e0e0e0', borderRadius: 4,
-  boxShadow: '0 2px 8px rgba(0,0,0,0.12)', zIndex: 100, minWidth: 180,
+  background: 'var(--color-bg-raised)', border: '1px solid var(--color-border-default)', borderRadius: 4,
+  boxShadow: '0 2px 8px var(--color-shadow)', zIndex: 100, minWidth: 180,
 };
 
-const dropdownItemStyle = {
+const dropdownItemBase = {
   display: 'block', width: '100%', padding: '0.5rem 0.75rem',
   background: 'none', border: 'none', cursor: 'pointer',
-  textAlign: 'left' as const, fontSize: '0.875rem', color: '#333',
+  textAlign: 'left' as const, fontSize: '1rem',
 };

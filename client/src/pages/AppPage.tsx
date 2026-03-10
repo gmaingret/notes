@@ -53,6 +53,25 @@ export function AppPage() {
     <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
       <Sidebar activeDocId={docId ?? null} />
       <main style={{ flex: 1, overflow: 'auto' }}>
+        {/* Hamburger button — mobile only, shown in main area to open sidebar */}
+        {!sidebarOpen && (
+          <button
+            className="mobile-only"
+            onClick={() => setSidebarOpen(true)}
+            style={{
+              position: 'fixed', top: '0.75rem', left: '0.75rem',
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '0.25rem', borderRadius: 4,
+              fontSize: '1.25rem', color: '#666', lineHeight: 1,
+              minWidth: 44, minHeight: 44,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 8,
+            }}
+            aria-label="Open sidebar"
+          >
+            &#9776;
+          </button>
+        )}
         {activeDoc ? (
           <DocumentView document={activeDoc} />
         ) : (

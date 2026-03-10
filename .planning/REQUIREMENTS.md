@@ -9,13 +9,13 @@ Requirements for the Mobile & UI Polish milestone. Each maps to roadmap phases.
 
 ### Mobile Layout
 
-- [ ] **MOBL-01**: User can open the sidebar on mobile via a hamburger button in the header
-- [ ] **MOBL-02**: Sidebar auto-closes when user taps outside it on mobile
-- [ ] **MOBL-03**: Sidebar has an explicit X close button on mobile
-- [ ] **MOBL-04**: Sidebar slides in/out with a smooth off-canvas transition
+- [x] **MOBL-01**: User can open the sidebar on mobile via a hamburger button in the header
+- [x] **MOBL-02**: Sidebar auto-closes when user taps outside it on mobile
+- [x] **MOBL-03**: Sidebar has an explicit X close button on mobile
+- [x] **MOBL-04**: Sidebar slides in/out with a smooth off-canvas transition
 - [x] **MOBL-05**: All interactive elements have touch targets ≥44×44px
-- [ ] **MOBL-06**: App layout uses 100dvh (not 100vh) for correct height on mobile browsers
-- [ ] **MOBL-07**: User can toggle sidebar on desktop with Ctrl/Cmd+E
+- [x] **MOBL-06**: App layout uses 100dvh (not 100vh) for correct height on mobile browsers
+- [x] **MOBL-07**: User can toggle sidebar on desktop with Ctrl/Cmd+E
 
 ### Dark Mode
 
@@ -86,13 +86,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MOBL-01 | Phase 5 | Pending |
-| MOBL-02 | Phase 5 | Pending |
-| MOBL-03 | Phase 5 | Pending |
-| MOBL-04 | Phase 5 | Pending |
+| MOBL-01 | Phase 5 | Complete |
+| MOBL-02 | Phase 5 | Complete |
+| MOBL-03 | Phase 5 | Complete |
+| MOBL-04 | Phase 5 | Complete |
 | MOBL-05 | Phase 5 | Complete |
-| MOBL-06 | Phase 5 | Pending |
-| MOBL-07 | Phase 5 | Pending |
+| MOBL-06 | Phase 5 | Complete |
+| MOBL-07 | Phase 5 | Complete |
 | DRKM-01 | Phase 6 | Pending |
 | DRKM-02 | Phase 6 | Pending |
 | DRKM-03 | Phase 6 | Pending |

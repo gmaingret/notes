@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mobile & UI Polish
 status: ready_to_plan
-stopped_at: Completed 05-03-PLAN.md — touch targets done, awaiting human verify
-last_updated: "2026-03-10T13:27:03.640Z"
+stopped_at: Completed 05-mobile-layout-foundation/05-00-PLAN.md
+last_updated: "2026-03-10T13:27:55.069Z"
 last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
 progress:
   total_phases: 4
@@ -63,6 +63,7 @@ Progress: [██░░░░░░░░] 50% (v1.0 complete, v1.1 not started)
 
 *Updated after each plan completion*
 | Phase 05-mobile-layout-foundation P03 | 1 | 1 tasks | 5 files |
+| Phase 05-mobile-layout-foundation P00 | 12 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ Recent decisions affecting current work:
 - v1.1 arch: dnd-kit sensor must switch to delay-based activation (250ms) in Phase 5 before swipe polish in Phase 8
 - [Phase 05-mobile-layout-foundation]: CSS ::after pseudo-element (inset:-14px) for bullet dot tap expansion — zero layout impact, visual dot size unchanged
 - [Phase 05-mobile-layout-foundation]: Targeted per-element touch target fixes (no global rule) to avoid breaking toolbar and tab bar layouts
+- [Phase 05-mobile-layout-foundation]: MOBL-02 backdrop tests expect always-mounted .sidebar-backdrop class (not conditional .mobile-overlay) to support CSS fade transitions
+- [Phase 05-mobile-layout-foundation]: TDD Wave 0 scaffold written before any production code — all tests RED at time of writing
 
 ### Pending Todos
 
@@ -90,6 +93,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-10T13:27:03.636Z
-Stopped at: Completed 05-03-PLAN.md — touch targets done, awaiting human verify
+Last session: 2026-03-10T13:27:55.066Z
+Stopped at: Completed 05-mobile-layout-foundation/05-00-PLAN.md
 Resume file: None

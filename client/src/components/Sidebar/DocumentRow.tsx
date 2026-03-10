@@ -60,7 +60,7 @@ export function DocumentRow({ document, isActive }: Props) {
         alignItems: 'center',
         padding: '0.375rem 0.5rem 0.375rem 1rem',
         cursor: 'pointer',
-        background: isActive ? 'rgba(0,0,0,0.06)' : 'transparent',
+        background: 'transparent',
         borderRadius: 4,
         margin: '0 4px',
         position: 'relative',
@@ -73,7 +73,7 @@ export function DocumentRow({ document, isActive }: Props) {
           if (isMobile) setSidebarOpen(false);
         }
       }}
-      className="document-row"
+      className={`document-row${isActive ? ' document-row--active' : ''}`}
       {...attributes}
       {...listeners}
     >
@@ -86,7 +86,7 @@ export function DocumentRow({ document, isActive }: Props) {
           onKeyDown={handleRenameKeyDown}
           style={{
             flex: 1,
-            border: '1px solid #4a90e2',
+            border: '1px solid var(--color-focus-ring)',
             borderRadius: 3,
             padding: '0.125rem 0.25rem',
             fontSize: '0.875rem',
@@ -102,21 +102,16 @@ export function DocumentRow({ document, isActive }: Props) {
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
-          color: '#333',
-        }}>
+        }} className="doc-row-text">
           {document.title}
         </span>
       )}
 
       {/* 3-dot menu button — appears on hover/focus via CSS (locked UX decision) */}
       <div className="row-menu-trigger" onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}>
-        <button style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
+        <button className="doc-row-btn" style={{
           padding: '0.125rem 0.25rem',
           borderRadius: 3,
-          color: '#666',
           fontSize: '0.875rem',
           lineHeight: 1,
         }} title="Document options">
@@ -138,20 +133,20 @@ export function DocumentRow({ document, isActive }: Props) {
               position: 'absolute',
               right: 0,
               top: '100%',
-              background: '#fff',
-              border: '1px solid #e0e0e0',
+              background: 'var(--color-bg-raised)',
+              border: '1px solid var(--color-border-default)',
               borderRadius: 4,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+              boxShadow: '0 2px 8px var(--color-shadow)',
               zIndex: 200,
               minWidth: 150,
             }}>
-              <button style={menuItemStyle} onClick={e => { e.stopPropagation(); setIsRenaming(true); setShowMenu(false); }}>
+              <button style={menuItemBaseStyle} className="doc-row-text doc-row-dropdown-item" onClick={e => { e.stopPropagation(); setIsRenaming(true); setShowMenu(false); }}>
                 Rename
               </button>
-              <button style={menuItemStyle} onClick={e => { e.stopPropagation(); exportDoc({ id: document.id, title: document.title }); setShowMenu(false); }}>
+              <button style={menuItemBaseStyle} className="doc-row-text doc-row-dropdown-item" onClick={e => { e.stopPropagation(); exportDoc({ id: document.id, title: document.title }); setShowMenu(false); }}>
                 Export as Markdown
               </button>
-              <button style={{ ...menuItemStyle, color: '#e53e3e' }} onClick={e => { e.stopPropagation(); handleDelete(); }}>
+              <button style={menuItemBaseStyle} className="doc-row-delete doc-row-dropdown-item" onClick={e => { e.stopPropagation(); handleDelete(); }}>
                 Delete
               </button>
             </div>
@@ -162,7 +157,7 @@ export function DocumentRow({ document, isActive }: Props) {
   );
 }
 
-const menuItemStyle = {
+const menuItemBaseStyle = {
   display: 'block',
   width: '100%',
   padding: '0.5rem 0.75rem',
@@ -171,5 +166,4 @@ const menuItemStyle = {
   cursor: 'pointer',
   textAlign: 'left' as const,
   fontSize: '0.875rem',
-  color: '#333',
 } as const;

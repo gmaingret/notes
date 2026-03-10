@@ -239,6 +239,40 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Ro
 .doc-hamburger { color: var(--color-text-muted); }
 .doc-title { color: var(--color-text-primary); }
 
+/* === Additional DocumentView classes === */
+
+/* FilteredBulletList */
+.filtered-list-empty { color: var(--color-text-faint); }
+.filtered-bullet-dot { color: var(--color-text-faint); }
+.filtered-bullet-content { color: var(--color-text-secondary); }
+.filtered-bullet-ts { color: var(--color-text-faint); }
+.filtered-nav-icon { color: var(--color-text-faint); }
+
+/* FocusToolbar */
+.focus-toolbar-btn { color: var(--color-text-secondary); background: transparent; border: none; cursor: pointer; padding: 0.4rem 0.6rem; border-radius: 4px; }
+.focus-toolbar-btn--note-active { color: var(--color-accent-blue); }
+.focus-toolbar-btn--bookmark-active { color: var(--color-accent-amber); }
+.focus-toolbar-btn--complete-active { color: var(--color-accent-green); }
+.focus-toolbar-btn--delete { color: var(--color-accent-danger); }
+
+/* NoteRow */
+.note-row-text { color: var(--color-text-muted); }
+
+/* SearchModal */
+.search-modal-text { color: var(--color-text-secondary); }
+.search-modal-empty { color: var(--color-text-faint); }
+
+/* Breadcrumb */
+.breadcrumb-separator { color: var(--color-text-disabled); }
+.breadcrumb-ancestor { color: var(--color-text-muted); }
+.breadcrumb-current { color: var(--color-text-secondary); }
+.breadcrumb-ellipsis { color: var(--color-text-disabled); }
+
+/* AttachmentRow */
+.attachment-filename { color: var(--color-text-muted); font-size: 0.85em; }
+.attachment-link { color: var(--color-text-muted); }
+.attachment-delete-btn { color: var(--color-text-disabled); background: transparent; border: none; cursor: pointer; }
+
 /* === Sidebar component classes === */
 .bookmark-browser-loading { color: var(--color-text-faint); }
 .bookmark-browser-empty { color: var(--color-text-disabled); }

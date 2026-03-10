@@ -203,6 +203,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
       }}
       onContextMenu={isDragOverlay ? undefined : (e) => {
         e.preventDefault();
+        e.stopPropagation();
         setContextMenuPos({ x: e.clientX, y: e.clientY });
       }}
       onPointerDown={isDragOverlay ? undefined : handleRowPointerDown}

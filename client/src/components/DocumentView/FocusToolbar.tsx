@@ -157,6 +157,7 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
 
   return (
     <div
+      data-focus-toolbar="true"
       onMouseDown={(e) => e.preventDefault()}
       style={{
         position: 'fixed',

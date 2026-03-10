@@ -249,7 +249,18 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     }, 1000);
   }
 
-  function handleBlur() {
+  function handleBlur(e: React.FocusEvent<HTMLDivElement>) {
+    // If focus moved to an element inside the FocusToolbar, keep the toolbar visible
+    // so toolbar button clicks can still fire (the button will receive the click after blur).
+    const relatedTarget = e.relatedTarget as HTMLElement | null;
+    if (relatedTarget && relatedTarget.closest('[data-focus-toolbar]')) {
+      // Restore focus to the bullet after the toolbar action fires (next tick)
+      setTimeout(() => {
+        divRef.current?.focus();
+      }, 0);
+      return;
+    }
+
     // Flush any pending save immediately
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);

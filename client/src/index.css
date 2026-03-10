@@ -6,9 +6,61 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Ro
 .document-row:hover .row-menu-trigger,
 .document-row:focus-within .row-menu-trigger { opacity: 1; }
 
-/* Mobile sidebar overlay */
+/* === Phase 5: Mobile Layout Foundation === */
+
+/* Mobile-only elements hidden on desktop */
+@media (min-width: 769px) {
+  .mobile-only { display: none !important; }
+}
+
+/* Sidebar: off-canvas drawer on mobile */
 @media (max-width: 768px) {
+  .sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: 100dvh !important;
+    z-index: 10;
+    transform: translateX(-100%);
+    transition: transform 250ms ease-out;
+  }
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  /* Backdrop: always rendered, fades in/out */
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 9;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 250ms ease-out;
+  }
+  .sidebar-backdrop.sidebar-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Mobile-only elements shown on mobile */
+  .mobile-only { display: flex !important; }
+
+  /* Keep legacy mobile-overlay rule */
   .mobile-overlay { display: block !important; }
+}
+
+/* Sticky document header */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2rem;
+  padding-bottom: 0.5rem;
+  gap: 0.5rem;
 }
 
 /* Touch target: bullet dot drag handle — expands tap area, not visual size */

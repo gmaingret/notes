@@ -27,25 +27,24 @@ export function Sidebar({ activeDocId }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile overlay — tap outside to dismiss */}
-      {sidebarOpen && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 9, display: 'none' }}
-          className="mobile-overlay"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Mobile backdrop — always rendered so fade-out transition plays */}
+      <div
+        className={`sidebar-backdrop${sidebarOpen ? ' sidebar-open' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
 
-      <aside style={{
-        width: 240, // Fixed 240px — locked UX decision
-        minWidth: 240,
-        height: '100vh',
-        borderRight: '1px solid #e0e0e0',
-        display: 'flex',
-        flexDirection: 'column',
-        background: '#fafafa',
-        flexShrink: 0,
-      }}>
+      <aside
+        className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}
+        style={{
+          width: 240, // Fixed 240px — locked UX decision
+          minWidth: 240,
+          borderRight: '1px solid #e0e0e0',
+          display: 'flex',
+          flexDirection: 'column',
+          background: '#fafafa',
+          flexShrink: 0,
+        }}
+      >
         {/* Header */}
         <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ flex: 1, fontWeight: 600, fontSize: '0.875rem' }}>Notes</span>
@@ -76,6 +75,23 @@ export function Sidebar({ activeDocId }: SidebarProps) {
               </div>
             )}
           </div>
+
+          {/* X close button — mobile only */}
+          <button
+            className="mobile-only"
+            onClick={() => setSidebarOpen(false)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '0.25rem 0.375rem', borderRadius: 4,
+              fontSize: '1rem', color: '#666', lineHeight: 1,
+              minWidth: 44, minHeight: 44, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+            }}
+            title="Close sidebar"
+            aria-label="Close sidebar"
+          >
+            ✕
+          </button>
 
           {/* New document button */}
           <button onClick={handleCreate} style={iconButtonStyle} title="New document">

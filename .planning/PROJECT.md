@@ -31,10 +31,29 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - ✓ Export document(s) as Markdown file — v1.0
 - ✓ New users start with one blank "Inbox" document — v1.0
 
+## Current Milestone: v1.1 Mobile & UI Polish
+
+**Goal:** Transform the app into a genuinely great mobile experience with a polished dark mode, responsive layout, hamburger navigation, and improved visual design.
+
+**Target features:**
+- Responsive mobile layout with hidden sidebar + hamburger menu (auto-close on outside tap)
+- System-preference dark mode with WCAG AA-compliant color tokens
+- Swipe gesture polish (improved animation + feedback)
+- Modern icon library and font pairing
+- PWA manifest for home screen installation
+- Quick-open palette (Ctrl+K fuzzy search)
+- Ctrl/Cmd+E sidebar toggle on desktop
+
 ### Active
 
+- [ ] Responsive mobile layout — sidebar hidden on mobile, full-width content
+- [ ] Hamburger menu opens sidebar on mobile, auto-closes on outside tap
+- [ ] System-preference dark mode (prefers-color-scheme) with WCAG AA colors
+- [ ] Modern icon library (e.g., Lucide) replacing all current icons
+- [ ] Polished font pairing (e.g., Inter + JetBrains Mono)
+- [ ] Swipe gesture animations and haptic-like feedback improved
 - [ ] Progressive Web App (PWA) manifest for home screen installation
-- [ ] Quick-open palette (fuzzy document + bullet search)
+- [ ] Quick-open palette (Ctrl+K fuzzy document + bullet search)
 - [ ] Ctrl/Cmd+E to toggle sidebar visibility on desktop
 
 ### Out of Scope
@@ -92,4 +111,4 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 | gestures.ts uses closure-based state (not useRef) | Pure functions can be unit tested without React | ✓ Good — enables isolated gesture tests |
 
 ---
-*Last updated: 2026-03-10 after v1.0 milestone*
+*Last updated: 2026-03-10 after v1.1 milestone start*

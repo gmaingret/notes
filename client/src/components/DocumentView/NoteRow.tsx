@@ -38,6 +38,11 @@ export function NoteRow({ bulletId, initialNote, focusOnMount = false }: Props) 
       }
       ref.current?.blur();
     }
+    if (e.key === 'Enter' && e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      ref.current?.blur();
+    }
   }
 
   return (

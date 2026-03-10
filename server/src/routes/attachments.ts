@@ -2,6 +2,18 @@ import { Router } from 'express';
 import multer, { MulterError } from 'multer';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+
+const EXT_MIME: Record<string, string> = {
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+  '.gif': 'image/gif', '.webp': 'image/webp', '.avif': 'image/avif',
+  '.svg': 'image/svg+xml', '.pdf': 'application/pdf',
+};
+
+function resolveMimeType(filename: string, browserMime: string): string {
+  if (browserMime && browserMime !== 'application/octet-stream') return browserMime;
+  const ext = path.extname(filename).toLowerCase();
+  return EXT_MIME[ext] ?? browserMime;
+}
 import { unlink } from 'node:fs/promises';
 import { requireAuth } from '../middleware/auth.js';
 import {
@@ -50,7 +62,7 @@ attachmentsRouter.post(
     try {
       const attachment = await createAttachment(user.id, bulletId, {
         filename: req.file.originalname,
-        mimeType: req.file.mimetype,
+        mimeType: resolveMimeType(req.file.originalname, req.file.mimetype),
         size: req.file.size,
         storagePath: req.file.path,
       });

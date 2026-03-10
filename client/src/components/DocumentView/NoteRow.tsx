@@ -42,6 +42,7 @@ export function NoteRow({ bulletId, initialNote, focusOnMount = false }: Props) 
       e.preventDefault();
       e.stopPropagation();
       ref.current?.blur();
+      document.getElementById(`bullet-${bulletId}`)?.focus();
     }
   }
 

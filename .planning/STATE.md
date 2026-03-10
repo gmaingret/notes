@@ -1,64 +1,71 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: verifying
-stopped_at: "Completed Phase 1 (01-06) — production verified at https://notes.gregorymaingret.fr; Phase 2 unblocked"
-last_updated: "2026-03-09T08:32:20.938Z"
-last_activity: 2026-03-09 — Plan 06 complete (production deployment, all API endpoints verified)
+milestone: v1.1
+milestone_name: Mobile & UI Polish
+status: ready_to_plan
+stopped_at: Completed 05-mobile-layout-foundation 05-02-PLAN.md
+last_updated: "2026-03-10T13:33:17.852Z"
+last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 6
-  completed_plans: 6
-  percent: 67
+  total_plans: 4
+  completed_plans: 4
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.1
+milestone_name: Mobile & UI Polish
+status: ready_to_plan
+stopped_at: "Roadmap created for v1.1 — ready to plan Phase 5"
+last_updated: "2026-03-10T00:00:00Z"
+last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
+progress:
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-09)
+See: .planning/PROJECT.md (updated 2026-03-10)
 
 **Core value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 5 — Mobile Layout Foundation
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation)
-Plan: 6 of 6 in current phase (all plans complete)
-Status: Phase 1 complete — production verified at https://notes.gregorymaingret.fr
-Last activity: 2026-03-09 — Plan 06 complete (production deployment, all API endpoints verified)
+Phase: 5 of 8 (Mobile Layout Foundation)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
 
-Progress: [███████░░░] 67%
+Progress: [██░░░░░░░░] 50% (v1.0 complete, v1.1 not started)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: ~20min
-- Total execution time: ~1.3 hours
+- Total plans completed: 32 (v1.0)
+- Average duration: ~45 min (v1.0 estimate)
+- Total execution time: ~24 hours (v1.0)
 
 **By Phase:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01-foundation | 4/6 | ~77min | ~19min |
-
-**Recent Trend:**
-- Last 5 plans: 01-01, 01-04, 01-02, 01-03
-- Trend: stable
+| Phase | Plans | Avg/Plan |
+|-------|-------|----------|
+| 1-4. v1.0 | 32 total | - |
+| 5-8. v1.1 | TBD | - |
 
 *Updated after each plan completion*
-
-| Plan | Duration | Tasks | Files |
-|------|----------|-------|-------|
-| Phase 01-foundation P01 | 6min | 3 tasks | 15 files |
-| Phase 01-foundation P04 | 4min | 2 tasks | 12 files |
-| Phase 01-foundation P02 | 35min | 2 tasks | 8 files |
-| Phase 01-foundation P03 | 17 | 2 tasks | 3 files |
-| Phase 01-foundation P05 | 2min | 2 tasks | 9 files |
-| Phase 01-foundation P06 | 35min | 1 tasks | 8 files |
+| Phase 05-mobile-layout-foundation P03 | 1 | 1 tasks | 5 files |
+| Phase 05-mobile-layout-foundation P00 | 12 | 1 tasks | 1 files |
+| Phase 05 P01 | ~4 min | 2 tasks | 4 files |
+| Phase 05-mobile-layout-foundation P02 | 8 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -67,40 +74,31 @@ Progress: [███████░░░] 67%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Pre-phase]: Use FLOAT8 midpoint positioning (not string fractional keys) — cannot change after data exists
-- [Pre-phase]: Soft delete (`deleted_at`) on bullets from schema creation — enables undo of subtree deletions
-- [Pre-phase]: Undo system uses `undo_events` + `undo_cursors` tables with `schema_version` column — must be created in Phase 1 even though undo ships in Phase 2
-- [Pre-phase]: Plain contenteditable per bullet (not a single ProseMirror document) — tree model conflicts with ProseMirror document model
-- [Phase 01-04]: AccessToken in React context (memory only) — not localStorage — prevents XSS token theft
-- [Phase 01-04]: Google OAuth token received via URL hash fragment; AuthContext reads and cleans it via history.replaceState without navigation
-- [Phase 01-04]: RequireAuth returns null during isLoading — prevents flash-of-login on valid session
-- [Phase 01-01]: FLOAT8 double precision for all position columns — locked, cannot change after data exists
-- [Phase 01-01]: undo_events.schema_version column present from migration 0 — prevents Phase 2/3 migration pain
-- [Phase 01-01]: Docker port mapping 8000:3000 per MEMORY.md (app accessible at 192.168.1.50:8000)
-- [Phase 01-02]: drizzle-orm 0.45.x has missing index.cjs in npm package — must use 0.40.0 + drizzle-kit 0.29.x
-- [Phase 01-02]: requireAuth uses passport.authenticate callback pattern to return 401 JSON (not HTML)
-- [Phase 01-02]: Google OAuth token sent as URL hash fragment (?token=) — hash not sent to server, prevents logging
-- [Phase 01-foundation]: export-all route registered before /:id/export — Express param collision prevention
-- [Phase 01-foundation]: computeDocumentInsertPosition accepts afterId (UUID or null) — client never computes FLOAT8 position
-- [Phase 01-foundation]: renderDocumentAsMarkdown uses 2-space indent per nesting level — locked UX decision
-- [Phase 01-foundation]: apiClient.download() added for blob/file responses — avoids storing token in localStorage
-- [Phase 01-foundation]: 3-dot menu hidden by default; revealed via CSS opacity on hover/focus-within (locked UX decision, Phase 01-05)
-- [Phase 01-foundation]: Dockerfile CMD path is server/dist/src/index.js — TypeScript rootDir='.' emits src/ and db/ to dist/src/ and dist/db/
-- [Phase 01-foundation]: Nginx proxy must target port 8000 on Docker host — port 3000 is occupied by outlinergod-backend-1 container
-- [Phase 01-foundation]: vite.config.ts must use defineConfig from vitest/config to support the 'test' property without TS error
+- v1.1 scope: System-preference dark mode only — manual toggle deferred to v1.2
+- v1.1 scope: Static PWA manifest without service worker — avoids API cache-stale risk on deploys
+- v1.1 scope: CSS transitions for swipe snap-back — defer Framer Motion until proven insufficient on physical device
+- v1.1 arch: Sidebar always-mounted — conditional unmount evicts React Query caches (DocumentList, TagBrowser flicker)
+- v1.1 arch: dnd-kit sensor must switch to delay-based activation (250ms) in Phase 5 before swipe polish in Phase 8
+- [Phase 05-mobile-layout-foundation]: CSS ::after pseudo-element (inset:-14px) for bullet dot tap expansion — zero layout impact, visual dot size unchanged
+- [Phase 05-mobile-layout-foundation]: Targeted per-element touch target fixes (no global rule) to avoid breaking toolbar and tab bar layouts
+- [Phase 05-mobile-layout-foundation]: MOBL-02 backdrop tests expect always-mounted .sidebar-backdrop class (not conditional .mobile-overlay) to support CSS fade transitions
+- [Phase 05-mobile-layout-foundation]: TDD Wave 0 scaffold written before any production code — all tests RED at time of writing
+- [Phase 05-01]: sidebar-backdrop always rendered (not conditional) for CSS fade-out transition
+- [Phase 05-01]: !important on position/height in mobile CSS overrides inline styles on aside element
+- [Phase 05-02]: Hamburger added to both AppPage (floating) and DocumentView (sticky header) — MOBL-01 test mocks DocumentView so AppPage hamburger needed
+- [Phase 05-02]: TouchSensor delay=250ms tolerance=5 in BulletTree — pre-positions dnd-kit for Phase 8 swipe without intercepting taps or horizontal swipes
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-- [Phase 2]: iOS Safari keyboard focus edge case — programmatic `.focus()` on new bullet must stay in the same synchronous event handler as the Enter keypress. Requires testing on a real iOS device before Phase 2 is considered done.
-- [Phase 2]: @dnd-kit nested tree drag-and-drop (cross-level) — community patterns exist but are sparse. Consider targeted research before implementation.
-- [Phase 4]: iOS `visualViewport` API and `touch-action` behavior varies across iOS versions — verify current state on iOS 17/18 before Phase 4 implementation.
+- iOS 26 visualViewport regression (WebKit bug #237851): defensive FocusToolbar clamp needed in Phase 5; full validation requires physical device on iOS 26 stable
+- Physical iPhone required to validate: dnd-kit swipe conflict, 100dvh clip, contenteditable auto-zoom — DevTools emulation does not reproduce these issues
 
 ## Session Continuity
 
-Last session: 2026-03-09T09:15:00.000Z
-Stopped at: Completed Phase 1 (01-06) — production verified at https://notes.gregorymaingret.fr; Phase 2 unblocked
+Last session: 2026-03-10T13:33:17.850Z
+Stopped at: Completed 05-mobile-layout-foundation 05-02-PLAN.md
 Resume file: None

@@ -10,8 +10,15 @@ import { configurePassport } from './middleware/auth.js';
 export function createApp() {
   const app = express();
 
-  // Security headers
-  app.use(helmet());
+  // Security headers — allow blob: for images (needed for attachment preview via URL.createObjectURL)
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        'img-src': ["'self'", 'data:', 'blob:'],
+      },
+    },
+  }));
 
   // CORS — dev: Vite on :5173; production: same-origin (Nginx serves both)
   app.use(cors({

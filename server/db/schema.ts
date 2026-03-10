@@ -1,6 +1,6 @@
 import {
   pgTable, uuid, text, timestamp, doublePrecision,
-  boolean, bigserial, integer, jsonb, index
+  boolean, bigserial, integer, jsonb, index, uniqueIndex, bigint
 } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
@@ -33,6 +33,7 @@ export const bullets = pgTable('bullets', {
   position: doublePrecision('position').notNull().default(1.0),  // FLOAT8 sibling order
   isComplete: boolean('is_complete').notNull().default(false),
   isCollapsed: boolean('is_collapsed').notNull().default(false),
+  note: text('note'),                                            // nullable — CMT-01
   deletedAt: timestamp('deleted_at', { withTimezone: true }),    // soft delete — locked decision
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -58,3 +59,27 @@ export const undoCursors = pgTable('undo_cursors', {
   userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
   currentSeq: integer('current_seq').notNull().default(0),
 });
+
+export const bookmarks = pgTable('bookmarks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  bulletId: uuid('bullet_id').notNull().references(() => bullets.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('bookmarks_user_id_idx').on(t.userId),
+  uniqueIndex('bookmarks_user_bullet_idx').on(t.userId, t.bulletId),
+]);
+
+export const attachments = pgTable('attachments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  bulletId: uuid('bullet_id').notNull().references(() => bullets.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  filename: text('filename').notNull(),
+  mimeType: text('mime_type').notNull(),
+  size: bigint('size', { mode: 'number' }).notNull(),
+  storagePath: text('storage_path').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('attachments_bullet_id_idx').on(t.bulletId),
+  index('attachments_user_id_idx').on(t.userId),
+]);

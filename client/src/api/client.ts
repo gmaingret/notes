@@ -69,6 +69,25 @@ class ApiClient {
     }
     return fetch(`${BASE}${path}`, { headers, credentials: 'include' });
   }
+
+  async upload<T>(path: string, formData: FormData): Promise<T> {
+    const headers: Record<string, string> = {};
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+    // Do NOT set Content-Type — browser sets it with multipart boundary
+    const res = await fetch(`${BASE}${path}`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ error: 'Request failed' }));
+      throw Object.assign(new Error(error.error ?? 'Request failed'), { status: res.status });
+    }
+    return res.json() as Promise<T>;
+  }
 }
 
 export const apiClient = new ApiClient();

@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/node-postgres';
+import { PgDatabase } from 'drizzle-orm/pg-core';
 import { Pool } from 'pg';
 import * as schema from './schema.js';
 
@@ -8,4 +9,5 @@ const pool = new Pool({
 });
 
 export const db = drizzle(pool, { schema });
-export type DB = typeof db;
+// DB accepts both NodePgDatabase and PgTransaction (transaction callbacks receive the latter)
+export type DB = PgDatabase<any, typeof schema>;

@@ -1,88 +1,95 @@
 # Roadmap: Notes
 
-## Overview
+## Milestones
 
-Four phases deliver a complete self-hosted infinite outliner. Phase 1 lays the authenticated foundation — secure schema, document management, and the new-user onboarding flow. Phase 2 builds the core outliner loop — bullet CRUD, nesting, keyboard shortcuts, collapse/zoom, and the server-persisted undo system that must wrap every mutation before complexity layers on. Phase 3 enriches bullet content with markdown rendering, full-text search, tag/mention/date chip syntax, and bookmarks. Phase 4 completes the product with file attachments, comments, and mobile touch gestures.
+- ✅ **v1.0 MVP** — Phases 1-4 (shipped 2026-03-10)
+- 🚧 **v1.1 Mobile & UI Polish** — Phases 5-8 (in progress)
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+<details>
+<summary>✅ v1.0 MVP (Phases 1-4) — SHIPPED 2026-03-10</summary>
 
-Decimal phases appear between their surrounding integers in numeric order.
+- [x] Phase 1: Foundation (6/6 plans) — completed 2026-03-09
+- [x] Phase 2: Core Outliner (8/8 plans) — completed 2026-03-09
+- [x] Phase 3: Rich Content (9/9 plans) — completed 2026-03-09
+- [x] Phase 4: Attachments, Comments, and Mobile (9/9 plans) — completed 2026-03-10
 
-- [x] **Phase 1: Foundation** - Authenticated app with document management and correct DB schema (completed 2026-03-09)
-- [ ] **Phase 2: Core Outliner** - Bullet CRUD, nesting, keyboard shortcuts, collapse/zoom, and server-persisted undo
-- [ ] **Phase 3: Rich Content** - Markdown rendering, full-text search, tag/mention/date chips, and bookmarks
-- [ ] **Phase 4: Attachments, Comments, and Mobile** - File attachments, comments, and mobile touch gestures
+Full details: [`.planning/milestones/v1.0-ROADMAP.md`](milestones/v1.0-ROADMAP.md)
+
+</details>
+
+### 🚧 v1.1 Mobile & UI Polish (In Progress)
+
+**Milestone Goal:** Transform the app into a genuinely great mobile experience with a polished dark mode, responsive layout, hamburger navigation, improved visual design, PWA installation, and a quick-open palette.
+
+- [x] **Phase 5: Mobile Layout Foundation** - Responsive sidebar, hamburger menu, touch targets, and desktop toggle (completed 2026-03-10)
+- [ ] **Phase 6: Dark Mode** - System-preference dark theme with WCAG AA colors and FOUC prevention
+- [ ] **Phase 7: Icons, Fonts, and PWA** - Lucide icons, self-hosted fonts, and home screen installation
+- [ ] **Phase 8: Swipe Polish and Quick-Open Palette** - Swipe gesture animations and Ctrl+K navigation palette
 
 ## Phase Details
 
-### Phase 1: Foundation
-**Goal**: Users can securely access the app and manage their documents, with a schema correct enough to never require a breaking migration
-**Depends on**: Nothing (first phase)
-**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, DOC-01, DOC-02, DOC-03, DOC-04, DOC-05, DOC-06, DOC-07
+### Phase 5: Mobile Layout Foundation
+**Goal**: Users can navigate the app comfortably on any mobile device — sidebar hidden by default, opened via hamburger, closed by tapping outside or the X button
+**Depends on**: Phase 4 (v1.0 complete)
+**Requirements**: MOBL-01, MOBL-02, MOBL-03, MOBL-04, MOBL-05, MOBL-06, MOBL-07
 **Success Criteria** (what must be TRUE):
-  1. User can register an account with email/password, log in, and stay logged in across browser refresh
-  2. User can log in with Google SSO and access the same account on subsequent visits
-  3. A new user lands in a blank "Inbox" document automatically created on first login
-  4. User can create, rename, reorder, and delete documents from the sidebar and navigate between them
-  5. User can export any document or all documents as Markdown files
-**Plans**: 6 plans
-
+  1. On a mobile-width viewport, the sidebar is hidden and the content area fills the full screen width
+  2. Tapping the hamburger button in the header slides the sidebar open with a smooth off-canvas animation
+  3. Tapping outside the open sidebar or the X button closes the sidebar
+  4. All buttons and interactive elements are tappable without precision — minimum 44×44px touch targets
+  5. The app fills the visible browser viewport correctly on mobile (no content clipped by address bar or home indicator)
+**Plans**: 4 plans
 Plans:
-- [x] 01-01-PLAN.md — Infrastructure, Drizzle schema (5 tables), Docker, test scaffolds
-- [x] 01-02-PLAN.md — Auth backend: register, login, refresh, logout, Google OAuth
-- [x] 01-03-PLAN.md — Documents backend: CRUD, reorder, export endpoints
-- [x] 01-04-PLAN.md — Frontend scaffold: Vite, AuthContext, LoginPage, React Router
-- [x] 01-05-PLAN.md — App shell: Sidebar, DocumentList (dnd-kit), DocumentRow, DocumentView
-- [x] 01-06-PLAN.md — Deploy to production, E2E smoke test, Google SSO human checkpoint
+- [ ] 05-00-PLAN.md — Test scaffold (mobileLayout.test.tsx, RED state)
+- [ ] 05-01-PLAN.md — Viewport fix, sidebar off-canvas transform, X button, Ctrl+E
+- [ ] 05-02-PLAN.md — Hamburger button, sticky header, dnd-kit TouchSensor
+- [ ] 05-03-PLAN.md — Touch target audit + human verification checkpoint
 
-### Phase 2: Core Outliner
-**Goal**: Users can capture and organize thoughts in an infinitely nested bullet outline with full keyboard control and undo that survives page refresh
-**Depends on**: Phase 1
-**Requirements**: BULL-01, BULL-02, BULL-03, BULL-04, BULL-05, BULL-06, BULL-07, BULL-08, BULL-11, BULL-12, BULL-13, BULL-14, BULL-15, KB-01, KB-02, KB-03, KB-04, KB-05, KB-06, KB-07, UNDO-01, UNDO-02, UNDO-03, UNDO-04
+### Phase 6: Dark Mode
+**Goal**: Users with a dark OS preference see a fully themed dark interface with no white flash on load and no unthemed elements
+**Depends on**: Phase 5
+**Requirements**: DRKM-01, DRKM-02, DRKM-03, DRKM-04
 **Success Criteria** (what must be TRUE):
-  1. User can create, edit, indent, outdent, and delete bullets using Enter/Tab/Shift+Tab/Backspace; changes persist after page refresh
-  2. User can drag a bullet (with all its children) to a new position in the tree without creating cycles; the move can be undone
-  3. User can collapse and expand branches; collapsed state survives a page refresh
-  4. User can zoom into any bullet as the full-screen root and navigate back up via the breadcrumb bar using keyboard or click
-  5. User can undo and redo up to 50 actions — including deletions, reorders, and indent changes — and the undo history survives a full page refresh
+  1. Switching the OS to dark mode causes the app to switch to a dark theme without any page action
+  2. Every visible text and background combination passes WCAG AA contrast in both light and dark themes
+  3. Hard-refreshing the page in dark OS preference shows a dark background immediately — no white flash
+  4. Browser scrollbars and native form inputs (text fields, checkboxes) adopt the active theme
 **Plans**: TBD
 
-### Phase 3: Rich Content
-**Goal**: Bullet text comes alive with inline formatting, clickable syntax chips, tag browsing, bookmarks, and fast full-text search
-**Depends on**: Phase 2
-**Requirements**: BULL-09, BULL-10, TAG-01, TAG-02, TAG-03, TAG-04, TAG-05, SRCH-01, SRCH-02, SRCH-03, SRCH-04, BM-01, BM-02, BM-03
+### Phase 7: Icons, Fonts, and PWA
+**Goal**: The app looks polished and can be installed to the home screen — consistent SVG icons, modern typography, and a valid PWA manifest
+**Depends on**: Phase 6
+**Requirements**: VISL-01, VISL-02, VISL-03, PWA-01, PWA-02, PWA-03
 **Success Criteria** (what must be TRUE):
-  1. Bold, italic, strikethrough, links, and inline images render in bullet text when not being edited; raw markdown shows while the cursor is in that bullet
-  2. Typing #tag, @mention, or !! renders a clickable chip in the bullet; !! opens a date picker before inserting the chip
-  3. The Tag Browser (sidebar tab) lists all unique #tags, @mentions, and !!dates across the user's documents with bullet counts; clicking one opens a filtered bullet list
-  4. User can search across all documents using free text and tag/mention/date query syntax; clicking a result opens the bullet in zoomed focus view
-  5. User can bookmark any bullet and view all bookmarks in a dedicated screen; clicking a bookmark opens the bullet in zoomed focus view
+  1. No Unicode characters or emoji are used as icons anywhere in the UI — all replaced with crisp SVG components
+  2. The app displays Inter as the UI font and JetBrains Mono for code and tag chips, loaded from the app server (no Google Fonts)
+  3. An "Add to Home Screen" prompt is available on both iOS Safari and Chrome Android
+  4. After installation, the app opens in standalone mode without browser chrome
 **Plans**: TBD
 
-### Phase 4: Attachments, Comments, and Mobile
-**Goal**: Users can attach files and leave comments on bullets, and the full feature set works on mobile browsers via swipe and long-press gestures
-**Depends on**: Phase 3
-**Requirements**: BULL-16, ATT-01, ATT-02, ATT-03, ATT-04, ATT-05, ATT-06, CMT-01, CMT-02, CMT-03, CMT-04, MOB-01, MOB-02, MOB-03, MOB-04, MOB-05
+### Phase 8: Swipe Polish and Quick-Open Palette
+**Goal**: Swipe gestures feel intentional and satisfying, and users can navigate to any document or bookmark from anywhere in the app with two keystrokes
+**Depends on**: Phase 7
+**Requirements**: GEST-01, GEST-02, GEST-03, GEST-04, GEST-05, QKOP-01, QKOP-02, QKOP-03, QKOP-04, QKOP-05, QKOP-06, QKOP-07
 **Success Criteria** (what must be TRUE):
-  1. User can attach any file (up to 100MB) to a bullet; images render inline, PDFs show a thumbnail, other files show a download icon; files survive a container restart
-  2. User can add and delete plain-text comments on any bullet; bullets with comments show a note icon that opens the comments side panel
-  3. On mobile, swiping right marks a bullet complete; swiping left soft-deletes it with undo available
-  4. On mobile, long-pressing a bullet opens a context menu with indent, outdent, move, complete, delete, bookmark, attachment, and comment actions
-  5. The mobile focus toolbar (above the keyboard) provides one-tap access to indent, outdent, move, undo, redo, attachment, comment, bookmark, complete, and delete
+  1. Swiping a bullet reveals a color-coded backing (green for complete, red for delete) with the matching icon that scales with drag distance
+  2. Releasing a swipe below the commit threshold snaps the row back to center with an ease-out animation
+  3. Completing a swipe animates the row out before it disappears from the list
+  4. Pressing Ctrl+K opens a palette showing recent documents, and typing instantly filters documents and searches bullet content
+  5. The user can navigate palette results with arrow keys and open a result with Enter, or dismiss with Escape
 **Plans**: TBD
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Foundation | 6/6 | Complete   | 2026-03-09 |
-| 2. Core Outliner | 0/TBD | Not started | - |
-| 3. Rich Content | 0/TBD | Not started | - |
-| 4. Attachments, Comments, and Mobile | 0/TBD | Not started | - |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Foundation | v1.0 | 6/6 | Complete | 2026-03-09 |
+| 2. Core Outliner | v1.0 | 8/8 | Complete | 2026-03-09 |
+| 3. Rich Content | v1.0 | 9/9 | Complete | 2026-03-09 |
+| 4. Attachments, Comments, and Mobile | v1.0 | 9/9 | Complete | 2026-03-10 |
+| 5. Mobile Layout Foundation | 4/4 | Complete   | 2026-03-10 | - |
+| 6. Dark Mode | v1.1 | 0/? | Not started | - |
+| 7. Icons, Fonts, and PWA | v1.1 | 0/? | Not started | - |
+| 8. Swipe Polish and Quick-Open Palette | v1.1 | 0/? | Not started | - |

@@ -1,3 +1,5 @@
+import { Star } from 'lucide-react';
+
 export type FilteredBulletRow = {
   bulletId: string;
   bulletContent: string;
@@ -97,7 +99,11 @@ export function FilteredBulletList({
                 }}
                 aria-label={row.isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
               >
-                {row.isBookmarked ? '★' : '☆'}
+                <Star
+                  size={16}
+                  strokeWidth={1.5}
+                  className={row.isBookmarked ? 'star-filled' : 'star-outline'}
+                />
               </button>
             )}
           </div>

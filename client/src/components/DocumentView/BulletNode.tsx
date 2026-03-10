@@ -1,4 +1,5 @@
 import { useRef, useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -328,13 +329,14 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
               onDelete={() => deleteAttachment.mutate({ attachmentId: a.id, bulletId: bullet.id })}
             />
           ))}
-          {contextMenuPos && (
+          {contextMenuPos && createPortal(
             <ContextMenu
               bullet={bullet}
               bulletMap={bulletMap}
               position={contextMenuPos}
               onClose={() => setContextMenuPos(null)}
-            />
+            />,
+            document.body,
           )}
         </div>
       </div>

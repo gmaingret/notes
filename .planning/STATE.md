@@ -133,6 +133,10 @@ Recent decisions affecting current work:
 - [Phase 07-05]: Generated PNG icons committed to git — not regenerated on server — avoids sharp binary in Docker image
 - [Phase 07-05]: No apple-touch-icon or apple-mobile-web-app-capable meta tags — deprecated per MDN/RESEARCH.md anti-patterns
 
+### Roadmap Evolution
+
+- Phase 07.1 inserted after Phase 7: UI Polish Tweaks (URGENT)
+
 ### Pending Todos
 
 None.

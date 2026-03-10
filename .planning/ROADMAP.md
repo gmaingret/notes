@@ -81,6 +81,16 @@ Plans:
 - [ ] 07-04-PLAN.md — Font setup: fontsource imports, Inter body font, JetBrains Mono classes [parallel with 07-03]
 - [ ] 07-05-PLAN.md — PWA assets (favicon, manifest, PNG icons), index.html wiring, human verify
 
+### Phase 07.1: UI Polish Tweaks (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 7
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 07.1 to break down)
+
 ### Phase 8: Swipe Polish and Quick-Open Palette
 **Goal**: Swipe gestures feel intentional and satisfying, and users can navigate to any document or bookmark from anywhere in the app with two keystrokes
 **Depends on**: Phase 7

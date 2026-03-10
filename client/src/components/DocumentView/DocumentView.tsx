@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Menu } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { Document } from '../../hooks/useDocuments';
 import { BulletTree, buildBulletMap } from './BulletTree';
@@ -79,14 +80,14 @@ export function DocumentView({ document }: Props) {
             onClick={() => setSidebarOpen(true)}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: '1.25rem', lineHeight: 1,
+              lineHeight: 1,
               minWidth: 36, minHeight: 36, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: '0.25rem',
             }}
             aria-label="Open sidebar"
           >
-            &#9776;
+            <Menu size={20} strokeWidth={1.5} />
           </button>
         )}
         {zoomedBulletId ? (

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MoreHorizontal, X, Plus, FileText, Tag, Star } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCreateDocument, useExportAllDocuments } from '../../hooks/useDocuments';
 import { DocumentList } from './DocumentList';
@@ -36,7 +37,7 @@ export function Sidebar({ activeDocId }: SidebarProps) {
           <span style={{ flex: 1, fontWeight: 600, fontSize: '1rem' }}>Notes</span>
 
           <div>
-            <button onClick={() => setShowSidebarMenu(v => !v)} className="sidebar-icon-btn" style={iconButtonBase} title="More options">⋯</button>
+            <button onClick={() => setShowSidebarMenu(v => !v)} className="sidebar-icon-btn" style={iconButtonBase} title="More options"><MoreHorizontal size={20} strokeWidth={1.5} /></button>
             {showSidebarMenu && (
               <>
                 {/* Transparent overlay — tapping outside the dropdown closes it (mobile + desktop) */}
@@ -61,26 +62,36 @@ export function Sidebar({ activeDocId }: SidebarProps) {
             title="Close sidebar"
             aria-label="Close sidebar"
           >
-            ✕
+            <X size={20} strokeWidth={1.5} />
           </button>
 
-          <button onClick={handleCreate} className="sidebar-icon-btn" style={iconButtonBase} title="New document">+</button>
+          <button onClick={handleCreate} className="sidebar-icon-btn" style={iconButtonBase} title="New document"><Plus size={20} strokeWidth={1.5} /></button>
         </div>
 
         {/* Tab bar */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border-default)' }}>
-          {(['docs', 'tags', 'bookmarks'] as const).map(tab => (
-            <button key={tab} onClick={() => setSidebarTab(tab)}
-              className={`sidebar-tab${sidebarTab === tab ? ' sidebar-tab--active' : ''}`}
-              style={{
-                flex: 1, border: 'none', background: 'none', cursor: 'pointer',
-                fontSize: '0.75rem',
-                fontWeight: sidebarTab === tab ? 600 : 400,
-              }}>
-              {tab === 'docs' ? 'Docs' : tab === 'tags' ? 'Tags' : '🔖'}
-            </button>
-          ))}
-        </div>
+        {(() => {
+          const tabIcon = {
+            docs: <FileText size={20} strokeWidth={1.5} />,
+            tags: <Tag size={20} strokeWidth={1.5} />,
+            bookmarks: <Star size={20} strokeWidth={1.5} />,
+          } as const;
+          return (
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border-default)' }}>
+              {(['docs', 'tags', 'bookmarks'] as const).map(tab => (
+                <button key={tab} onClick={() => setSidebarTab(tab)}
+                  className={`sidebar-tab${sidebarTab === tab ? ' sidebar-tab--active' : ''}`}
+                  title={tab === 'docs' ? 'Documents' : tab === 'tags' ? 'Tags' : 'Bookmarks'}
+                  style={{
+                    flex: 1, border: 'none', background: 'none', cursor: 'pointer',
+                    fontSize: '0.75rem',
+                    fontWeight: sidebarTab === tab ? 600 : 400,
+                  }}>
+                  {tabIcon[tab]}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
 
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {sidebarTab === 'docs' ? <DocumentList activeDocId={activeDocId} />

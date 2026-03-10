@@ -85,7 +85,7 @@ Plans:
 
 **Goal:** FocusToolbar icon cleanup, bullet row spacing, sidebar footer with logout/export, and + button inline rename on new documents
 **Depends on:** Phase 7
-**Plans:** 2/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [ ] 07.1-00-PLAN.md — Test scaffold (uiPolish.test.ts, RED state)
@@ -116,5 +116,5 @@ Plans:
 | 5. Mobile Layout Foundation | v1.1 | 4/4 | Complete | 2026-03-10 |
 | 6. Dark Mode | v1.1 | 5/5 | Complete   | 2026-03-10 |
 | 7. Icons, Fonts, and PWA | 5/5 | Complete   | 2026-03-10 | - |
-| 07.1. UI Polish Tweaks | 2/4 | In Progress|  | - |
+| 07.1. UI Polish Tweaks | 4/4 | Complete   | 2026-03-10 | - |
 | 8. Swipe Polish and Quick-Open Palette | v1.1 | 0/? | Not started | - |

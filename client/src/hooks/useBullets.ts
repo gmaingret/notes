@@ -128,6 +128,7 @@ export function useSoftDeleteBullet() {
     onSettled: (_data, _err, vars) => {
       qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) });
       qc.invalidateQueries({ queryKey: ['tags'] });
+      qc.invalidateQueries({ queryKey: ['tag-bullets'] });
     },
   });
 }

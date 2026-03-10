@@ -331,6 +331,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
               bulletId={bullet.id}
               initialNote={bullet.note}
               focusTrigger={noteFocusTrigger}
+              onHide={() => setNoteVisible(false)}
             />
           )}
           {!isDragOverlay && attachments.map(a => (

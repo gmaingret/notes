@@ -106,7 +106,8 @@ describe('Mobile Layout — MOBL-01: hamburger opens sidebar', () => {
 });
 
 // ---------------------------------------------------------------------------
-// MOBL-02: Backdrop div renders and calls setSidebarOpen(false) on click
+// MOBL-02: Backdrop div always renders (not conditional) and calls setSidebarOpen(false) on click
+// Phase 5: backdrop uses .sidebar-backdrop class and is always in DOM (never conditional)
 // ---------------------------------------------------------------------------
 describe('Mobile Layout — MOBL-02: backdrop closes sidebar', () => {
   beforeEach(() => {
@@ -114,16 +115,23 @@ describe('Mobile Layout — MOBL-02: backdrop closes sidebar', () => {
     mockSidebarOpen = true;
   });
 
-  it('backdrop overlay is present when sidebar is open', () => {
+  it('backdrop overlay is always present (even when sidebar is open)', () => {
     render(<Sidebar activeDocId={null} />);
-    // MOBL-02: When sidebarOpen=true, a mobile overlay/backdrop must be rendered
-    const backdrop = document.querySelector('.mobile-overlay');
+    // MOBL-02: sidebar-backdrop is always rendered (not conditional) so fade-out transition plays
+    const backdrop = document.querySelector('.sidebar-backdrop');
+    expect(backdrop).not.toBeNull();
+  });
+
+  it('backdrop overlay is always present even when sidebar is closed', () => {
+    mockSidebarOpen = false;
+    render(<Sidebar activeDocId={null} />);
+    const backdrop = document.querySelector('.sidebar-backdrop');
     expect(backdrop).not.toBeNull();
   });
 
   it('clicking backdrop calls setSidebarOpen(false)', () => {
     render(<Sidebar activeDocId={null} />);
-    const backdrop = document.querySelector('.mobile-overlay');
+    const backdrop = document.querySelector('.sidebar-backdrop');
     expect(backdrop).not.toBeNull();
     fireEvent.click(backdrop!);
     expect(mockSetSidebarOpen).toHaveBeenCalledWith(false);
@@ -132,6 +140,7 @@ describe('Mobile Layout — MOBL-02: backdrop closes sidebar', () => {
 
 // ---------------------------------------------------------------------------
 // MOBL-03: X close button renders inside sidebar header and calls setSidebarOpen(false)
+// Phase 5: X button has className "mobile-only" and aria-label "Close sidebar"
 // ---------------------------------------------------------------------------
 describe('Mobile Layout — MOBL-03: X button closes sidebar', () => {
   beforeEach(() => {
@@ -139,16 +148,18 @@ describe('Mobile Layout — MOBL-03: X button closes sidebar', () => {
     mockSidebarOpen = true;
   });
 
-  it('X close button is visible in sidebar header when sidebar is open', () => {
+  it('X close button is present in sidebar header with mobile-only class', () => {
     render(<Sidebar activeDocId={null} />);
-    // MOBL-03: When sidebarOpen=true, a close (X) button must be in the sidebar header
-    const closeBtn = screen.getByRole('button', { name: /close|×|x/i });
-    expect(closeBtn).toBeDefined();
+    // MOBL-03: A close button with className "mobile-only" must be in the sidebar header
+    const { container } = render(<Sidebar activeDocId={null} />);
+    const closeBtn = container.querySelector('button.mobile-only');
+    expect(closeBtn).not.toBeNull();
   });
 
   it('clicking X button calls setSidebarOpen(false)', () => {
-    render(<Sidebar activeDocId={null} />);
-    const closeBtn = screen.getByRole('button', { name: /close|×|x/i });
+    const { container } = render(<Sidebar activeDocId={null} />);
+    const closeBtn = container.querySelector('button.mobile-only') as HTMLElement;
+    expect(closeBtn).not.toBeNull();
     fireEvent.click(closeBtn);
     expect(mockSetSidebarOpen).toHaveBeenCalledWith(false);
   });

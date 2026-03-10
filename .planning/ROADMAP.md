@@ -23,7 +23,7 @@ Full details: [`.planning/milestones/v1.0-ROADMAP.md`](milestones/v1.0-ROADMAP.m
 
 **Milestone Goal:** Transform the app into a genuinely great mobile experience with a polished dark mode, responsive layout, hamburger navigation, improved visual design, PWA installation, and a quick-open palette.
 
-- [ ] **Phase 5: Mobile Layout Foundation** - Responsive sidebar, hamburger menu, touch targets, and desktop toggle
+- [x] **Phase 5: Mobile Layout Foundation** - Responsive sidebar, hamburger menu, touch targets, and desktop toggle (completed 2026-03-10)
 - [ ] **Phase 6: Dark Mode** - System-preference dark theme with WCAG AA colors and FOUC prevention
 - [ ] **Phase 7: Icons, Fonts, and PWA** - Lucide icons, self-hosted fonts, and home screen installation
 - [ ] **Phase 8: Swipe Polish and Quick-Open Palette** - Swipe gesture animations and Ctrl+K navigation palette
@@ -89,7 +89,7 @@ Plans:
 | 2. Core Outliner | v1.0 | 8/8 | Complete | 2026-03-09 |
 | 3. Rich Content | v1.0 | 9/9 | Complete | 2026-03-09 |
 | 4. Attachments, Comments, and Mobile | v1.0 | 9/9 | Complete | 2026-03-10 |
-| 5. Mobile Layout Foundation | 3/4 | In Progress|  | - |
+| 5. Mobile Layout Foundation | 4/4 | Complete   | 2026-03-10 | - |
 | 6. Dark Mode | v1.1 | 0/? | Not started | - |
 | 7. Icons, Fonts, and PWA | v1.1 | 0/? | Not started | - |
 | 8. Swipe Polish and Quick-Open Palette | v1.1 | 0/? | Not started | - |

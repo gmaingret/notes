@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mobile & UI Polish
 status: ready_to_plan
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-03-10T13:31:18.362Z"
+stopped_at: Completed 05-mobile-layout-foundation 05-02-PLAN.md
+last_updated: "2026-03-10T13:33:17.852Z"
 last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 ---
@@ -65,6 +65,7 @@ Progress: [██░░░░░░░░] 50% (v1.0 complete, v1.1 not started)
 | Phase 05-mobile-layout-foundation P03 | 1 | 1 tasks | 5 files |
 | Phase 05-mobile-layout-foundation P00 | 12 | 1 tasks | 1 files |
 | Phase 05 P01 | ~4 min | 2 tasks | 4 files |
+| Phase 05-mobile-layout-foundation P02 | 8 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,8 @@ Recent decisions affecting current work:
 - [Phase 05-mobile-layout-foundation]: TDD Wave 0 scaffold written before any production code — all tests RED at time of writing
 - [Phase 05-01]: sidebar-backdrop always rendered (not conditional) for CSS fade-out transition
 - [Phase 05-01]: !important on position/height in mobile CSS overrides inline styles on aside element
+- [Phase 05-02]: Hamburger added to both AppPage (floating) and DocumentView (sticky header) — MOBL-01 test mocks DocumentView so AppPage hamburger needed
+- [Phase 05-02]: TouchSensor delay=250ms tolerance=5 in BulletTree — pre-positions dnd-kit for Phase 8 swipe without intercepting taps or horizontal swipes
 
 ### Pending Todos
 
@@ -96,6 +99,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-10T13:31:18.360Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-03-10T13:33:17.850Z
+Stopped at: Completed 05-mobile-layout-foundation 05-02-PLAN.md
 Resume file: None

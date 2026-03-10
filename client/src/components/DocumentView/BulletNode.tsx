@@ -1,11 +1,11 @@
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { FlatBullet, BulletMap } from './BulletTree';
 import { getChildren } from './BulletTree';
 import { useSetCollapsed, useMarkComplete, useSoftDeleteBullet } from '../../hooks/useBullets';
-import { useBulletAttachments, useDeleteAttachment } from '../../hooks/useAttachments';
+import { useBulletAttachments, useDeleteAttachment, useUploadAttachment } from '../../hooks/useAttachments';
 import { BulletContent } from './BulletContent';
 import { ContextMenu } from './ContextMenu';
 import { NoteRow } from './NoteRow';
@@ -27,6 +27,37 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
   const softDelete = useSoftDeleteBullet();
   const { data: attachments = [] } = useBulletAttachments(bullet.id);
   const deleteAttachment = useDeleteAttachment();
+
+  // Hidden file input ref for ContextMenu 'Attach file' CustomEvent wiring
+  const attachFileInputRef = useRef<HTMLInputElement>(null);
+  const uploadAttachment = useUploadAttachment();
+
+  // noteVisible: true when Note button or 'Add note' context menu triggers focus-note CustomEvent
+  // Allows NoteRow to render and focus even when bullet.note is null
+  const [noteVisible, setNoteVisible] = useState(false);
+
+  // Listen for 'focus-note' CustomEvent dispatched by FocusToolbar and ContextMenu
+  useEffect(() => {
+    function handler(e: Event) {
+      const detail = (e as CustomEvent<{ bulletId: string }>).detail;
+      if (detail.bulletId !== bullet.id) return;
+      setNoteVisible(true);
+    }
+    document.addEventListener('focus-note', handler);
+    return () => document.removeEventListener('focus-note', handler);
+  }, [bullet.id]);
+
+  // Listen for 'attach-file' CustomEvent dispatched by ContextMenu
+  useEffect(() => {
+    function handler(e: Event) {
+      const detail = (e as CustomEvent<{ bulletId: string }>).detail;
+      if (detail.bulletId !== bullet.id) return;
+      attachFileInputRef.current?.click();
+    }
+    document.addEventListener('attach-file', handler);
+    return () => document.removeEventListener('attach-file', handler);
+  }, [bullet.id]);
+
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
 
   // Swipe gesture state
@@ -262,13 +293,30 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
 
         {/* Content — not rendered in drag overlay (just the dot + text stub) */}
         <div style={{ flex: 1, minWidth: 0 }}>
+          {!isDragOverlay && (
+            <input
+              ref={attachFileInputRef}
+              type="file"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                uploadAttachment.mutate({ bulletId: bullet.id, file });
+                e.target.value = '';
+              }}
+            />
+          )}
           <BulletContent
             bullet={bullet}
             bulletMap={isDragOverlay ? {} : bulletMap}
             isDragOverlay={isDragOverlay}
           />
-          {!isDragOverlay && bullet.note !== null && (
-            <NoteRow bulletId={bullet.id} initialNote={bullet.note} />
+          {!isDragOverlay && (bullet.note !== null || noteVisible) && (
+            <NoteRow
+              bulletId={bullet.id}
+              initialNote={bullet.note}
+              focusOnMount={noteVisible && bullet.note === null}
+            />
           )}
           {!isDragOverlay && attachments.map(a => (
             <AttachmentRow

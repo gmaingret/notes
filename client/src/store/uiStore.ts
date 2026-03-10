@@ -9,13 +9,13 @@ export type CanvasView =
 type UiStore = {
   lastOpenedDocId: string | null;
   sidebarOpen: boolean;
-  sidebarTab: 'docs' | 'tags';
+  sidebarTab: 'docs' | 'tags' | 'bookmarks';
   canvasView: CanvasView;
   searchOpen: boolean;
   focusedBulletId: string | null;
   setLastOpenedDocId: (id: string | null) => void;
   setSidebarOpen: (open: boolean) => void;
-  setSidebarTab: (tab: 'docs' | 'tags') => void;
+  setSidebarTab: (tab: 'docs' | 'tags' | 'bookmarks') => void;
   setCanvasView: (view: CanvasView) => void;
   setSearchOpen: (open: boolean) => void;
   setFocusedBulletId: (id: string | null) => void;

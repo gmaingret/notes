@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 // MOB-05: pure function to calculate keyboard bottom offset from visualViewport values
@@ -20,7 +20,6 @@ import {
   useDocumentBullets,
 } from '../../hooks/useBullets';
 import { useBookmarks, useAddBookmark, useRemoveBookmark } from '../../hooks/useBookmarks';
-import { useUploadAttachment } from '../../hooks/useAttachments';
 import { getChildren, buildBulletMap } from './BulletTree';
 
 type Props = {
@@ -41,7 +40,6 @@ const btnStyle: React.CSSProperties = {
 
 export function FocusToolbar({ bulletId, documentId }: Props) {
   const [keyboardOffset, setKeyboardOffset] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   // visualViewport: position toolbar above soft keyboard on mobile
@@ -71,7 +69,6 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
   const moveBullet = useMoveBullet();
   const markComplete = useMarkComplete();
   const softDelete = useSoftDeleteBullet();
-  const uploadAttachment = useUploadAttachment();
 
   const { data: bookmarks = [] } = useBookmarks();
   const addBookmark = useAddBookmark();
@@ -123,15 +120,8 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
   }
 
   function handleAttach() {
-    fileInputRef.current?.click();
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    uploadAttachment.mutate({ bulletId, file });
-    // Reset input so the same file can be re-selected
-    e.target.value = '';
+    // Dispatch to BulletNode's file input — avoids toolbar unmounting when file dialog opens
+    document.dispatchEvent(new CustomEvent('attach-file', { detail: { bulletId } }));
   }
 
   function handleNote() {
@@ -157,6 +147,8 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
 
   return (
     <div
+      data-focus-toolbar="true"
+      onMouseDown={(e) => e.preventDefault()}
       style={{
         position: 'fixed',
         bottom: keyboardOffset,
@@ -171,12 +163,6 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
         overflowX: 'auto',
       }}
     >
-      <input
-        ref={fileInputRef}
-        type="file"
-        style={{ display: 'none' }}
-        onChange={handleFileChange}
-      />
       <button
         style={{ ...btnStyle, opacity: hasPreviousSibling ? 1 : 0.3 }}
         onClick={handleIndent}

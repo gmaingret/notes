@@ -12,6 +12,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useDocumentBullets, useMoveBullet, useCreateBullet } from '../../hooks/useBullets';
 import type { Bullet } from '../../hooks/useBullets';
 import { BulletNode } from './BulletNode';
+import { ContextMenu } from './ContextMenu';
 import { DocumentToolbar } from './DocumentToolbar';
 import { FocusToolbar } from './FocusToolbar';
 import { useUiStore } from '../../store/uiStore';
@@ -78,6 +79,9 @@ export function BulletTree({
   const [dragOffsetX, setDragOffsetX] = useState(0);
   const [overId, setOverId] = useState<string | null>(null);
   const [hideCompleted, setHideCompleted] = useState(false);
+
+  // Tree-level context menu: handles right-clicks on empty document space (outside bullet rows)
+  const [treeContextMenu, setTreeContextMenu] = useState<{ x: number; y: number; bulletId: string } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -204,20 +208,38 @@ export function BulletTree({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      {focusedBulletId ? (
+      <DocumentToolbar
+        documentId={documentId}
+        hideCompleted={hideCompleted}
+        onToggleHideCompleted={() => setHideCompleted(h => !h)}
+      />
+      {focusedBulletId && (
         <FocusToolbar bulletId={focusedBulletId} documentId={documentId} />
-      ) : (
-        <DocumentToolbar
-          documentId={documentId}
-          hideCompleted={hideCompleted}
-          onToggleHideCompleted={() => setHideCompleted(h => !h)}
-        />
       )}
       <SortableContext
         items={visibleItems.map(f => f.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div style={{ position: 'relative' }}>
+        <div
+          style={{ position: 'relative' }}
+          onContextMenu={(e) => {
+            // Only fires when right-click did NOT land on a BulletNode
+            // (BulletNode's handler calls stopPropagation).
+            // Show the context menu for the currently focused bullet, if any.
+            const targetBulletId = focusedBulletId ?? visibleItems[0]?.id ?? null;
+            if (!targetBulletId) return;
+            e.preventDefault();
+            setTreeContextMenu({ x: e.clientX, y: e.clientY, bulletId: targetBulletId });
+          }}
+        >
+          {treeContextMenu && bulletMap[treeContextMenu.bulletId] && (
+            <ContextMenu
+              bullet={{ ...bulletMap[treeContextMenu.bulletId], depth: 0 }}
+              bulletMap={bulletMap}
+              position={{ x: treeContextMenu.x, y: treeContextMenu.y }}
+              onClose={() => setTreeContextMenu(null)}
+            />
+          )}
           {visibleItems.length === 0 && !isLoading && (
             <div
               onClick={() => createBullet.mutate(

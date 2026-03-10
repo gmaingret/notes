@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '../../api/client';
 import type { FlatBullet, BulletMap } from './BulletTree';
 import { getChildren } from './BulletTree';
 import {
@@ -19,6 +21,7 @@ type Props = {
 
 export function ContextMenu({ bullet, bulletMap, position, onClose }: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   const indentBullet = useIndentBullet();
   const outdentBullet = useOutdentBullet();
@@ -130,6 +133,18 @@ export function ContextMenu({ bullet, bulletMap, position, onClose }: Props) {
     onClose();
   }
 
+  async function handleUndo() {
+    await apiClient.post('/api/undo', {});
+    await queryClient.invalidateQueries({ queryKey: ['bullets'] });
+    onClose();
+  }
+
+  async function handleRedo() {
+    await apiClient.post('/api/redo', {});
+    await queryClient.invalidateQueries({ queryKey: ['bullets'] });
+    onClose();
+  }
+
   const buttonStyle: React.CSSProperties = {
     display: 'block',
     width: '100%',
@@ -210,6 +225,23 @@ export function ContextMenu({ bullet, bulletMap, position, onClose }: Props) {
         onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
       >
         Move Down
+      </button>
+      <div style={separatorStyle} />
+      <button
+        style={buttonStyle}
+        onClick={() => void handleUndo()}
+        onMouseEnter={e => { (e.target as HTMLElement).style.background = '#f5f5f5'; }}
+        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
+      >
+        Undo
+      </button>
+      <button
+        style={buttonStyle}
+        onClick={() => void handleRedo()}
+        onMouseEnter={e => { (e.target as HTMLElement).style.background = '#f5f5f5'; }}
+        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
+      >
+        Redo
       </button>
       <div style={separatorStyle} />
       <button

@@ -96,6 +96,6 @@ Plans:
 | 3. Rich Content | v1.0 | 9/9 | Complete | 2026-03-09 |
 | 4. Attachments, Comments, and Mobile | v1.0 | 9/9 | Complete | 2026-03-10 |
 | 5. Mobile Layout Foundation | v1.1 | 4/4 | Complete | 2026-03-10 |
-| 6. Dark Mode | v1.1 | 0/5 | Not started | - |
+| 6. Dark Mode | 1/5 | In Progress|  | - |
 | 7. Icons, Fonts, and PWA | v1.1 | 0/? | Not started | - |
 | 8. Swipe Polish and Quick-Open Palette | v1.1 | 0/? | Not started | - |

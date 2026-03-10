@@ -75,9 +75,8 @@ export function DocumentView({ document }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
         {!sidebarOpen && (
           <button
-            className="hamburger-btn"
+            className="hamburger-btn doc-hamburger"
             onClick={() => setSidebarOpen(true)}
-            className="doc-hamburger"
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               fontSize: '1.25rem', lineHeight: 1,

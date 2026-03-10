@@ -94,7 +94,7 @@ Plans:
   3. On mobile, swiping right marks a bullet complete; swiping left soft-deletes it with undo available
   4. On mobile, long-pressing a bullet opens a context menu with indent, outdent, move, complete, delete, bookmark, attachment, and comment actions
   5. The mobile focus toolbar (above the keyboard) provides one-tap access to indent, outdent, move, undo, redo, attachment, comment, bookmark, complete, and delete
-**Plans**: 8 plans
+**Plans**: 9 plans
 
 Plans:
 - [x] 04-01-PLAN.md — Wave 0: Nyquist test scaffolds (RED stubs for all 16 requirements)
@@ -105,6 +105,7 @@ Plans:
 - [x] 04-06-PLAN.md — Mobile gestures: swipe right/left (complete/delete + UndoToast) + long-press context menu
 - [x] 04-07-PLAN.md — computeKeyboardOffset pure function + MOB-04 touch drag confirmation
 - [x] 04-08-PLAN.md — Deploy to production + human verification checkpoint + PR merge
+- [ ] 04-09-PLAN.md — Gap closure: wire focus-note and attach-file CustomEvent listeners in BulletNode (ATT-02, CMT-02, CMT-03)
 
 ## Progress
 
@@ -116,4 +117,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Foundation | 6/6 | Complete   | 2026-03-09 |
 | 2. Core Outliner | 8/8 | Complete   | 2026-03-09 |
 | 3. Rich Content | 9/9 | Complete    | 2026-03-09 |
-| 4. Attachments, Comments, and Mobile | 8/8 | Complete | 2026-03-09 |
+| 4. Attachments, Comments, and Mobile | 8/9 | Gap closure in progress | 2026-03-09 |

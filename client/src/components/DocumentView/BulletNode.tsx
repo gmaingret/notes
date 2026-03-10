@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { ChevronRight, Check, Trash2, Star } from 'lucide-react';
 import type { FlatBullet, BulletMap } from './BulletTree';
 import { getChildren } from './BulletTree';
 import { useSetCollapsed, useMarkComplete, useSoftDeleteBullet } from '../../hooks/useBullets';
@@ -202,8 +203,6 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
     ? 'var(--color-swipe-delete)'
     : 'transparent';
 
-  const swipeIcon = swipeX > 0 ? '✅' : swipeX < 0 ? '🗑️' : null;
-
   return (
     <div
       ref={(node) => {
@@ -249,7 +248,8 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
             zIndex: 0,
           }}
         >
-          {swipeIcon}
+          {swipeX > 0 && <Check size={20} strokeWidth={1.5} />}
+          {swipeX < 0 && <Trash2 size={20} strokeWidth={1.5} />}
         </div>
       )}
 
@@ -293,7 +293,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
         </div>
         {isBookmarked && !isDragOverlay && (
           <span className="bullet-date-label" style={{ fontSize: '0.6rem', lineHeight: '1.6rem', flexShrink: 0 }}>
-            🔖
+            <Star size={16} strokeWidth={1.5} className="star-filled" />
           </span>
         )}
 
@@ -367,7 +367,9 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
             }}
           >
             {hasChildren ? (
-              <span style={{ display: 'inline-block', transform: bullet.isCollapsed ? 'none' : 'rotate(90deg)', transition: 'transform 0.15s ease' }}>▶</span>
+              <span className="bullet-chevron" style={{ display: 'inline-block', transform: bullet.isCollapsed ? 'none' : 'rotate(90deg)', transition: 'transform 0.15s ease' }}>
+                <ChevronRight size={16} strokeWidth={1.5} />
+              </span>
             ) : null}
           </div>
         )}

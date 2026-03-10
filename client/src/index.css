@@ -143,6 +143,10 @@ body {
 .chip-mention { background: var(--color-chip-mention-bg);  color: var(--color-chip-mention-text); }
 .chip-date    { background: var(--color-chip-date-bg);     color: var(--color-chip-date-text); }
 
+/* === Star bookmark fill state === */
+.star-filled { fill: var(--color-accent-amber); color: var(--color-accent-amber); }
+.star-outline { fill: none; color: var(--color-text-muted); }
+
 /* === Shake animation (moved from BulletContent.tsx dynamic injection) === */
 @keyframes bullet-shake {
   0%,100% { transform: translateX(0); }

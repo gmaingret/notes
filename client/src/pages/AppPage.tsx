@@ -10,7 +10,7 @@ export function AppPage() {
   const navigate = useNavigate();
   const { data: docs } = useDocuments();
   const { mutate: openDocument } = useOpenDocument();
-  const { lastOpenedDocId, setLastOpenedDocId } = useUiStore();
+  const { lastOpenedDocId, setLastOpenedDocId, sidebarOpen, setSidebarOpen } = useUiStore();
 
   // After login, navigate to last opened doc or first doc (Inbox)
   useEffect(() => {
@@ -28,10 +28,29 @@ export function AppPage() {
     }
   }, [docId, setLastOpenedDocId, openDocument]);
 
+  // Mobile init: force sidebar closed on mobile viewport at mount
+  useEffect(() => {
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      setSidebarOpen(false);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Ctrl+E / Cmd+E keyboard shortcut to toggle sidebar
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        setSidebarOpen(!sidebarOpen);
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [sidebarOpen, setSidebarOpen]);
+
   const activeDoc = docs?.find(d => d.id === docId) ?? null;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
       <Sidebar activeDocId={docId ?? null} />
       <main style={{ flex: 1, overflow: 'auto' }}>
         {activeDoc ? (

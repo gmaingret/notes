@@ -1,6 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
+// jsdom does not implement window.matchMedia — provide a desktop-default mock
+if (!window.matchMedia) {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false, // desktop default: no mobile match
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
 // pdfjs-dist is imported transitively via DocumentView → BulletNode chain.
 // Mock it at module level to prevent DOMMatrix crash in jsdom.
 vi.mock('pdfjs-dist', () => ({

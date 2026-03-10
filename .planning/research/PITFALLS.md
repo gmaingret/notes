@@ -1,169 +1,180 @@
 # Pitfalls Research
 
-**Domain:** Self-hosted multi-user outliner/PKM web app (Dynalist/Workflowy clone)
-**Researched:** 2026-03-09
-**Confidence:** HIGH (tree/DB pitfalls), MEDIUM (mobile UX, undo/redo architecture)
+**Domain:** Adding mobile layout, dark mode, PWA manifest, and quick-open palette to an existing React outliner with gestures and drag-and-drop
+**Researched:** 2026-03-10
+**Confidence:** HIGH (codebase inspected directly; all pitfalls traced to specific files, line numbers, and patterns in the v1.0 codebase)
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Fractional Indexing Breaks Due to PostgreSQL Collation
+### Pitfall 1: FocusToolbar becomes invisible in dark mode due to hardcoded inline style colors
 
 **What goes wrong:**
-Fractional indexing generates lexicographically-ordered string keys (e.g., `aZ`, `aa`, `b`) to avoid rewriting all sibling positions on reorder. The algorithm assumes standard ASCII byte order where `aa > aZ`. PostgreSQL's default collation (glibc `en_US.UTF-8` on Linux) treats character comparison case-insensitively in certain locales, so it evaluates `aZ > aa`. When querying for the "largest current key" to generate the next one, PostgreSQL returns the wrong key. The next insert reuses an existing key, causing unique constraint violations or silent ordering corruption.
+`FocusToolbar.tsx` uses inline `style` props with literal hex colors (`background: '#fff'`, `color: '#444'`, `color: '#e55'`, `borderTop: '1px solid #e5e7eb'`). CSS-variable-based dark mode — applied via `[data-theme="dark"]` on `<html>` — cannot override inline style attributes. The toolbar will remain white-on-white or lose contrast entirely in dark mode because inline styles have the highest cascade specificity. The same problem exists in `btnStyle` objects in `FocusToolbar.tsx` and in `BulletContent.tsx`.
 
 **Why it happens:**
-The fractional-indexing npm library is tested against JavaScript's `String.prototype.localeCompare` or raw ASCII byte order — not against PostgreSQL collation. The bug only manifests after enough inserts to generate keys with mixed case, so it passes early testing. PayloadCMS hit this exact bug (May 2025, issue #12397).
+Inline styles were the fast path during v1.0 development for correctness and component isolation. When a theming layer is added later, it relies on CSS custom properties cascading from a root selector — but inline styles sit above the cascade and block that inheritance.
 
 **How to avoid:**
-One of two strategies — pick one at schema design time:
-1. Use `TEXT` column with `COLLATE "C"` (byte-order collation): `position TEXT COLLATE "C" NOT NULL`. This forces PostgreSQL to compare strings by raw byte value, matching JavaScript's behavior.
-2. Skip fractional indexing entirely and use `NUMERIC` (or `FLOAT8`) with a midpoint strategy: `new_pos = (prev_pos + next_pos) / 2.0`. Rebalance periodically when precision runs out (values differ by < 1e-9). This avoids string collation entirely.
-
-Recommendation: **Use `FLOAT8` midpoint positioning**. It avoids the collation trap, is easy to reason about, and rebalancing is a simple background job. Fractional indexing adds string manipulation complexity with no benefit for this single-user-per-document use case.
+Before wiring the `data-theme` attribute or any dark mode toggle, run a migration pass: convert every hardcoded color literal in `.tsx` files to a `className` + CSS stylesheet pattern using custom properties. Grep for `style=\{\{` with hex color strings across all TSX files. Treat this migration as the first task in the Dark Mode phase — it is a prerequisite, not an optional cleanup.
 
 **Warning signs:**
-- Unique constraint violations on the `position` column after early use
-- Items swap positions after a reorder then refresh
-- Items appear in wrong order only after enough nested items exist (> 26 deep at one level)
+- Any `style={{ background: '#fff' }}` or `style={{ color: '#444' }}` in a React component will silently fail in dark mode.
+- The FocusToolbar appears but is white-on-white — easy to miss in a desktop dark mode test if you do not scroll a document on mobile.
 
-**Phase to address:** Phase 1 (core tree CRUD — schema design must bake this in before any data exists)
+**Phase to address:** Phase 2 (Dark Mode) — first task within that phase, before adding any `data-theme` wiring.
 
 ---
 
-### Pitfall 2: Undo Invalidation After a Delete Removes Children
+### Pitfall 2: Dark mode FOUC — white flash before React mounts
 
 **What goes wrong:**
-The undo stack stores the ID of a deleted bullet. When undoing a delete, the system restores the bullet — but if that bullet had children that were also deleted (cascade), restoring only the parent leaves children as orphans in `deleted` state. Undo appears to work (parent reappears) but the subtree is silently lost. Conversely, if children are NOT cascade-deleted (only soft-deleted independently), undoing the parent delete without also undoing child deletes leaves a bullet with no visible children.
+If dark mode is implemented by reading `localStorage` or `window.matchMedia` inside a React `useEffect` and setting state, there is always one frame where the component renders with the default light theme before the effect fires. Users who prefer dark mode see a white flash on every hard refresh or page load.
 
 **Why it happens:**
-Undo commands are designed as single-step inverses. A "delete bullet" command records `bullet_id` but not the subtree. Cascade soft-delete of children is done implicitly in the database layer, invisible to the command handler. The undo handler reverses only what it recorded.
+React effects run after the browser has painted the initial frame. Any theme state initialized to `'light'` (or derived from an effect) will be visible momentarily. This is inherent to the React lifecycle — not a bug but a timing issue.
 
 **How to avoid:**
-- Undo commands must record the **full affected subtree** at the time of execution, not just the target node ID.
-- When performing a delete, the command handler must explicitly enumerate all descendants (via recursive CTE or pre-loaded tree), store them in the undo record (as a JSON snapshot or list of IDs), and the undo handler must restore all of them.
-- Alternative: use **event sourcing** — store the before-state snapshot of the full affected subtree as the undo payload. Larger storage, but trivially correct.
-- Undo history table schema: `payload JSONB` should store `{ type, bulletId, subtreeSnapshot: [...] }`, not just `{ type, bulletId }`.
+Since this app is a Vite SPA (no SSR, no hydration), the correct fix is an inline `<script>` block in `client/index.html`, placed before the `<script type="module">` that loads the React bundle. The script reads `localStorage.getItem('theme')` (or `window.matchMedia('(prefers-color-scheme: dark)').matches`) and immediately calls `document.documentElement.setAttribute('data-theme', 'dark')`. This runs synchronously before the first paint. The React theme context then reads the already-applied attribute to initialize its state, with no flash. Note: because this is a Vite SPA, SSR hydration mismatches are not a concern here — the FOUC is the only problem to solve.
 
 **Warning signs:**
-- "Undo delete" restores a bullet with no children when it previously had children
-- Children appear as orphans with `deleted_at IS NOT NULL` but `parent_id` pointing to a live bullet
+- White flash is visible when system OS is set to dark mode and the page is hard-refreshed.
+- Flash only appears on initial load, not on client-side navigation — confirms it is an initialization-timing problem, not a component re-render issue.
 
-**Phase to address:** Phase 1 (undo/redo system — must be designed correctly before it is used anywhere, retrofitting is very expensive)
+**Phase to address:** Phase 2 (Dark Mode) — the inline `<script>` in `index.html` must be the very first thing implemented in the dark mode phase.
 
 ---
 
-### Pitfall 3: Position Conflicts on Concurrent Reorder (Race Condition)
+### Pitfall 3: dnd-kit PointerSensor fires drag on horizontal swipe, killing existing swipe gestures
 
 **What goes wrong:**
-Two rapid drag-and-drop moves (or two browser tabs open, or a mobile + desktop session) each read the current sibling positions and compute a new midpoint. If they both read the same sibling positions before either write completes, they compute identical new positions. The second write either violates a unique constraint or silently overwrites the first, resulting in items appearing in the wrong order.
+The existing swipe gestures (`gestures.ts`: swipe right = complete, swipe left = delete) are implemented as raw `touchstart`/`touchmove`/`touchend` handlers on bullet rows. dnd-kit's `PointerSensor` with `activationConstraint: { distance: 5 }` intercepts pointer events the moment any touch moves 5px in any direction — including a horizontal swipe. When a user swipes right to complete a bullet, dnd-kit activates the drag before the swipe handler crosses its 40% threshold, consuming the pointer events and preventing the swipe action from ever completing.
 
 **Why it happens:**
-Position computation (`new_pos = (prev + next) / 2`) is a read-then-write operation. Without serialization, two concurrent requests perform the same read and independently compute the same value.
+`distance: 5` is very low. A deliberate horizontal swipe crosses 5px almost instantly. Both the swipe handler and dnd-kit compete for the same `pointermove` events. On mobile, dnd-kit calls `event.preventDefault()` on `pointermove` once drag activates, which blocks the touch events the swipe handler depends on.
 
 **How to avoid:**
-- Wrap the "read siblings, compute new position, update row" in a **single database transaction with `SELECT ... FOR UPDATE`** on the affected sibling rows. This serializes concurrent moves at the database level.
-- Alternative (simpler for single-server, single-user app): use an advisory lock per `(user_id, document_id)` pair for move operations. Since this app is single-user-per-document with no collaboration, this is sufficient.
-- Do NOT compute positions in application code and send the final value in an API call — always compute inside a transaction.
+Option A (recommended): Change dnd-kit activation to a delay constraint instead of distance — `{ delay: 250, tolerance: 5 }`. A 250ms press-and-hold is a natural distinction from a fast horizontal swipe. Option B: Restrict the drag handle to a dedicated element (e.g., the bullet dot icon) and set `touch-action: none` only on that handle element. The swipe handler operates on the full row without interference. Do NOT use both `PointerSensor` and `TouchSensor` simultaneously — dnd-kit documentation explicitly warns this causes event conflicts.
 
 **Warning signs:**
-- Unique constraint errors on `position` column under rapid movement
-- Items occasionally land in wrong position after fast consecutive reorders
-- Integration tests pass but manual rapid-fire drag test fails
+- Swipe right or left produces a drag overlay instead of completing/deleting the bullet.
+- Long-press context menu still works correctly (500ms delay is longer than any drag activation — no conflict there).
+- The problem only manifests on touch devices, not on desktop mouse. Chrome DevTools touch emulation may not reproduce it accurately — test on a physical iPhone.
 
-**Phase to address:** Phase 1 (tree CRUD API — position update endpoint must be transactional from the start)
+**Phase to address:** Phase 1 (Mobile Layout — swipe gesture polish task). Verify on physical iPhone before merging.
 
 ---
 
-### Pitfall 4: Mobile Virtual Keyboard Breaks Layout and Loses Cursor
+### Pitfall 4: iOS Safari auto-zoom when tapping bullet contenteditable (font-size < 16px)
 
 **What goes wrong:**
-On iOS Safari, when the virtual keyboard opens, the viewport does NOT resize — it instead zooms into and partially hides the document. A `position: fixed` toolbar at the bottom ends up behind the keyboard. The active bullet input scrolls out of view. On both iOS and Android, calling `.focus()` programmatically does NOT open the keyboard — it only works when triggered directly from a user interaction event. This means "create new bullet on Enter" — which programmatically focuses the new input — fails to show the keyboard on iOS.
+iOS Safari automatically zooms the viewport whenever a user focuses any `input` or `contenteditable` element whose computed `font-size` is below 16px. If the new font pairing (Inter + JetBrains Mono) is applied at a size like 14px for mobile bullet text, every tap-to-edit triggers a jarring full-viewport zoom. After the keyboard is dismissed, the viewport may not cleanly return to 1x scale, leaving the layout shifted. The bullet being edited may be partially hidden under the browser chrome.
 
 **Why it happens:**
-iOS Safari intentionally refuses to open the keyboard on programmatic `.focus()` calls not originating from a direct user input event (tap/click). This is a WebKit anti-annoyance policy, not a bug, and it has not been removed despite years of developer complaints. Additionally, iOS does not fire a viewport resize event on keyboard open, so CSS `100vh` layouts break invisibly.
+Apple's design intent: text smaller than 16px is assumed to be unreadable at default zoom, so Safari zooms in to assist. This fires on `focus`, before any typing. `contenteditable` elements are treated identically to `<input>` for this purpose.
 
 **How to avoid:**
-- Use `visualViewport.addEventListener('resize', ...)` (available on iOS 13+, all modern Android) to detect keyboard open/close and adjust layout accordingly.
-- Never place interactive controls in `position: fixed` elements at the bottom; use `position: sticky` within the scrollable container or compensate with `visualViewport` offset.
-- For Enter-to-create-new-bullet: the new bullet's focus must happen inside the same event handler that processes the Enter keypress. Do not defer with `setTimeout` or `await` — iOS drops the user-gesture flag in async continuations.
-- Test bullet creation flow on a real iOS device early. Simulators do not accurately replicate keyboard behavior.
+Add `font-size: max(16px, 1em)` to all `[contenteditable]` and `<input>` elements in the global stylesheet (`client/src/index.css`). If the design calls for visually smaller text, use `transform: scale(0.875)` with compensating negative margins rather than a sub-16px font-size. Never use `user-scalable=no` in the viewport `<meta>` tag — it is an accessibility violation, and iOS 10+ ignores it anyway.
 
 **Warning signs:**
-- "New bullet on Enter" works on desktop but keyboard doesn't appear on iOS after pressing Enter
-- Bottom toolbar overlaps content on mobile after keyboard opens
-- `visualViewport.height < window.innerHeight` when keyboard is open (correct detection signal)
+- Viewport jumps when tapping any bullet on a physical iPhone.
+- Chrome DevTools mobile emulation does NOT reproduce this bug — requires a real device or a cloud testing service.
+- The font pairing change (Inter + JetBrains Mono) is the trigger that can introduce this — measure actual computed font sizes after the typography refactor.
 
-**Phase to address:** Phase 1 (core editor — the keyboard interaction is fundamental to the outliner loop and cannot be retrofitted)
+**Phase to address:** Phase 1 (Mobile Layout) — include as a verification criterion in the font pairing task. Check computed font size on mobile with DevTools before closing the phase.
 
 ---
 
-### Pitfall 5: Drag-and-Drop Parent-into-Child Corruption
+### Pitfall 5: iOS Safari 100dvh — sidebar overlay and full-height layouts clip on mobile
 
 **What goes wrong:**
-When dragging a bullet node and dropping it onto one of its own descendants, the node becomes its own ancestor. The adjacency list now contains a cycle: `A.parent_id = B`, `B.parent_id = A`. Any recursive CTE traversal (`WITH RECURSIVE`) will loop infinitely, locking the server process until timeout or OOM kill. The document becomes unrenderable for that user.
+If the mobile sidebar overlay uses `height: 100vh`, it will be taller than the visible area on iOS Safari. Safari calculates `100vh` as the total viewport including the address bar and bottom navigation bar. When those bars are visible (which they are when the page first loads), the sidebar extends below the visible screen and the bottom is clipped. Users cannot tap sidebar items near the bottom.
 
 **Why it happens:**
-Drag-and-drop drop-zone detection is computed from current DOM position. During an active drag, the subtree under the dragged item is still rendered in the DOM. If the drag library allows dropping on children (no ancestry check), this is exploitable by any user — including accidentally.
+Apple chose not to resize the viewport when the address bar collapses on scroll. This behavior has been unchanged since 2016. The CSS dynamic viewport units (`dvh`, `svh`, `lvh`) were introduced in Safari 15.4 specifically to address this and are now well-supported.
 
 **How to avoid:**
-- Before accepting any drop, server-side: run a recursive CTE that fetches all descendants of the dragged node. Reject the move if the target `parent_id` is in that set.
-- Client-side: when a drag starts, compute the full set of descendant IDs and mark those drop zones as invalid. This prevents the request from ever reaching the server.
-- Add a PostgreSQL constraint trigger that detects cycles using `WITH RECURSIVE` on every `parent_id` update. Expensive but acts as a last-resort safeguard.
+Replace `height: 100vh` on any full-height overlay or sidebar panel with:
+```css
+height: 100vh; /* fallback for old browsers */
+height: 100dvh; /* correct for iOS Safari 15.4+ */
+```
+`dvh` (dynamic viewport height) tracks the visible viewport height including address bar collapse. Additionally, add `padding-bottom: env(safe-area-inset-bottom)` to the sidebar's scroll container so content is not clipped under the home indicator on notched iPhones (iPhone X and later).
 
 **Warning signs:**
-- Drag library does not have built-in ancestry validation
-- API `PATCH /bullets/:id/move` accepts `parent_id` without server-side validation
-- Infinite loop / timeout errors on tree load after certain moves
+- Sidebar bottom is cut off on iPhone Safari — the last document in the list is partially or fully hidden.
+- Desktop testing shows no problem (100vh is fine on desktop).
+- The existing `@media (max-width: 768px)` and `.mobile-overlay` CSS in `index.css` will need this update.
 
-**Phase to address:** Phase 1 (drag-and-drop — both client and server validation must exist before drag is shipped)
+**Phase to address:** Phase 1 (Mobile Layout) — apply alongside hamburger menu implementation.
 
 ---
 
-### Pitfall 6: Undo History Grows Without Bound and Corrupts on Schema Change
+### Pitfall 6: FocusToolbar stuck mid-screen after keyboard dismiss on iOS 26
 
 **What goes wrong:**
-The undo history table stores `payload JSONB` snapshots. Over months of use, this table accumulates tens of thousands of rows per user. More critically: if the payload format changes (a field renamed, a new required key added) during a code update, old undo records with the old schema cause runtime errors when the undo handler tries to deserialize them. Result: undo silently breaks or throws 500 errors for users with existing history.
+`FocusToolbar` positions itself using `bottom: keyboardOffset` where `keyboardOffset` is computed from `visualViewport.offsetTop` and `visualViewport.height`. On iOS 26 (the next major iOS release, in beta as of early 2026), there is an active WebKit regression (bug #237851) where `visualViewport.offsetTop` does not reset to 0 after the keyboard is dismissed. The computed offset remains nonzero, leaving the toolbar floating in the middle of the screen rather than at the bottom.
 
 **Why it happens:**
-Undo payload schemas are treated as internal data, not versioned API contracts. When the codebase evolves, old records in the database are not migrated.
+This is an Apple-introduced regression in iOS 26, confirmed on Apple's developer forums and WebKit bug tracker. The `computeKeyboardOffset` function in `FocusToolbar.tsx` correctly implements the visualViewport approach that worked through iOS 17 — the bug is in the browser, not in the app's code.
 
 **How to avoid:**
-- Add a `schema_version INTEGER` column to the undo history table from day one.
-- Every undo handler checks `schema_version` before parsing; unknown versions are silently skipped (no undo available for that step).
-- Run a background job (or cron) that prunes undo history to the most recent 50 records per user. This also enforces the stated 50-level limit and prevents unbounded growth.
-- Never rename keys in `payload` without a migration.
+Add a defensive clamp inside `computeKeyboardOffset`: if the computed offset exceeds a plausible threshold (e.g., more than 60% of `window.innerHeight`), return 0 instead. This prevents a stuck toolbar when `visualViewport.offsetTop` reports a stale nonzero value. Additionally, add `paddingBottom: 'env(safe-area-inset-bottom)'` to the toolbar's inline style — this handles the notch/home-indicator gap independently of the keyboard offset calculation.
+
+Secondary mitigation: as an alternative positioning strategy, use `top: visualViewport.offsetTop + visualViewport.height - toolbarHeight` with a CSS `transform: translateY(-100%)` instead of relying on `bottom`. This framing is more explicit about what is being measured.
 
 **Warning signs:**
-- Undo history table grows proportionally to user activity without a cleanup job
-- No `schema_version` field on undo records
-- Undo throws 500 after a code deploy
+- After dismissing the keyboard on iOS 26 beta, the FocusToolbar appears in the middle of the screen.
+- The bug is not reproducible in Chrome DevTools device emulation — requires a physical device running iOS 26 beta.
+- The existing `computeKeyboardOffset` unit test will pass (the function is correct) but the integration will be wrong.
 
-**Phase to address:** Phase 1 (undo/redo system — schema versioning must be added at table creation, not retrofitted)
+**Phase to address:** Phase 1 (Mobile Layout) — add the defensive clamp as a precaution; the iOS 26 fix can be validated when iOS 26 stable ships.
 
 ---
 
-### Pitfall 7: iOS Touch Gesture Conflicts with Native Scroll
+### Pitfall 7: PWA service worker caches API responses, serving stale data after server restarts
 
 **What goes wrong:**
-Swipe-right (complete) and swipe-left (delete) touch gestures conflict with the browser's native vertical scroll and horizontal page-back navigation. On iOS, a horizontal swipe near the left edge triggers the browser's "back" gesture, navigating away from the app. On Android, a fast horizontal swipe may scroll the page diagonally if the browser interprets the gesture as scroll. This makes bullet swipe actions feel broken or dangerous on mobile.
+Adding `vite-plugin-pwa` (or any service worker) with default workbox configuration causes API responses (`/api/bullets`, `/api/documents`, etc.) to be cached by the service worker using a `cache-first` or `stale-while-revalidate` strategy. After the server restarts, deploys new code, or runs migrations, users with the installed PWA continue seeing old bullet data from the cache. On iOS Safari in standalone (home screen) mode, service workers can remain active for days, making staleness persistent and hard to reproduce.
 
 **Why it happens:**
-Touch event listeners default to passive mode in modern browsers (for scroll performance). `preventDefault()` inside a passive listener is ignored. Even non-passive listeners can't reliably intercept iOS's edge-swipe navigation.
+PWA workbox plugins default to caching all fetch responses for offline support. The project explicitly deferred offline mode (PROJECT.md: "Offline mode — requires service worker complexity, defer"). The default config does not distinguish between static assets (which should be cached) and API routes (which must not be).
 
 **How to avoid:**
-- Set `touch-action: pan-y` on each bullet row via CSS. This tells the browser: vertical scroll is allowed, but horizontal touches belong to the app. The browser will not scroll horizontally when `touch-action: pan-y` is set, allowing horizontal swipe to be handled by JS without `preventDefault()`.
-- Register touch listeners as `{ passive: false }` only on elements where you need to call `preventDefault()`.
-- For iOS edge-swipe conflict: ensure swipe targets are at least 20px from the screen edge, or use a long-press context menu instead of left/right swipe for destructive actions.
-- Implement swipe gesture detection with a minimum distance threshold (e.g., 60px) and a maximum angle tolerance (e.g., 30 degrees from horizontal) to reduce false activations during scroll.
+For this milestone (PWA manifest for home screen installation, no offline support), configure the service worker to be minimal:
+1. Cache only static assets: JS/CSS bundles, icons, fonts — using `cache-first`.
+2. All `/api/*` routes: `NetworkOnly` — no caching whatsoever.
+3. In `vite-plugin-pwa` config, add an explicit `runtimeCaching` entry: `{ urlPattern: /\/api\/.*/, handler: 'NetworkOnly' }`.
+
+Alternatively, ship only a `manifest.webmanifest` with no service worker at all. Browsers (including Safari and Chrome) allow home screen installation from a manifest without a service worker, though Chrome's `beforeinstallprompt` event requires a service worker. If the install prompt is not a hard requirement, skip the service worker entirely for this milestone.
 
 **Warning signs:**
-- Swiping on mobile also scrolls the page
-- Accidental browser back navigations when swiping left
-- `touch-action` not set on bullet list items
+- After deploying updated bullet logic, some users still see old data — especially users who installed the app to the home screen.
+- Hard refresh or clearing site data resolves the problem (confirming service worker cache is the cause).
+- iOS Safari installed PWAs are the most affected — they maintain service worker registrations aggressively.
 
-**Phase to address:** Phase dedicated to mobile gestures (touch interactions)
+**Phase to address:** Phase 3 (PWA Manifest) — include explicit `NetworkOnly` for `/api/*` as a phase entry criterion; verify with Network tab in an installed PWA session.
+
+---
+
+### Pitfall 8: Ctrl+K quick-open conflicts with existing global keyboard shortcuts
+
+**What goes wrong:**
+The existing `useGlobalKeyboard` hook in `useUndo.ts` owns `Ctrl+F` (search modal), `Ctrl+E` (sidebar toggle), `Ctrl+Z` (undo), `Ctrl+Y` (redo), and `Ctrl+*` (bookmarks) — all registered on `window`. If `Ctrl+K` for the quick-open palette is added via a separate `window.addEventListener('keydown', ...)` inside the palette component or a separate hook, there are now two independent listeners on `window`. Event listener firing order is not guaranteed across component mount/unmount cycles. On Firefox, `Ctrl+K` is a native browser shortcut that focuses the URL/search bar; the app handler must call `e.preventDefault()` reliably or the browser intercepts the keystroke first.
+
+**Why it happens:**
+The natural instinct is to add a keyboard listener inside the new quick-open component for self-containment. But global shortcuts do not belong to individual components — they belong to a centralized handler.
+
+**How to avoid:**
+Add `Ctrl+K` handling directly to `useGlobalKeyboard` in `useUndo.ts`, following the existing pattern. Add `setQuickOpenOpen(true)` as a new branch in the same `onKeyDown` function. Do NOT create a separate `window.addEventListener` for this shortcut. The quick-open modal's own `useEffect` should listen for `Escape` only (to close itself), scoped to the component's lifecycle — never on `window` globally. Note: unlike `Ctrl+Z` (which delegates to `BulletContent` when a contenteditable has focus), `Ctrl+K` should open the quick-open palette regardless of focus — remove the `isContentEditable` guard for this key.
+
+**Warning signs:**
+- Pressing `Ctrl+K` sometimes opens the search modal instead of the quick-open palette (both handlers fired).
+- On Firefox, `Ctrl+K` focuses the browser URL bar instead of opening the palette (missing `preventDefault()`).
+- Pressing `Escape` closes an unrelated modal unexpectedly (a global Escape listener in the wrong scope).
+
+**Phase to address:** Phase 4 (Quick-Open Palette) — extend `useGlobalKeyboard` rather than adding a new listener.
 
 ---
 
@@ -171,13 +182,12 @@ Touch event listeners default to passive mode in modern browsers (for scroll per
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Integer positions (1, 2, 3, ...) for bullet ordering | Simple to implement | Every reorder updates O(n) sibling rows; conflicts under concurrent moves | Never — use float midpoint from the start |
-| Compute tsvector at query time (no stored column) | No trigger to maintain | Full table scan on every search; unusable beyond ~500 bullets | Never for search — always use stored generated column + GIN index |
-| Store undo payload without schema_version | Faster initial build | Silent undo breakage after schema changes | Never |
-| Hardcode `position: fixed` bottom toolbar on mobile | Simple CSS | Keyboard overlap on iOS; layout breaks | Never — use visualViewport-aware positioning |
-| Load entire bullet tree in one query for rendering | Simple code | Single large document with 5,000+ bullets causes slow initial load | Acceptable for MVP; add lazy loading at Phase: performance |
-| No ancestry check on drag-and-drop drop target | Faster shipping | Cycle creation corrupts documents permanently | Never — check takes < 1ms with correct index |
-| Cascade hard-delete children when parent is deleted | Simple SQL | Makes undo of parent delete impossible | Never — use soft delete throughout |
+| Keep inline style colors during dark mode | Faster initial ship | Every inline color becomes a manual override; dark mode is incomplete and inconsistent | Never — inline colors and CSS-variable theming are fundamentally incompatible |
+| Use only `prefers-color-scheme` media query (no JS toggle) | Zero JS, automatic | User cannot override system preference; acceptable for this milestone scope | Acceptable for v1.1 (system-preference only per PROJECT.md) |
+| Add service worker with default workbox config | PWA install prompt works immediately | API responses cached; stale data in production after any deploy | Never for an app with mutable server-side data |
+| Use `100vh` instead of `100dvh` for sidebar | Works on desktop | Bottom clipped on iOS Safari — affects every iPhone user | Never for full-height mobile overlays |
+| Add global `keydown` listener per new feature | Simple, self-contained | Multiple listeners, unpredictable order, double-fires | Never for global shortcuts — always extend the centralized hook in `useUndo.ts` |
+| Import all Lucide icons (`import * from 'lucide-react'`) | Convenient during development | Adds 200KB+ to bundle; slower FCP on mobile | Never in production — use named imports only |
 
 ---
 
@@ -185,12 +195,13 @@ Touch event listeners default to passive mode in modern browsers (for scroll per
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| Google OAuth (google-auth-library) | Trusting `aud` claim without verifying it matches your client ID | Always verify `aud === GOOGLE_CLIENT_ID` server-side before creating/logging in user |
-| Multer (file uploads) | Using relative `./uploads` path as destination | Use absolute path matching Docker volume mount: `/data/attachments` exactly |
-| Multer | Not upgrading past 1.x | Multer 2.0.2 (May 2025) fixes two high-severity CVEs; use 2.x |
-| Docker volume (file uploads) | App runs as `node` user (UID 1000) but volume owned by root | `RUN mkdir -p /data/attachments && chown -R node:node /data/attachments` in Dockerfile, or use `user: node` in compose |
-| PostgreSQL full-text search | Calling `to_tsvector()` inside WHERE clause | Use a stored generated column `search_vector tsvector GENERATED ALWAYS AS (to_tsvector(...)) STORED` + GIN index |
-| JWT auth | Long-lived tokens with no refresh mechanism | Issue short-lived access tokens (15min) + long-lived refresh tokens; store refresh in httpOnly cookie |
+| dnd-kit PointerSensor on mobile | `distance: 5` activation intercepts horizontal swipes | Use `delay: 250, tolerance: 5` or restrict drag to a handle element with `touch-action: none` |
+| iOS visualViewport API | Trust `vv.offsetTop` as always correct | Clamp computed offset; add defensive fallback for iOS 26 regression where `offsetTop` does not reset after keyboard dismiss |
+| `vite-plugin-pwa` workbox | Default config caches all routes including `/api/*` | Explicitly configure `NetworkOnly` for all `/api/*` in `runtimeCaching` |
+| Dark mode initialization | Apply `data-theme` in React `useEffect` | Apply `data-theme` synchronously via inline `<script>` in `index.html` before the React bundle loads |
+| Lucide React | `import { X, Plus, ... }` from wildcard | Individual named imports only — required for Vite tree-shaking to eliminate unused icons |
+| cmdk (command palette library) | Register its own `Ctrl+K` `window` listener | Wire open/close state through `useGlobalKeyboard`; use cmdk only for the UI/filtering behavior, not for shortcut registration |
+| iOS Safari contenteditable | Small font sizes (< 16px) in design mockup | Apply `font-size: max(16px, 1em)` globally to all `[contenteditable]` and `<input>` elements |
 
 ---
 
@@ -198,12 +209,11 @@ Touch event listeners default to passive mode in modern browsers (for scroll per
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Loading entire document tree per request | Slow initial page load; mobile timeout | Load tree lazily; collapse state determines which nodes are fetched | ~2,000 bullets in one document |
-| No GIN index on `search_vector` | Full-text search takes 2–10 seconds | Add `CREATE INDEX CONCURRENTLY ... USING GIN (search_vector)` at schema creation | ~500 bullets |
-| Recursive CTE without depth limit | Infinite loop / timeout if cycle exists in tree | Add `WHERE depth < 100` guard to all recursive CTEs | On first data corruption |
-| Soft-deleted rows polluting sibling position queries | Reorder calculations include deleted items, creating gaps | Always filter `WHERE deleted_at IS NULL` in position queries | After first delete operation |
-| N+1 queries for rendering bullet list (one query per bullet for metadata) | Slow render, many DB round-trips | Always fetch attachments/comments counts in a single JOIN or subquery with the bullet list | ~50 bullets visible |
-| No pagination on search results | Searches return thousands of rows | Limit search results to 100 per query, add offset pagination | ~1,000 total bullets |
+| Quick-open palette queries all bullets on every keystroke | Visible lag on documents with 200+ bullets | Debounce input by 150ms; fuzzy-match against a pre-fetched document list (title + ID only) rather than all bullets | Documents with 200+ bullets visible |
+| Icon library wildcard import | 200KB+ bundle size increase; slower FCP on mobile | Named imports only; verify with `npx vite-bundle-visualizer` after adding icons | Immediately on first production build |
+| Dark mode CSS custom properties re-evaluated on every element | Sluggish theme-switch animation on low-end Android | Scope all tokens to `:root` or `[data-theme]` on `<html>` only; avoid per-component CSS variable overrides | Low-end Android devices on theme toggle |
+| Service worker update cycle delays new code reaching users | Users run stale app code after a deploy | Set `skipWaiting: true` in workbox config; show a "New version available — reload" banner when a new service worker is detected | Every deploy to an installed PWA |
+| FocusToolbar re-renders on every `visualViewport` resize event | 60 re-renders per second during keyboard animation | Acceptable — handler sets only one integer state value; React batches this efficiently. Not a concern at this app's scale | Not a concern |
 
 ---
 
@@ -211,12 +221,9 @@ Touch event listeners default to passive mode in modern browsers (for scroll per
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| File upload with no MIME type validation | Malicious file executed if served directly; stored XSS via SVG | Validate both `Content-Type` header AND magic bytes; never serve uploaded files from the same origin as the app (use a separate `/files/` path with `Content-Disposition: attachment`) |
-| No file size check before writing to disk | Disk exhaustion attack; Docker volume fills up | Enforce 100MB limit in Multer config (`limits: { fileSize: 100 * 1024 * 1024 }`) before the file reaches disk |
-| Returning full bullet tree for any user ID | User A can read user B's documents | Every query must include `WHERE user_id = $currentUserId`; add row-level check in every route handler, not just middleware |
-| Undo history accessible across users | User A can undo user B's actions (or inspect their data) | Always include `WHERE user_id = $currentUserId` in undo history queries |
-| Storing Google OAuth `access_token` in database | Leaked DB exposes tokens | Only store `sub` (subject ID) from the ID token; never store access tokens |
-| Open registration with no rate limiting | Bots fill server storage with attachments | Add rate limiting to registration and file upload endpoints; consider a registration invite code for self-hosted use |
+| Service worker intercepts authenticated API calls and caches 401/403 responses | Logged-out users see cached private data from a previous session | Configure `NetworkOnly` for all `/api/*` routes; never cache auth-sensitive responses |
+| PWA `start_url` without explicit `scope` | Installed PWA navigates to unintended paths on the same origin | Set `scope: "/"` and `start_url: "/"` explicitly in the manifest |
+| Quick-open palette exposes document titles without auth check | A cached document title from a previous session could be visible before token validation | Initialize quick-open document list from React Query (which requires a valid token) — do not pre-populate from `localStorage` |
 
 ---
 
@@ -224,28 +231,29 @@ Touch event listeners default to passive mode in modern browsers (for scroll per
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Undo that silently fails (returns 200 but nothing changes) | User thinks undo is broken; loss of trust | Always return a diff of what changed from undo; show "Nothing to undo" toast when stack is empty |
-| Enter key creates bullet at wrong nesting level | Most-used action feels broken | Enter always creates a sibling at the same level; Tab/Shift+Tab handles indent. Never auto-indent on Enter |
-| Drag ghost image obscures drop target on mobile | User can't see where item will land | Use a slim "insertion line" indicator between items, not a full ghost duplicate |
-| Inline markdown rendering eating the cursor position | Cursor jumps on every keystroke when markdown is re-parsed | Only re-render markdown decorations outside the cursor's paragraph, or use a virtual DOM diffing approach that preserves selection |
-| Zoom into bullet that has no children shows empty page | Disorienting — user loses context | Always show breadcrumb even if content is empty; display placeholder "No items yet — press Enter to add one" |
-| Collapse state not persisted | User collapses large subtrees to navigate; refresh resets everything | Persist collapse state server-side per user per bullet from the start; do not use localStorage as primary store |
-| Swipe-to-delete with no undo | Accidental delete loses data permanently | Show a brief undo toast after swipe-delete ("Deleted — Undo" with 5s timeout) that calls the server undo endpoint |
+| Hamburger sidebar does not close on outside tap | Users tap the document area and feel trapped inside the sidebar | Render a transparent backdrop element behind the sidebar; close on `pointerdown` on the backdrop. Use `pointer-events: none` on the backdrop when sidebar is closed so it does not swallow document interaction |
+| Swipe gesture has no visual affordance | Users discover swipe by accident; swipe threshold feels arbitrary | Show a color-coded background (green on right, red on left) that grows as the swipe progresses; spring-back animation if threshold not reached |
+| Quick-open opens with empty state, no placeholder content | Users do not know what to type | Show the 5 most recently accessed documents immediately on open, before any query is typed |
+| Dark mode toggle absent — system preference only | Users in bright outdoor environments with dark OS theme have no override | This is acceptable for v1.1 per PROJECT.md scope; document as a known limitation in release notes |
+| Hamburger icon tap target too small on mobile | Mis-taps; frustrating UX | Minimum 44x44px tap target per Apple HIG; ensure the hamburger button meets this minimum |
+| Icon refresh removes recognizable emoji icons without adequate icon labels | Users lose muscle memory for FocusToolbar buttons | Add `aria-label` and `title` to every Lucide-icon button; consider keeping text labels for critical actions (indent, outdent, delete) |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Tree reorder:** Verify that positions are computed inside a database transaction with row locking, not in application code before the UPDATE call
-- [ ] **Undo delete:** Create a bullet with 3 children, delete parent, undo — verify all 4 items (parent + 3 children) reappear
-- [ ] **Mobile Enter key:** Test on a real iOS device — verify the keyboard stays open after pressing Enter to create a new bullet
-- [ ] **Drag-and-drop cycle prevention:** Drag a bullet onto one of its grandchildren — verify the move is rejected with an error, not silently accepted
-- [ ] **File upload Docker permissions:** Deploy fresh, upload a file, restart the container, verify the file is still accessible
-- [ ] **Full-text search index:** Run `EXPLAIN ANALYZE` on the search query — verify it shows `Bitmap Index Scan` on the GIN index, not `Seq Scan`
-- [ ] **Undo across page refresh:** Make an edit, refresh the page, press Ctrl+Z — verify undo works (server-side persistence confirmed)
-- [ ] **Fractional positioning:** Create 30+ siblings at one level, reorder several, refresh — verify order is preserved exactly
-- [ ] **Soft delete subtree:** Delete a bullet with children, check database — verify all descendants have `deleted_at` set (no orphans)
-- [ ] **Collapse state persistence:** Collapse a subtree with 10 items, refresh — verify collapsed state is restored from server, not defaulted to expanded
+- [ ] **Dark mode:** FocusToolbar is readable in dark mode — no white background, no invisible icons. Grep for `style=\{\{.*#` in all TSX files should return zero hardcoded hex colors after the migration.
+- [ ] **Dark mode:** Browser scrollbars, `<select>` elements, and native `<input>` borders respond to dark theme. Requires `color-scheme: dark` set on `:root` in addition to `data-theme` CSS variables.
+- [ ] **Dark mode:** No white flash on hard refresh with OS set to dark mode — throttle to Slow 3G and hard-refresh to verify the inline `<script>` fires before the React bundle.
+- [ ] **Mobile layout:** Sidebar bottom is not clipped on iPhone Safari — test on a physical device, not Chrome DevTools emulation.
+- [ ] **Mobile layout:** FocusToolbar returns to the screen bottom after keyboard is dismissed — no mid-screen floating on iOS 26 beta.
+- [ ] **Mobile layout:** Tapping any bullet on iPhone does not zoom the viewport — computed font-size must be ≥ 16px for all `contenteditable` elements.
+- [ ] **Drag-and-drop after gesture polish:** Slow vertical drag activates drag-and-drop; fast horizontal swipe triggers complete/delete; no crossover between the two on a physical device.
+- [ ] **PWA:** After server restart, a user with the app installed on home screen sees fresh data (not cached API responses) — verify with the Network tab in an installed-mode session.
+- [ ] **PWA:** Lighthouse PWA audit passes — specifically the installability and manifest checks.
+- [ ] **Quick-open:** `Ctrl+K` inside a focused contenteditable bullet opens the palette (not blocked by the `isContentEditable` guard in `useGlobalKeyboard`).
+- [ ] **Quick-open:** `Ctrl+F` still opens the search modal (not hijacked by the quick-open handler).
+- [ ] **Icon migration:** All emoji-based icons in `FocusToolbar.tsx` (currently `&#128206;`, `&#128172;`, `&#128278;`, etc.) are replaced with Lucide icon components — emoji render at system font size and ignore CSS color tokens.
 
 ---
 
@@ -253,12 +261,13 @@ Touch event listeners default to passive mode in modern browsers (for scroll per
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Position collation bug (string ordering wrong) | HIGH | Migrate `position` column to `FLOAT8`; recompute all positions from current display order; run migration in transaction |
-| Undo subtree corruption (children not restored) | HIGH | Add subtree snapshot to undo payload; write a one-time migration script that marks corrupted undo records with schema_version=0 so they are skipped |
-| Document cycle corruption (A is ancestor of itself) | HIGH | Write a repair script using `WITH RECURSIVE` with cycle detection (`CYCLE id SET is_cycle USING path`) to find and break cycles; move cycled node to document root |
-| Docker volume permission failure (uploads unreadable) | MEDIUM | `docker exec` into container, `chown -R node:node /data/attachments`; update Dockerfile for future deploys |
-| tsvector not indexed (slow search) | LOW | `CREATE INDEX CONCURRENTLY bullets_search_gin ON bullets USING GIN (search_vector)` — runs without locking table |
-| Undo history schema mismatch after deploy | LOW | Deploy records schema_version on new rows; old rows without version are skipped; users lose old undo history but current operations work |
+| Dark mode FOUC in production | LOW | Add the inline `<script>` to `client/index.html`, deploy; single-file change, no architectural rework |
+| PWA caching stale API data | MEDIUM | Update service worker config with `NetworkOnly` for `/api/*`, bump `precacheVersion` to evict old caches, redeploy; users may need to wait up to 24h for old service worker to expire, or can manually clear site data |
+| Swipe/drag conflict breaks both gestures | HIGH | Re-architect sensor config in `BulletTree.tsx` (switch to delay-based activation), re-test all gesture paths on physical device; expect 1-2 days of work |
+| iOS input zoom shifts layout | LOW | Single CSS rule addition to `index.css`; deploy immediately; no rebuild needed for Docker image |
+| Ctrl+K conflict with existing shortcut | LOW | Add to `useGlobalKeyboard` in `useUndo.ts` — one function change, 5 lines |
+| FocusToolbar invisible in dark mode | MEDIUM | Color-token migration of all inline styles in `FocusToolbar.tsx` — approximately 2-4 hours, then re-test dark mode on all toolbar states |
+| Service worker update not reaching users | LOW | Add `skipWaiting: true` + a reload prompt to the service worker registration code; deploy |
 
 ---
 
@@ -266,36 +275,33 @@ Touch event listeners default to passive mode in modern browsers (for scroll per
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Fractional indexing / collation | Phase 1: Tree CRUD schema | `EXPLAIN` shows correct ORDER BY; rapid reorder smoke test |
-| Undo subtree restore | Phase 1: Undo/redo system | Delete-subtree-undo integration test |
-| Position race condition | Phase 1: Tree CRUD API | Concurrent move requests in test |
-| Mobile keyboard focus | Phase 1: Core editor | Manual test on real iOS device |
-| Drag parent-into-child cycle | Phase 1: Drag-and-drop | Attempt invalid drop; server returns 4xx |
-| Undo history unbounded growth | Phase 1: Undo/redo system | Row count after 60+ operations = 50 (pruned) |
-| iOS touch gesture conflicts | Mobile gestures phase | swipe-on-scroll does not trigger both actions |
-| tsvector at query time (no index) | Search phase | `EXPLAIN ANALYZE` shows GIN index hit |
-| Docker volume permissions | Infrastructure / file attachments phase | Fresh deploy + upload + restart cycle test |
-| Inline markdown cursor jump | Editor polish phase | Type in a bold-wrapped line; cursor stays put |
-| Collapse state lost on refresh | Phase 1: Tree CRUD | Collapse, refresh, verify state from server |
+| dnd-kit sensor fires on horizontal swipe | Phase 1: Mobile Layout (swipe polish) | Fast swipe right = complete; slow vertical press = drag; no crossover on physical iPhone |
+| iOS input auto-zoom on contenteditable | Phase 1: Mobile Layout (font pairing) | Tap any bullet on iPhone — no viewport zoom; computed font-size ≥ 16px |
+| iOS 100dvh sidebar clip | Phase 1: Mobile Layout (hamburger) | Sidebar bottom visible on iPhone Safari; `height: 100dvh` in CSS |
+| FocusToolbar safe-area on notch | Phase 1: Mobile Layout | Toolbar does not overlap home indicator on iPhone X+ |
+| FocusToolbar mid-screen on iOS 26 keyboard dismiss | Phase 1: Mobile Layout | Defensive clamp in `computeKeyboardOffset`; validate on iOS 26 device when available |
+| FocusToolbar invisible in dark mode (inline styles) | Phase 2: Dark Mode (first task: color token migration) | Zero hardcoded hex colors in TSX files; toolbar visible and correct-contrast in dark mode |
+| Dark mode FOUC on page load | Phase 2: Dark Mode (first task: inline script in index.html) | Hard refresh with dark OS; no white flash even on Slow 3G throttle |
+| PWA caching stale API responses | Phase 3: PWA Manifest | Network tab in installed PWA; `/api/*` shows 200 from server, not `(from service worker)` |
+| PWA service worker caches auth errors | Phase 3: PWA Manifest | Log out, open installed PWA; no cached private data visible |
+| Ctrl+K conflict with Ctrl+F | Phase 4: Quick-Open | Press Ctrl+K → quick-open opens; press Ctrl+F → search modal opens; never both simultaneously |
+| Quick-open blocked in contenteditable focus | Phase 4: Quick-Open | Press Ctrl+K while editing a bullet → quick-open opens (not blocked by `isContentEditable` guard) |
+| Icon emoji size/color in dark mode | Phase 2: Dark Mode (FocusToolbar icon migration) | All toolbar icons are Lucide SVG components; no emoji characters in rendered output |
 
 ---
 
 ## Sources
 
-- [The PostgreSQL Collation Trap That Breaks Fractional Indexing — Jökull Sólberg](https://www.solberg.is/fractional-indexing-gotcha) (January 2026, HIGH confidence)
-- [PayloadCMS Issue #12397: Orderable field _order column uses case-sensitive fractional indexing, causing unique constraint issues in PostgreSQL](https://github.com/payloadcms/payload/issues/12397) (May 2025, HIGH confidence)
-- [PostgreSQL glibc Collation and Data Corruption — Crunchy Data Blog](https://www.crunchydata.com/blog/glibc-collations-and-data-corruption) (MEDIUM confidence — general collation risk)
-- [ProseMirror iOS mobile keyboard issues — GitHub Issues](https://github.com/ProseMirror/prosemirror/issues/627) (MEDIUM confidence)
-- [CodeMirror iOS Safari: Missing selection drag handles](https://discuss.codemirror.net/t/ios-safari-missing-selection-drag-handles/9679) (MEDIUM confidence)
-- [Building Complex Nested Drag and Drop UIs With React DnD — Kustomer Engineering](https://medium.com/kustomerengineering/building-complex-nested-drag-and-drop-user-interfaces-with-react-dnd-87ae5b72c803) (MEDIUM confidence)
-- [PostgreSQL: Speeding up recursive queries and hierarchical data — CYBERTEC](https://www.cybertec-postgresql.com/en/postgresql-speeding-up-recursive-queries-and-hierarchic-data/) (HIGH confidence)
-- [Cycle Detection for Recursive Search in Hierarchical Trees — SQLforDevs](https://sqlfordevs.com/cycle-detection-recursive-query) (HIGH confidence)
-- [Optimizing Full Text Search with Postgres tsvector Columns and Triggers — Thoughtbot](https://thoughtbot.com/blog/optimizing-full-text-search-with-postgres-tsvector-columns-and-triggers) (HIGH confidence)
-- [Handling Permissions with Docker Volumes — Deni Bertovic](https://denibertovic.com/posts/handling-permissions-with-docker-volumes/) (HIGH confidence)
-- [Docker and Multer Upload Volumes ENOENT Error: Complete Guide 2026](https://copyprogramming.com/howto/upload-files-from-express-js-and-multer-to-persistent-docker-volume) (MEDIUM confidence)
-- [VirtualKeyboard API — MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/API/VirtualKeyboard_API) (HIGH confidence)
-- [Debugging virtual keyboard bug in mobile Safari — Medium](https://imeugenia.medium.com/debugging-is-thinking-the-story-of-virtual-keyboard-bug-in-mobile-safari-1623c878660e) (MEDIUM confidence)
+- dnd-kit PointerSensor mobile conflicts: [GitHub issue #435](https://github.com/clauderic/dnd-kit/issues/435), [dnd-kit Sensors documentation](https://docs.dndkit.com/api-documentation/sensors), [iOS haptic touch drag break #791](https://github.com/clauderic/dnd-kit/issues/791)
+- iOS Safari 100vh: [DEV Community — 100vh problem with iOS Safari](https://dev.to/maciejtrzcinski/100vh-problem-with-ios-safari-3ge9), [Tailwind dvh discussion](https://github.com/tailwindlabs/tailwindcss/discussions/4515)
+- iOS 26 visualViewport regression: [Apple Developer Forums thread #800125](https://developer.apple.com/forums/thread/800125), [WebKit bug #237851](https://bugs.webkit.org/show_bug.cgi?id=237851), [iifx.dev debugging iOS 26 fixed positioning](https://iifx.dev/en/articles/460201403/debugging-ios-26-how-to-correct-fixed-positioning-post-keyboard-interaction)
+- iOS input zoom: [CSS-Tricks — 16px or Larger Text Prevents iOS Form Zoom](https://css-tricks.com/16px-or-larger-text-prevents-ios-form-zoom/), [Defensive CSS — Input zoom on iOS Safari](https://defensivecss.dev/tip/input-zoom-safari/)
+- Dark mode FOUC: [Not A Number — Fixing Dark Mode Flickering](https://notanumber.in/blog/fixing-react-dark-mode-flickering), [Josh W. Comeau — The Quest for Perfect Dark Mode](https://www.joshwcomeau.com/react/dark-mode/)
+- PWA caching pitfalls: [Infinity Interactive — Taming PWA Cache Behavior](https://iinteractive.com/resources/blog/taming-pwa-cache-behavior), [MDN — Caching in PWAs](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Caching)
+- PWA manifest requirements: [web.dev — Install criteria](https://web.dev/articles/install-criteria), [Chrome Developers — installable-manifest Lighthouse check](https://developer.chrome.com/docs/lighthouse/pwa/installable-manifest)
+- Command palette keyboard conflicts: [GitHub community discussion #15255](https://github.com/orgs/community/discussions/15255)
+- Codebase inspection (HIGH confidence — direct source): `client/src/components/DocumentView/gestures.ts`, `FocusToolbar.tsx` (lines 148-165, inline styles), `BulletTree.tsx` (lines 86-88, sensor config), `useUndo.ts` (lines 24-70, global keyboard handler), `SearchModal.tsx`, `index.css`
 
 ---
-*Pitfalls research for: Self-hosted outliner/PKM web app (Dynalist/Workflowy clone)*
-*Researched: 2026-03-09*
+*Pitfalls research for: v1.1 Mobile and UI Polish milestone — adding dark mode, hamburger layout, PWA manifest, and quick-open palette to an existing React outliner with gestures and drag-and-drop*
+*Researched: 2026-03-10*

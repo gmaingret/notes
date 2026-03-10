@@ -1,584 +1,492 @@
 # Architecture Research
 
-**Domain:** Self-hosted multi-user infinite outliner / PKM web app
-**Researched:** 2026-03-09
-**Confidence:** HIGH (tree model, undo pattern, file storage) / MEDIUM (API shape, frontend hierarchy)
+**Domain:** v1.1 Mobile & UI Polish — Integration with existing React/Vite outliner
+**Researched:** 2026-03-10
+**Confidence:** HIGH (integration points read directly from source) / MEDIUM (PWA plugin approach)
 
 ---
 
 ## Standard Architecture
 
-### System Overview
+### System Overview — Current State
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                        CLIENT (Browser)                          │
-├──────────────────────────────────────────────────────────────────┤
-│  ┌───────────────┐  ┌──────────────┐  ┌───────────────────────┐  │
-│  │  Doc Sidebar  │  │  Tree Editor │  │  Toolbar / Search     │  │
-│  │  (doc list)   │  │  (root view) │  │  (global actions)     │  │
-│  └──────┬────────┘  └──────┬───────┘  └──────────┬────────────┘  │
-│         │                  │                     │               │
-│  ┌──────┴──────────────────┴─────────────────────┴────────────┐  │
-│  │                   Client State Layer                        │  │
-│  │   (document tree, collapsed state, optimistic mutations)    │  │
-│  └─────────────────────────────┬───────────────────────────────┘  │
-├────────────────────────────────┼─────────────────────────────────┤
-│                                │  HTTP / REST + multipart        │
-├────────────────────────────────┼─────────────────────────────────┤
-│                        SERVER (Node.js / Express)                │
-├────────────────────────────────┼─────────────────────────────────┤
-│  ┌─────────────┐  ┌────────────┴──┐  ┌───────────────────────┐   │
-│  │  Auth       │  │  Bullet API   │  │  Attachment API       │   │
-│  │  (JWT/OAuth)│  │  (CRUD+ops)   │  │  (upload/download)    │   │
-│  └──────┬──────┘  └───────┬───────┘  └──────────┬────────────┘   │
-│         │                 │                     │                │
-│  ┌──────┴─────────────────┴─────────────────────┴─────────────┐  │
-│  │                    Service Layer                            │  │
-│  │  (tree ops, undo stack manager, search, attachment mgmt)   │  │
-│  └─────────────────────────────┬───────────────────────────────┘  │
-├────────────────────────────────┼─────────────────────────────────┤
-│                        DATA LAYER                                │
-│  ┌──────────────────────┐      │      ┌──────────────────────┐   │
-│  │   PostgreSQL         │◄─────┘      │  Docker Volume       │   │
-│  │  (bullets, docs,     │             │  /data/attachments   │   │
-│  │   undo_events,       │             │  (raw files)         │   │
-│  │   users, comments)   │             └──────────────────────┘   │
-│  └──────────────────────┘                                        │
-└──────────────────────────────────────────────────────────────────┘
+index.html
+  └── main.tsx
+        └── App.tsx  (router, RequireAuth, GlobalKeyboard)
+              ├── LoginPage
+              └── AppPage  ←── LAYOUT ROOT — flexbox row, 100vh
+                    ├── Sidebar (fixed 240px width, inline styles)
+                    │     ├── DocumentList
+                    │     ├── TagBrowser
+                    │     └── BookmarkBrowser
+                    └── <main> (flex: 1, overflow: auto, inline styles)
+                          └── DocumentView
+                                └── BulletTree (DndContext + SortableContext)
+                                      ├── BulletNode[]
+                                      │     └── BulletContent (contenteditable)
+                                      ├── FocusToolbar (fixed, above keyboard)
+                                      ├── DocumentToolbar
+                                      └── ContextMenu
 ```
+
+Global state: `uiStore.ts` (Zustand + persist)
+- `sidebarOpen: boolean` — already exists, persisted
+- `sidebarTab`, `canvasView`, `searchOpen`, `focusedBulletId`, `lastOpenedDocId`
+
+CSS: `index.css` — minimal (~13 lines), inline styles dominate everywhere.
+PWA: none — `public/` contains only `vite.svg`. `index.html` has no manifest link.
 
 ### Component Responsibilities
 
-| Component | Responsibility | Typical Implementation |
-|-----------|----------------|------------------------|
-| Doc Sidebar | List documents, switch active doc, rename/delete | React component, fetches doc list on mount |
-| Tree Editor | Render bullet tree, handle keyboard/mouse/touch, show collapse state | Recursive React components with virtual DOM |
-| Client State Layer | Hold loaded tree in memory, track optimistic changes, manage collapsed nodes | React state + useReducer or Zustand |
-| Auth (server) | Issue JWTs, validate Google OAuth tokens, protect all routes | Express middleware + passport or custom |
-| Bullet API | CRUD for documents + bullets, tree operations (move, indent, outdent) | Express routes → Service layer → PostgreSQL |
-| Attachment API | Multipart upload, file serve, metadata, delete | Multer middleware → disk → PostgreSQL metadata |
-| Service Layer | Orchestrate multi-step DB operations, enforce ownership, apply undo events | Plain JS modules called by route handlers |
-| PostgreSQL | Persist all structured data: users, docs, bullets, undo stack, comments | Single DB, multiple tables |
-| Docker Volume | Store raw attachment bytes at `/data/attachments` | Multer diskStorage pointing to mounted path |
+| Component | Responsibility | Current State |
+|-----------|----------------|---------------|
+| `AppPage` | Layout root — flex row, routes, auto-navigate | Inline styles, no mobile breakpoint |
+| `Sidebar` | Nav panel — docs/tags/bookmarks tabs | Hard-coded 240px, overlay div present but only shown via CSS media query |
+| `uiStore` | Global UI state | `sidebarOpen` already exists; toggles work but sidebar never hides visually |
+| `useGlobalKeyboard` | Keyboard shortcuts | Ctrl+E sidebar toggle already wired |
+| `SearchModal` | Full-text search overlay | Fully working — backdrop + modal at `top: 20%`, triggered by `searchOpen` |
+| `FocusToolbar` | Mobile action bar above soft keyboard | Fixed-positioned using `visualViewport`, lives inside BulletTree |
+| `gestures.ts` | Swipe + long-press pure functions | Closure-based, no React, unit-tested |
+| `index.css` | Global reset + one hover rule + one mobile media query | Minimal; all theming is inline |
 
 ---
 
-## Tree Data Model (PostgreSQL)
+## Integration Points for v1.1 Features
 
-### Recommended: Adjacency List + Float Position
+### Feature 1: Responsive Mobile Layout + Hamburger Sidebar
 
-Use a single `bullets` table with `parent_id` (NULL = root bullet of document) and a `position` float column for sibling ordering. This is the correct choice for an outliner because:
+**What needs to change:**
 
-- Updates are frequent (drag, indent, outdent happen constantly)
-- Nesting is arbitrarily deep but queries are per-document (bounded)
-- PostgreSQL recursive CTEs (`WITH RECURSIVE`) handle all-descendants queries cleanly
-- Float position enables insert-between without touching sibling rows
+`AppPage.tsx` — the flex layout uses `style={{ display: 'flex' }}` directly. The sidebar must be conditionally positioned (off-canvas on mobile) based on `sidebarOpen` and a `isMobile` breakpoint. Two approaches:
 
-**Schema:**
+- **Approach A (CSS classes, recommended):** Move layout to `index.css` with a `.app-layout` class. CSS handles the breakpoint; `sidebarOpen` becomes a `data-sidebar-open` attribute that CSS reads. No JS media query needed in the render path.
+- **Approach B (JS matchMedia):** Add a `useIsMobile()` hook that reads `window.matchMedia('(max-width: 768px)')`. Pass `isMobile` to layout. More explicit but harder to test visually.
 
-```sql
-CREATE TABLE documents (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title      TEXT NOT NULL DEFAULT 'Untitled',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+Recommendation: Approach A. It keeps the JS state (`sidebarOpen`) as the single source of truth while CSS handles breakpoint-specific positioning (translate off-screen vs visible).
 
-CREATE TABLE bullets (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  parent_id   UUID REFERENCES bullets(id) ON DELETE CASCADE,
-  content     TEXT NOT NULL DEFAULT '',
-  position    FLOAT NOT NULL DEFAULT 1.0,   -- fractional index among siblings
-  is_complete BOOLEAN NOT NULL DEFAULT false,
-  is_collapsed BOOLEAN NOT NULL DEFAULT false,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+`Sidebar.tsx` — the overlay `<div>` already exists and is shown via the `.mobile-overlay` CSS class. It correctly calls `setSidebarOpen(false)` on click. What is missing: the `<aside>` itself must slide off-screen on mobile when `sidebarOpen` is false. Currently `sidebarOpen` is read from `uiStore` but never actually hides the sidebar element.
 
-CREATE INDEX bullets_document_parent ON bullets(document_id, parent_id, position);
-CREATE INDEX bullets_content_fts ON bullets USING GIN(to_tsvector('english', content));
-```
+**New component:** `HamburgerButton` — a small button rendered in the `<main>` header area (or in a new `TopBar` component) that calls `setSidebarOpen(true)`. On desktop it can be hidden via CSS. Alternatively, add the hamburger to the existing `DocumentToolbar`.
 
-**Sibling ordering with fractional indexing:**
+**Modification summary:**
 
-When inserting between position 1.0 and 2.0, assign 1.5. Between 1.5 and 2.0, assign 1.75. This never requires touching adjacent rows. When positions get too dense (gap < 0.001), re-normalize the affected parent's children in a single batch UPDATE. This is the same technique Figma and Linear use for ordered lists.
+| File | Change |
+|------|--------|
+| `AppPage.tsx` | Replace inline flex div with CSS class; conditionally apply `data-sidebar-open` |
+| `Sidebar.tsx` | Add CSS class to `<aside>` for mobile translate; no logic change needed |
+| `index.css` | Add `.app-layout`, `.app-sidebar`, `.app-content` with `@media (max-width: 768px)` rules |
+| `uiStore.ts` | No change needed — `sidebarOpen` is already there |
+| `useGlobalKeyboard` | No change — Ctrl+E already toggles `sidebarOpen` |
 
-**Querying a full document tree:**
-
-```sql
-WITH RECURSIVE tree AS (
-  -- root bullets (parent_id IS NULL for this document)
-  SELECT id, parent_id, content, position, is_complete, is_collapsed, 0 AS depth
-  FROM bullets
-  WHERE document_id = $1 AND parent_id IS NULL AND user_id = $2
-
-  UNION ALL
-
-  SELECT b.id, b.parent_id, b.content, b.position, b.is_complete, b.is_collapsed, t.depth + 1
-  FROM bullets b
-  JOIN tree t ON b.parent_id = t.id
-  WHERE b.document_id = $1
-)
-SELECT * FROM tree ORDER BY depth, position;
-```
-
-The client receives a flat list of nodes and reconstructs the tree in memory using a `parent_id` map. This avoids complex recursive result formatting on the server.
-
-### Why Not Closure Table
-
-Closure table would be the right choice if the app needed frequent "find all ancestors of X" queries (like tag inheritance or permission trees). For an outliner, queries are nearly always top-down (document root → all descendants). Adjacency list with CTE covers this cleanly and has far simpler update logic.
-
-### Why Not Nested Sets / Materialized Path
-
-Nested sets require updating ALL right-values when inserting anywhere in the tree — catastrophic for an outliner where inserts are the primary operation. Materialized path (`ltree`) requires rebuilding paths on re-parent. Both are wrong for this write-heavy pattern.
+**New component needed:** `HamburgerButton` (or inline in `DocumentToolbar`/`DocumentView`).
 
 ---
 
-## Undo/Redo System Architecture
+### Feature 2: CSS Dark Mode Tokens
 
-### Design: Command Table (Server-Side Event Log)
+**What needs to change:**
 
-The requirement is 50 levels, per-user, global (crosses document boundaries), survives page refresh. The correct architecture is a persisted command log in PostgreSQL, not client-side undo stacks.
+The codebase uses inline styles almost exclusively (e.g., `color: '#111'`, `background: '#fafafa'`, `borderRight: '1px solid #e0e0e0'`). Switching these to CSS custom properties requires either:
 
-**Schema:**
+- **Option A (CSS vars on `:root` + `@media prefers-color-scheme`):** Define all color tokens as CSS variables on `:root`, override them in a `@media (prefers-color-scheme: dark)` block. Components must switch from inline hex values to `var(--color-*)` references. This is the only approach that works without touching every component's logic.
+- **Option B (data-theme attribute):** Same as A but toggled via `document.documentElement.setAttribute('data-theme', 'dark')`. Allows a manual toggle in addition to system preference.
 
-```sql
-CREATE TABLE undo_events (
-  id          BIGSERIAL PRIMARY KEY,
-  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  -- pointer into this user's linear history
-  seq         INTEGER NOT NULL,  -- increments per user, 1-based
-  event_type  TEXT NOT NULL,     -- 'bullet_create', 'bullet_update', 'bullet_delete', 'bullet_move', etc.
-  forward_op  JSONB NOT NULL,    -- the operation as applied ("do")
-  inverse_op  JSONB NOT NULL,    -- the inverse operation ("undo")
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+Recommendation: Option A first (system-preference only), add Option B toggle later if desired. The manual toggle would need a `theme` field in `uiStore` + a toggle button in the sidebar header.
 
-  UNIQUE(user_id, seq)
-);
+**Scope of change:** Every component that uses inline color/background/border values must be updated to reference CSS variables. This is the largest surface-area change in v1.1 — it touches nearly every component file.
 
--- Track where in the user's history stack they currently are
-CREATE TABLE undo_cursors (
-  user_id    UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  current_seq INTEGER NOT NULL DEFAULT 0  -- 0 = nothing to undo
-);
+**Build order implication:** CSS tokens must be established in `index.css` first, before any component switches to `var()` references. This is a blocking dependency.
+
+**Modification summary:**
+
+| File | Change |
+|------|--------|
+| `index.css` | Add `--color-*` token definitions for light + dark under `@media prefers-color-scheme: dark` |
+| All component files | Replace inline hex colors with `var(--color-*)` — no logic change, purely presentational |
+| `uiStore.ts` | Optional: add `theme: 'system' | 'light' | 'dark'` if manual toggle is wanted |
+
+---
+
+### Feature 3: Icon Library (Lucide) + Font Pairing
+
+**What needs to change:**
+
+Current icons are unicode characters and emoji (e.g., `⋯`, `+`, `&#8677;`, `&#128206;`). Lucide React provides tree-shakeable SVG icons. Install `lucide-react` and replace icon characters component by component.
+
+FocusToolbar has the highest icon density (11 buttons). DocumentToolbar and Sidebar header have a few more.
+
+**Fonts:** `index.html` needs `<link>` tags for Google Fonts (Inter + JetBrains Mono) or self-hosted variants. `index.css` body font-family must change. Monospace font applies to `BulletContent`'s contenteditable if code blocks are used (currently markdown renders inline, not code-block heavy — apply selectively).
+
+**Modification summary:**
+
+| File | Change |
+|------|--------|
+| `index.html` | Add font preconnect + link tags |
+| `index.css` | Update `body { font-family }`, add monospace token |
+| `package.json` | Add `lucide-react` dependency |
+| `FocusToolbar.tsx` | Replace all unicode button content with Lucide icon components |
+| `Sidebar.tsx` | Replace `⋯` and `+` characters |
+| `DocumentToolbar.tsx` | Replace any unicode icons |
+| `BulletNode.tsx` | Replace collapse arrow / bullet dot unicode |
+
+---
+
+### Feature 4: PWA Manifest
+
+**What needs to change:**
+
+`public/manifest.json` — new file. Standard Web App Manifest with `name`, `short_name`, `icons`, `start_url`, `display: standalone`, `theme_color`, `background_color`.
+
+`index.html` — add `<link rel="manifest" href="/manifest.json">` and `<meta name="theme-color">` in `<head>`.
+
+`public/` — add icon assets (192x192, 512x512 PNG). The vite build copies `public/` contents to dist root unchanged, so no vite config change is needed.
+
+**Vite PWA plugin (optional but recommended):** `vite-plugin-pwa` auto-generates the manifest, injects the link tag, and optionally generates a service worker for offline caching. For this milestone, offline mode is out of scope, but the plugin in "injectManifest" mode with an empty precache list is cleaner than manual manifest management. Without the plugin, a static `manifest.json` in `public/` is sufficient.
+
+Recommendation: static `manifest.json` in `public/` with no service worker. Keep it simple; the plugin adds complexity only justified when offline support is needed.
+
+**Modification summary:**
+
+| File | Change |
+|------|--------|
+| `public/manifest.json` | New file |
+| `public/icon-192.png` | New file |
+| `public/icon-512.png` | New file |
+| `index.html` | Add manifest link + theme-color meta |
+| `vite.config.ts` | No change needed (static public files work by default) |
+
+---
+
+### Feature 5: Quick-Open Palette (Ctrl+K)
+
+**What already exists:**
+
+`SearchModal.tsx` is a working full-text search modal triggered by `searchOpen` in `uiStore`. It uses `useSearch` (API call to `/api/search`). The modal renders a backdrop + centered box with debounced input and a `FilteredBulletList` result list.
+
+The quick-open palette (Ctrl+K) is conceptually similar but with different scope: fuzzy document title matching + optionally bullet search. Two implementation paths:
+
+- **Path A (new component `QuickOpenPalette`):** Separate from `SearchModal`. Uses `useDocuments()` (already cached) for document fuzzy match client-side, falls back to `useSearch` for bullet content. Triggered by a separate `quickOpenOpen` flag in `uiStore`.
+- **Path B (extend SearchModal):** Add a mode prop. When triggered by Ctrl+K, show document results first. When triggered by Ctrl+F, show full-text bullet results.
+
+Recommendation: Path A. `SearchModal` is Ctrl+F full-text search and should stay as-is. Quick-open (Ctrl+K) has different UX expectations: instant results from cached document list, keyboard navigation with arrow keys, and navigating to a document (not just scrolling to a bullet). Conflating them complicates both.
+
+**What QuickOpenPalette needs:**
+
+- Fuzzy document match: filter `useDocuments()` result client-side — no new API endpoint needed for documents. `documents` are already fetched and cached in every session.
+- Bullet fuzzy match: reuse `/api/search` via `useSearch` — same endpoint SearchModal uses.
+- Keyboard navigation: arrow keys move selection, Enter opens, Escape closes.
+- Trigger: Ctrl+K registered in `useGlobalKeyboard`.
+
+**State change in uiStore:**
+
+Add `quickOpenOpen: boolean` + `setQuickOpenOpen`. It does NOT need to be persisted (transient UI state).
+
+**Where rendered:** In `App.tsx` alongside where `SearchModal` is rendered (inside `RequireAuth` but outside the page tree — or in `AppPage.tsx` if co-located with `SearchModal`). Check where `SearchModal` is currently mounted.
+
+**Modification summary:**
+
+| File | Change |
+|------|--------|
+| `uiStore.ts` | Add `quickOpenOpen: boolean`, `setQuickOpenOpen` (not persisted) |
+| `useUndo.ts` (useGlobalKeyboard) | Add Ctrl+K handler calling `setQuickOpenOpen(true)` |
+| `components/QuickOpenPalette.tsx` | New component |
+| `AppPage.tsx` or `App.tsx` | Mount `<QuickOpenPalette>` when `quickOpenOpen` is true |
+
+---
+
+### Feature 6: Ctrl+E Desktop Sidebar Toggle
+
+**Status: Already implemented.**
+
+`useGlobalKeyboard` in `useUndo.ts` already handles `Ctrl+E → setSidebarOpen(!sidebarOpen)`. The store action exists. The only missing piece is that the sidebar does not visually respond to `sidebarOpen` changes — that gap is closed by Feature 1 (layout work).
+
+No new code needed for this feature specifically.
+
+---
+
+## Recommended Project Structure Changes
+
+Current `src/` layout is flat and component-tree-based. No restructure needed for v1.1. Add:
+
+```
+client/
+├── public/
+│   ├── manifest.json          # NEW — PWA manifest
+│   ├── icon-192.png           # NEW — PWA icon
+│   └── icon-512.png           # NEW — PWA icon
+└── src/
+    ├── index.css              # MODIFY — add CSS tokens, layout classes, dark mode
+    ├── store/
+    │   └── uiStore.ts         # MODIFY — add quickOpenOpen
+    ├── hooks/
+    │   └── useUndo.ts         # MODIFY — add Ctrl+K to useGlobalKeyboard
+    ├── components/
+    │   ├── Sidebar/
+    │   │   └── Sidebar.tsx    # MODIFY — CSS class on <aside>, icon replacements
+    │   ├── DocumentView/
+    │   │   ├── FocusToolbar.tsx     # MODIFY — Lucide icons
+    │   │   ├── DocumentToolbar.tsx  # MODIFY — Lucide icons
+    │   │   └── BulletNode.tsx       # MODIFY — Lucide icons, CSS vars
+    │   └── QuickOpenPalette.tsx     # NEW
+    ├── pages/
+    │   └── AppPage.tsx        # MODIFY — CSS layout classes, mount QuickOpenPalette
+    └── main.tsx / index.html  # MODIFY — font links, manifest link
 ```
 
-**How it works:**
+---
 
-1. Every mutating API call (create bullet, update content, move bullet, delete) is wrapped in a transaction that:
-   - Applies the change to `bullets`
-   - Appends a row to `undo_events` with `forward_op` (what was done) and `inverse_op` (how to reverse it)
-   - Advances `undo_cursors.current_seq` for this user
-   - Truncates any events with `seq > current_seq` (clears redo stack on new action)
-   - Enforces 50-item cap: deletes events where `seq < current_seq - 50`
+## Architectural Patterns
 
-2. `POST /api/undo`: reads `inverse_op` at `current_seq`, applies it, decrements cursor
-3. `POST /api/redo`: reads `forward_op` at `current_seq + 1`, applies it, increments cursor
+### Pattern 1: CSS Custom Properties for Theming
 
-**Example undo_event row:**
+**What:** Define all color/surface tokens as `--color-*` CSS variables on `:root`. Override in `@media (prefers-color-scheme: dark)`. Components reference `var(--color-bg-primary)` etc. rather than hex literals.
 
-```json
-{
-  "event_type": "bullet_update",
-  "forward_op": { "id": "abc123", "content": "New text" },
-  "inverse_op": { "id": "abc123", "content": "Old text" }
+**When to use:** Always for any value that changes between light and dark. Do not use for layout values (padding, width) — those don't theme.
+
+**Trade-offs:** All inline styles touching color must be converted (large surface area). But CSS variables work without any JS, are inherited, and can be overridden per-subtree if needed later.
+
+```css
+/* index.css */
+:root {
+  --color-bg-primary: #ffffff;
+  --color-bg-sidebar: #fafafa;
+  --color-border: #e0e0e0;
+  --color-text-primary: #111111;
+  --color-text-secondary: #666666;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-primary: #1a1a1a;
+    --color-bg-sidebar: #141414;
+    --color-border: #333333;
+    --color-text-primary: #f0f0f0;
+    --color-text-secondary: #999999;
+  }
 }
 ```
 
-```json
-{
-  "event_type": "bullet_move",
-  "forward_op": { "id": "abc123", "parent_id": "parent-b", "position": 1.5 },
-  "inverse_op": { "id": "abc123", "parent_id": "parent-a", "position": 3.0 }
+### Pattern 2: Off-Canvas Sidebar via CSS Transform
+
+**What:** Sidebar is always in the DOM. On mobile when `sidebarOpen` is false, it is translated off-screen with `transform: translateX(-100%)`. When open, `transform: none`. CSS `transition` provides the slide animation. `sidebarOpen` in `uiStore` drives a `data-sidebar-open` attribute on the layout root.
+
+**When to use:** When sidebar content must persist across open/close (avoids React unmount/remount). Consistent with how the existing mobile-overlay div already works.
+
+**Trade-offs:** Sidebar is always rendered even when hidden (minor memory cost). But it avoids re-mounting Sidebar which would re-trigger queries.
+
+```css
+/* Mobile: sidebar slides in from left */
+@media (max-width: 768px) {
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 10;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  .app-layout[data-sidebar-open="true"] .app-sidebar {
+    transform: translateX(0);
+  }
 }
 ```
 
-**Why not event sourcing (replay-based):**
-Full event sourcing requires replaying the entire event history to derive current state. For an outliner with thousands of bullets and 50-step undo, the forward/inverse command pair approach is simpler, faster, and sufficient. Each undo is O(1) — apply one inverse op, no replay needed.
+### Pattern 3: Client-Side Fuzzy Filter for QuickOpenPalette
 
----
+**What:** Document list is already fetched and cached via `useDocuments()`. Filter it client-side with a simple `toLowerCase().includes()` or a lightweight fuzzy algorithm. No network request for document matching.
 
-## File Attachment Architecture
+**When to use:** Any list that is already in the React Query cache and small enough to filter in memory (document list is typically < 100 items).
 
-### Storage: Multer + Docker Volume
-
-Files are stored on the Docker volume at `/data/attachments`. PostgreSQL stores metadata only. This is the simplest correct design for a single-server self-hosted app.
-
-**Schema:**
-
-```sql
-CREATE TABLE attachments (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  bullet_id   UUID NOT NULL REFERENCES bullets(id) ON DELETE CASCADE,
-  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  filename    TEXT NOT NULL,       -- original uploaded filename
-  stored_name TEXT NOT NULL,       -- UUID-based name on disk (no collisions)
-  mime_type   TEXT NOT NULL,
-  size_bytes  BIGINT NOT NULL,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
-
-**Server file path convention:**
-
-```
-/data/attachments/{user_id}/{attachment_id}_{stored_name}
-```
-
-User-based subdirectories prevent directory entry explosion at scale. `stored_name` is a UUID so no two uploads ever collide regardless of original filename.
-
-**Upload flow:**
-
-```
-Browser → POST /api/attachments (multipart/form-data)
-  → Multer diskStorage (validates size ≤ 100MB, writes to /data/attachments/{user_id}/)
-  → INSERT into attachments table
-  → Return attachment metadata JSON
-
-Download: GET /api/attachments/:id
-  → Verify ownership (user_id match)
-  → res.sendFile() pointing at disk path
-  → Content-Disposition: attachment for forced download
-```
-
-**Critical configuration:**
-
-```javascript
-// Multer must validate size BEFORE writing to disk (limits.fileSize)
-// Directory must exist at container start (use mkdirSync in startup)
-// Never expose raw filesystem path to client
-```
-
----
-
-## API Design: Bullet Operations
-
-### Principle: Semantic Operations, Not Raw SQL
-
-The client sends intent ("move bullet X to be after bullet Y under parent Z"), not field patches. The server translates intent to the correct position float and undo event. This keeps client code simple and undo reliable.
-
-### Endpoint Map
-
-```
-Documents:
-  GET    /api/documents                    list user's documents
-  POST   /api/documents                    create document
-  GET    /api/documents/:id/bullets        fetch full document tree (flat list + parent_id)
-  PATCH  /api/documents/:id                rename
-  DELETE /api/documents/:id                delete + cascade
-
-Bullets:
-  POST   /api/bullets                      create (body: document_id, parent_id, after_id, content)
-  PATCH  /api/bullets/:id                  update content or is_complete or is_collapsed
-  DELETE /api/bullets/:id                  delete (soft-delete with is_deleted flag OR hard delete)
-  POST   /api/bullets/:id/move             semantic move (body: new_parent_id, after_id)
-  POST   /api/bullets/:id/indent           indent under previous sibling
-  POST   /api/bullets/:id/outdent          outdent to grandparent, after current parent
-
-Undo/Redo:
-  POST   /api/undo                         undo last event for authenticated user
-  POST   /api/redo                         redo next event for authenticated user
-  GET    /api/undo/status                  { can_undo: bool, can_redo: bool }
-
-Attachments:
-  POST   /api/attachments                  upload (multipart, body: bullet_id)
-  GET    /api/attachments/:id              download/serve file
-  DELETE /api/attachments/:id              delete file + metadata
-
-Comments:
-  GET    /api/bullets/:id/comments         list comments for a bullet
-  POST   /api/bullets/:id/comments         add comment
-  DELETE /api/comments/:id                 delete comment
-
-Search:
-  GET    /api/search?q=...&doc=...         full-text search, optional doc filter
-
-Auth:
-  POST   /api/auth/register               email + password
-  POST   /api/auth/login                  email + password → JWT
-  POST   /api/auth/google                 Google OAuth code → JWT
-  POST   /api/auth/logout                 invalidate token (if using refresh tokens)
-```
-
-### Key Design Decisions
-
-**`after_id` for positioning:** Rather than sending a raw `position` float, the client sends `after_id` (UUID of the bullet this new bullet should appear after, null = prepend). The server computes the new position float as `(position[after] + position[next_sibling]) / 2`. This decouples client from the float ordering internals.
-
-**Indent/outdent as semantic endpoints:** These are not just moves — they also record the correct inverse operation for undo. A generic PATCH would force the client to compute the undo state. Dedicated endpoints let the server own undo entirely.
-
-**Bulk document load:** `GET /api/documents/:id/bullets` returns all bullets in the document in a single request as a flat array. The client builds the tree in memory. This avoids N+1 and makes zoom-into-bullet fast (client already has all nodes).
-
-**Soft delete vs hard delete for bullets:** Use `is_deleted` + `deleted_at` columns. This enables undo of bullet deletions without storing the entire subtree in the undo_events JSONB. Undo just sets `is_deleted = false`. Periodic cleanup job permanently removes rows older than 30 days with `is_deleted = true`.
-
----
-
-## Frontend Component Hierarchy
-
-```
-<App>
-  ├── <AuthProvider>          -- JWT in memory (not localStorage), refresh via cookie
-  │
-  └── <OutlinerLayout>
-        ├── <Sidebar>
-        │     ├── <DocumentList>    -- fetch GET /api/documents, sorted by updated_at
-        │     └── <BookmarkList>    -- bullets with is_bookmarked=true
-        │
-        └── <MainPanel>
-              ├── <Breadcrumbs>     -- zoom path from root to current zoom node
-              ├── <SearchBar>       -- Ctrl+P opens, calls GET /api/search
-              │
-              └── <DocumentView>
-                    ├── <DocumentTitle>     -- editable H1
-                    └── <BulletTree>        -- root component, renders from zoom node down
-                          └── <BulletNode> (recursive)
-                                ├── <BulletHandle>    -- drag target + collapse toggle
-                                ├── <BulletContent>   -- contenteditable span
-                                ├── <BulletMeta>      -- tags, mentions, dates as chips
-                                ├── <AttachmentList>  -- pills for attached files
-                                ├── <CommentBadge>    -- count, opens comment drawer
-                                └── <BulletChildren>  -- recursive BulletNode instances
-```
-
-**Contenteditable vs ProseMirror for bullets:**
-
-Use a plain `contenteditable` span per bullet with a custom keyboard handler, not ProseMirror. Reason: ProseMirror models documents as flat rich text; an outliner models a tree of nodes where Enter creates a new sibling node (not a new paragraph within the same node). ProseMirror's document model fights this structure. The per-bullet contenteditable pattern is what Workflowy, Dynalist, Roam Research, and Logseq all use.
-
-Each `<BulletContent>` is a single-line contenteditable that:
-- Handles Enter → create sibling bullet via API call
-- Handles Tab → indent bullet via API call
-- Handles Shift+Tab → outdent bullet via API call
-- Handles Backspace on empty bullet → delete + focus previous
-- Handles Ctrl+Z/Y → POST /api/undo or /api/redo
-- Parses `#tag`, `@mention`, `!!date` in real-time for chip rendering (regex over text content, does not modify the stored text)
-
-**State management:**
-
-Use React's `useReducer` at the `<DocumentView>` level. The tree state is a normalized map: `{ [id]: BulletNode }`. All operations dispatch actions that update the map optimistically, then confirm or rollback on server response. Do not use a global state library (Redux, Zustand) for v1 — single-document state is bounded and component-local is sufficient.
-
-**Collapse state:** Stored in `bullets.is_collapsed` on the server and fetched as part of the document load. Toggling collapse calls `PATCH /api/bullets/:id` with `{ is_collapsed: true/false }`. Do not store collapse state in frontend-only localStorage; the requirement says "persisted per user."
-
----
-
-## Recommended Project Structure
-
-```
-server/
-├── routes/
-│   ├── auth.js           # login, register, google oauth
-│   ├── documents.js      # document CRUD + tree fetch
-│   ├── bullets.js        # bullet CRUD + move/indent/outdent
-│   ├── attachments.js    # upload/download/delete
-│   ├── comments.js       # bullet comments
-│   ├── search.js         # full-text search
-│   └── undo.js           # undo/redo stack
-├── services/
-│   ├── bulletService.js  # tree operations, position calculation
-│   ├── undoService.js    # event log, cursor management
-│   ├── searchService.js  # FTS query construction
-│   └── attachmentService.js
-├── middleware/
-│   ├── auth.js           # JWT verification middleware
-│   └── upload.js         # multer configuration
-├── db/
-│   ├── pool.js           # pg Pool singleton
-│   └── migrations/       # sequential SQL migration files
-└── app.js                # Express setup, route mounting
-
-client/src/
-├── components/
-│   ├── Sidebar/
-│   ├── BulletTree/
-│   │   ├── BulletNode.jsx
-│   │   ├── BulletContent.jsx   # contenteditable + keyboard handler
-│   │   └── BulletHandle.jsx    # drag + collapse toggle
-│   ├── Search/
-│   ├── Attachments/
-│   └── Comments/
-├── hooks/
-│   ├── useDocument.js    # fetch + state for one document
-│   ├── useUndo.js        # undo/redo keyboard bindings
-│   └── useSearch.js
-├── api/
-│   └── client.js         # fetch wrapper with JWT header
-└── App.jsx
-```
+**Trade-offs:** Keeps quick-open instant. Bullet search still hits the API (reuse `useSearch`). The palette shows docs first, bullets below — two result sections in one modal.
 
 ---
 
 ## Data Flow
 
-### Bullet Edit Flow
+### Sidebar Toggle Flow
 
 ```
-User types in <BulletContent>
-    ↓ (onBlur or debounced onChange)
-PATCH /api/bullets/:id { content: "new text" }
-    ↓
-bulletService.update(id, userId, { content })
-    ↓ (single transaction)
-UPDATE bullets SET content = $1 WHERE id = $2 AND user_id = $3
-INSERT INTO undo_events (user_id, seq, event_type, forward_op, inverse_op)
-UPDATE undo_cursors SET current_seq = seq WHERE user_id = $1
-    ↓
-200 OK { bullet: {...}, undo_status: { can_undo: true, can_redo: false } }
-    ↓
-Client updates local state + undo UI indicator
+User taps hamburger                User presses Ctrl+E
+        ↓                                  ↓
+HamburgerButton.onClick      useGlobalKeyboard onKeyDown
+        ↓                                  ↓
+     setSidebarOpen(true)        setSidebarOpen(!sidebarOpen)
+              ↓
+         uiStore (Zustand)
+              ↓ (persisted to localStorage via partialize)
+     AppPage re-renders
+              ↓
+     data-sidebar-open attr on .app-layout div
+              ↓
+     CSS transform applies to .app-sidebar
+              ↓ (mobile only — overlay is also shown)
+     .mobile-overlay visible → tap closes sidebar
 ```
 
-### Undo Flow
+### Quick-Open Palette Flow
 
 ```
-User presses Ctrl+Z
-    ↓
-POST /api/undo
-    ↓
-undoService.undo(userId)
-    ↓
-SELECT inverse_op FROM undo_events WHERE user_id=$1 AND seq=current_seq
-    ↓ (apply inverse_op in transaction)
-UPDATE bullets ... (inverse operation)
-UPDATE undo_cursors SET current_seq = current_seq - 1
-    ↓
-200 OK { affected_bullets: [...], undo_status: { can_undo: bool, can_redo: bool } }
-    ↓
-Client merges affected_bullets into local tree state
+User presses Ctrl+K
+        ↓
+useGlobalKeyboard → setQuickOpenOpen(true)
+        ↓
+QuickOpenPalette mounts
+        ↓
+User types
+        ↓
+Filter useDocuments() cache client-side  → instant results
+  AND  useSearch(query) if query >= 2 chars → API results
+        ↓
+User arrows to result, presses Enter
+        ↓
+navigate(`/doc/${docId}`)
+setQuickOpenOpen(false)
 ```
 
-### Document Load Flow
+### Dark Mode Flow
 
 ```
-User opens document (or page refresh)
-    ↓
-GET /api/documents/:id/bullets
-    ↓ (WITH RECURSIVE CTE, all bullets in one query)
-Flat array of all bullets with { id, parent_id, position, content, ... }
-    ↓
-Client builds tree map: { [id]: node }
-    ↓
-<BulletTree> renders from zoom node (or document root)
+System changes color preference
+        ↓
+@media (prefers-color-scheme: dark) activates
+        ↓
+CSS custom properties re-resolve
+        ↓
+All elements using var(--color-*) repaint
+(No React state, no JS involved)
 ```
-
----
-
-## Suggested Build Order
-
-This ordering reflects hard data dependencies:
-
-1. **Database schema + migrations** — everything depends on this. Tables: users, documents, bullets, undo_events, undo_cursors, attachments, comments.
-
-2. **Auth (server)** — all other endpoints require authentication. JWT middleware must exist before any protected route can be tested.
-
-3. **Document + Bullet CRUD (server)** — core data model. Create/read/update/delete for documents and bullets. No move/indent/outdent yet. Validates the tree schema.
-
-4. **Document load + basic tree render (client)** — fetch flat bullet list, build tree map, render `<BulletNode>` recursively. Validates the data model from the UI side.
-
-5. **Keyboard editing (client)** — Enter to create sibling, Backspace to delete, Tab/Shift+Tab for indent/outdent. This is the core interaction loop and validates the API design before undo is added.
-
-6. **Move/indent/outdent (server)** — tree mutation endpoints with position float logic. Depends on stable tree CRUD.
-
-7. **Undo/redo system (server + client)** — wraps all existing mutations. Must come after the mutation endpoints are stable, because it requires knowing the exact inverse for each operation.
-
-8. **Search** — depends on bulletservice and FTS index. Can be deferred until tree editing is solid.
-
-9. **Attachments** — file upload/download is independent of tree logic. Can be parallelized with undo/redo but depends on stable bullet CRUD (needs bullet_id FK).
-
-10. **Comments** — simplest feature, depends on bullets. Defer to near-end.
-
-11. **Mobile touch interactions** — swipe gestures, long press. Layered on top of the working desktop tree editor.
-
----
-
-## Scaling Considerations
-
-This is a self-hosted single-user-per-instance app. The following is realistic, not theoretical:
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| 1-10 users | Single Docker container, single PostgreSQL instance. No changes needed. |
-| 10-100 users | Add GIN indexes on FTS columns. Index `(document_id, parent_id, position)` on bullets. Monitor slow queries. Still monolith. |
-| 100+ users | Connection pooling with PgBouncer. Consider separate document load endpoint with `EXPLAIN ANALYZE`. Still single-process. |
-| 1000+ users | Read replicas for search. Consider caching document trees in Redis. Separate file-serving to nginx directly (bypass Node). Not in scope for v1. |
-
-First bottleneck is almost certainly document load query performance for large documents (10,000+ bullets). Mitigate with the composite index and lazy loading of collapsed subtrees (skip fetching children of `is_collapsed=true` nodes).
 
 ---
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Per-Bullet Network Requests on Keystroke
+### Anti-Pattern 1: Adding isMobile State to Zustand
 
-**What people do:** Fire a PATCH request on every keydown event in the bullet contenteditable.
-**Why it's wrong:** 100ms debounce minimum. Raw keydown fires at 150+ events/second — will overwhelm the server and create a backlog of undo events.
-**Do this instead:** Debounce content saves at 500ms idle. Only fire the request when the user pauses. Use onBlur as a final flush. The undo event is only created when the save fires, not on each keystroke.
+**What people do:** Create a `isMobile: boolean` in `uiStore`, derive it from `window.matchMedia`, update it on resize.
 
-### Anti-Pattern 2: Storing Collapsed State in localStorage
+**Why it's wrong:** Layout breakpoints belong in CSS, not JS state. Every media query change triggers a React re-render of every component subscribed to the store. CSS media queries are free.
 
-**What people do:** Track `collapsedNodes = Set<id>` in localStorage for "performance."
-**Why it's wrong:** The requirement explicitly says collapse state is "persisted per user" — localStorage is per-browser, not per-user. Logging in from another browser loses all collapse state.
-**Do this instead:** `is_collapsed` column on the `bullets` table. Debounce collapse PATCH calls at 200ms (fast enough to feel instant).
+**Do this instead:** Use CSS classes + `@media` rules. Let `sidebarOpen` remain the only sidebar-related state. The CSS handles whether "open" means "translate in from left" (mobile) or "occupy flex space" (desktop).
 
-### Anti-Pattern 3: Storing Full Subtree Snapshot in undo_events
+### Anti-Pattern 2: Conditionally Unmounting Sidebar Based on sidebarOpen
 
-**What people do:** On any mutation, store the entire pre-mutation bullet subtree as the `inverse_op` JSONB.
-**Why it's wrong:** Deleting a bullet with 500 descendants stores ~500 bullet snapshots per undo event. With 50 levels, this is potentially 25,000 bullet rows in JSONB blobs. It also makes the undo event non-atomic (replay vs. direct inverse).
-**Do this instead:** Soft delete (`is_deleted = true`). The inverse of "delete bullet X and descendants" is "set `is_deleted = false` on bullet X" — PostgreSQL cascades handle the descendants automatically since they share `parent_id`. The undo event JSONB is one row: `{ "id": "X" }`.
+**What people do:** `{sidebarOpen && <Sidebar />}` — unmount sidebar when closed.
 
-### Anti-Pattern 4: Rebuilding the Full Tree on Every Mutation
+**Why it's wrong:** React Query caches associated with the sidebar (DocumentList, TagBrowser) are destroyed on unmount and re-fetched on remount. Creates flicker and unnecessary network requests. The existing overlay pattern implies the sidebar stays mounted.
 
-**What people do:** After any bullet change, re-fetch `GET /documents/:id/bullets` to ensure consistency.
-**Why it's wrong:** A 1000-bullet document takes a non-trivial recursive CTE query plus JSON serialization plus network round-trip — all to update one bullet's content.
-**Do this instead:** Optimistic updates in the client state map. The server returns only the affected bullet(s) in its response. The client merges them into the existing local tree. Full refetch only on page load or explicit sync.
+**Do this instead:** Keep sidebar always mounted. Use CSS transform to hide it off-screen. The overlay handles the dimming and tap-to-close.
 
-### Anti-Pattern 5: Using Integer Position for Sibling Ordering
+### Anti-Pattern 3: Creating a Separate ThemeContext for Dark Mode
 
-**What people do:** `position INTEGER` with values 1, 2, 3... Reorder by UPDATE-ing all siblings.
-**Why it's wrong:** Moving bullet 1 to position 50 in a 100-item list requires 50 UPDATE statements, all of which create undo events. Any concurrent operations race. The undo for a reorder becomes a batch of 50 inverse ops.
-**Do this instead:** Float fractional indexing. One row touched for insert. One row touched for reorder. Periodic renormalization handles float precision limits (trivially rare in practice).
+**What people do:** Build a React context for `theme`, wrap the app, inject `theme` as a prop into every styled component.
+
+**Why it's wrong:** Massively overengineered for a single prefers-color-scheme media query. CSS handles this natively with zero JS.
+
+**Do this instead:** CSS custom properties + `@media (prefers-color-scheme: dark)`. If a manual toggle is later needed, set `data-theme="dark"` on `document.documentElement` from `uiStore` — one line of code, no context needed.
+
+### Anti-Pattern 4: Merging QuickOpenPalette into SearchModal
+
+**What people do:** Add a `mode` prop to `SearchModal` to handle both Ctrl+F full-text and Ctrl+K quick-open.
+
+**Why it's wrong:** The two have different UX: SearchModal shows bullet results only, needs debounce, fires on 2+ chars. QuickOpenPalette shows docs instantly (no debounce, no minimum chars), then bullets below. Sharing the component creates branching logic that grows complex.
+
+**Do this instead:** Two separate components. They share `FilteredBulletList` as a display primitive. They both use `useSearch` but with different conditions. Keep them decoupled.
 
 ---
 
 ## Integration Points
 
-### External Services
-
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| Google OAuth | Server-side token exchange (auth code → user info), issue app JWT | Client ID in `.env`, never in client bundle |
-| PostgreSQL | `pg` library with connection pool, no ORM | Direct SQL, migrations via sequential `.sql` files |
-| Docker volume | Multer `diskStorage` pointing to `/data/attachments` | Directory must be pre-created at startup |
-| Nginx (reverse proxy) | Passes all traffic to Node on port 3000, handles TLS | No changes to Node needed; Nginx owns HTTPS |
-
 ### Internal Boundaries
 
 | Boundary | Communication | Notes |
 |----------|---------------|-------|
-| Route handler ↔ Service | Direct function call | Services return data objects, never Express res/req |
-| Service ↔ Database | `pg` pool queries | Services own transactions; routes never call db directly |
-| Service ↔ Undo system | undoService.record(userId, event) called at end of each mutation | All mutations must call this — easy to miss; enforce via wrapper |
-| Client ↔ Server | REST JSON over HTTP, multipart for attachments | No WebSockets needed; no real-time collaboration requirement |
-| Client state ↔ UI | React state/useReducer | `<BulletTree>` owns document state; child nodes read via props |
+| AppPage ↔ Sidebar | `sidebarOpen` via uiStore | No props needed — store is shared |
+| HamburgerButton ↔ uiStore | Direct `setSidebarOpen(true)` call | Simple, no event bus |
+| useGlobalKeyboard ↔ QuickOpenPalette | `quickOpenOpen` in uiStore | Same pattern as `searchOpen` |
+| QuickOpenPalette ↔ useDocuments | React Query cache — no new fetch | Documents already in cache from AppPage |
+| QuickOpenPalette ↔ useSearch | Same hook SearchModal uses | Reuse existing hook |
+| CSS tokens ↔ all components | CSS custom properties via `var()` | Components need inline styles → CSS class migration |
+
+### Key Constraint: FocusToolbar is Inside DndContext
+
+FocusToolbar is mounted inside `BulletTree` (inside `DndContext`). Modifying its icon library does not affect this constraint. Adding dark mode `var()` references to its inline styles is straightforward. No structural change needed.
+
+---
+
+## Suggested Build Order (with Rationale)
+
+```
+Step 1: CSS Token Foundation (index.css)
+  - Define --color-* custom properties (light + dark)
+  - Define .app-layout, .app-sidebar, .app-content skeleton classes
+  - Rationale: Everything else depends on tokens existing first
+
+Step 2: Responsive Layout (AppPage + Sidebar)
+  - Apply CSS classes to AppPage flex layout
+  - Apply CSS class to Sidebar <aside>
+  - Add data-sidebar-open attribute wiring
+  - Add HamburgerButton (can be a simple inline button for now)
+  - Verify: sidebar slides on mobile, stays persistent on desktop, Ctrl+E works
+  - Rationale: Layout is the frame; all other UI sits inside it
+
+Step 3: Dark Mode — Component Pass
+  - Convert inline hex colors in Sidebar, AppPage, DocumentView to var(--color-*)
+  - Convert FocusToolbar, DocumentToolbar, BulletNode, BulletContent
+  - Verify: system dark mode switches correctly, WCAG AA contrast
+  - Rationale: After layout is settled, color migration is pure find-and-replace work
+
+Step 4: Icon Library + Fonts (lucide-react)
+  - npm install lucide-react
+  - Add font links to index.html
+  - Update font-family in index.css
+  - Replace FocusToolbar unicode chars with Lucide icons
+  - Replace Sidebar header chars, DocumentToolbar chars, BulletNode chars
+  - Verify: all icons render, no missing glyphs, FocusToolbar remains functional
+  - Rationale: Icons + fonts are purely additive; no logic changes
+
+Step 5: PWA Manifest
+  - Create public/manifest.json
+  - Create/source icon-192.png, icon-512.png
+  - Add <link rel="manifest"> and theme-color to index.html
+  - Verify: browser installs PWA, shows app name + icon on home screen
+  - Rationale: Isolated change, no component dependencies
+
+Step 6: Quick-Open Palette
+  - Add quickOpenOpen to uiStore
+  - Add Ctrl+K to useGlobalKeyboard
+  - Build QuickOpenPalette component (fuzzy doc filter + useSearch bullets)
+  - Mount in AppPage
+  - Verify: Ctrl+K opens palette, arrow key nav works, Enter navigates
+  - Rationale: Builds on stable layout + icons; uses existing hooks; last because most new logic
+```
+
+### Dependency Graph
+
+```
+Step 1 (CSS Tokens)
+  ↓ (blocking)
+Step 2 (Layout)     Step 3 (Dark Mode)   — both depend on Step 1
+  ↓                      ↓
+Step 4 (Icons)           |               — depends on Step 2 (layout stable)
+  ↓                      |
+Step 5 (PWA)             |               — independent, can go anywhere after Step 1
+  ↓
+Step 6 (Quick-Open)      |               — can start after Step 2; does not depend on icons/fonts/dark mode
+```
+
+Steps 3, 4, 5 are independent of each other once Step 2 is done. Steps 3-5 can be done in any order or in parallel.
 
 ---
 
 ## Sources
 
-- [Hierarchical models in PostgreSQL — Ackee blog](https://www.ackee.agency/blog/hierarchical-models-in-postgresql)
-- [Modeling Hierarchical Tree Data in PostgreSQL — Leonard Marcq](https://leonardqmarcq.com/posts/modeling-hierarchical-tree-data)
-- [Representing Trees in PostgreSQL — Graeme Mathieson](https://medium.com/notes-from-a-messy-desk/representing-trees-in-postgresql-cbcdae419022)
-- [PostgreSQL WITH Queries (CTE) — Official Docs](https://www.postgresql.org/docs/current/queries-with.html)
-- [TIL: Fractional Indexing — Daniel Feldroy (2024)](https://daniel.feldroy.com/posts/til-2024-11-fractional-indexing)
-- [Undo/redo state with event sourcing — Eric Jinks (2025)](https://ericjinks.com/blog/2025/event-sourcing/)
-- [Command-based undo for JS apps — DEV Community](https://dev.to/npbee/command-based-undo-for-js-apps-34d6)
-- [Docker and Multer Upload Volumes — copyprogramming.com](https://copyprogramming.com/howto/upload-files-from-express-js-and-multer-to-persistent-docker-volume)
-- [React Arborist — tree component for React](https://github.com/brimdata/react-arborist)
-- [Building outstanding rich-text experiences with ProseMirror — Bruno Scheufler (2024)](https://brunoscheufler.com/blog/2024-02-11-building-outstanding-rich-text-experiences-with-prosemirror-and-react)
-- [The Closure Table Pattern for Hierarchical Filters — Boyan Balev](https://balevdev.medium.com/the-closure-table-pattern-for-hierarchical-filters-with-sql-31644e760c09)
+- Source code directly read: `AppPage.tsx`, `Sidebar.tsx`, `uiStore.ts`, `index.css`, `index.html`, `useUndo.ts` (useGlobalKeyboard), `SearchModal.tsx`, `FocusToolbar.tsx`, `gestures.ts`, `BulletTree.tsx`, `DocumentView.tsx`, `package.json` — HIGH confidence on all integration points
+- PWA Web App Manifest spec: https://developer.mozilla.org/en-US/docs/Web/Manifest — standard, stable
+- CSS custom properties + prefers-color-scheme: standard CSS, browser support universal in 2026
+- Lucide React: https://lucide.dev — tree-shakeable, actively maintained, replaces heroicons/feather
 
 ---
-
-*Architecture research for: self-hosted infinite outliner / PKM web app*
-*Researched: 2026-03-09*
+*Architecture research for: v1.1 Mobile & UI Polish integration*
+*Researched: 2026-03-10*

@@ -89,7 +89,7 @@ Plans:
 | 2. Core Outliner | v1.0 | 8/8 | Complete | 2026-03-09 |
 | 3. Rich Content | v1.0 | 9/9 | Complete | 2026-03-09 |
 | 4. Attachments, Comments, and Mobile | v1.0 | 9/9 | Complete | 2026-03-10 |
-| 5. Mobile Layout Foundation | 2/4 | In Progress|  | - |
+| 5. Mobile Layout Foundation | 3/4 | In Progress|  | - |
 | 6. Dark Mode | v1.1 | 0/? | Not started | - |
 | 7. Icons, Fonts, and PWA | v1.1 | 0/? | Not started | - |
 | 8. Swipe Polish and Quick-Open Palette | v1.1 | 0/? | Not started | - |

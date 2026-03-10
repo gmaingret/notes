@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mobile & UI Polish
 status: ready_to_plan
-stopped_at: Completed 05-mobile-layout-foundation/05-00-PLAN.md
-last_updated: "2026-03-10T13:27:55.069Z"
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-10T13:31:18.362Z"
 last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 ---
@@ -64,6 +64,7 @@ Progress: [██░░░░░░░░] 50% (v1.0 complete, v1.1 not started)
 *Updated after each plan completion*
 | Phase 05-mobile-layout-foundation P03 | 1 | 1 tasks | 5 files |
 | Phase 05-mobile-layout-foundation P00 | 12 | 1 tasks | 1 files |
+| Phase 05 P01 | ~4 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,8 @@ Recent decisions affecting current work:
 - [Phase 05-mobile-layout-foundation]: Targeted per-element touch target fixes (no global rule) to avoid breaking toolbar and tab bar layouts
 - [Phase 05-mobile-layout-foundation]: MOBL-02 backdrop tests expect always-mounted .sidebar-backdrop class (not conditional .mobile-overlay) to support CSS fade transitions
 - [Phase 05-mobile-layout-foundation]: TDD Wave 0 scaffold written before any production code — all tests RED at time of writing
+- [Phase 05-01]: sidebar-backdrop always rendered (not conditional) for CSS fade-out transition
+- [Phase 05-01]: !important on position/height in mobile CSS overrides inline styles on aside element
 
 ### Pending Todos
 
@@ -93,6 +96,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-10T13:27:55.066Z
-Stopped at: Completed 05-mobile-layout-foundation/05-00-PLAN.md
+Last session: 2026-03-10T13:31:18.360Z
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None

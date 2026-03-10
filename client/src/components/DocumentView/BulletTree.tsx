@@ -3,6 +3,7 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   closestCenter,
@@ -83,8 +84,12 @@ export function BulletTree({
   // Tree-level context menu: handles right-clicks on empty document space (outside bullet rows)
   const [treeContextMenu, setTreeContextMenu] = useState<{ x: number; y: number; bulletId: string } | null>(null);
 
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    ...(isMobile
+      ? [useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })]
+      : [])
   );
 
   const bulletMap = useMemo(() => buildBulletMap(flatBullets), [flatBullets]);

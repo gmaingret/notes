@@ -62,7 +62,7 @@ export function AppPage() {
         {activeDoc ? (
           <DocumentView document={activeDoc} />
         ) : (
-          <div style={{ padding: '2rem', color: '#999' }}>Select a document</div>
+          <div style={{ padding: '2rem' }} className="app-empty-state">Select a document</div>
         )}
       </main>
     </div>

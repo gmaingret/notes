@@ -3,11 +3,27 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
+stopped_at: "Completed 04-09-PLAN.md (gap-closure: CustomEvent wiring in BulletNode)"
+last_updated: "2026-03-10T04:59:05.823Z"
+last_activity: 2026-03-09 — Plan 04-08 complete (Phase 4 deployed, DB migrated, PR merged to main)
+progress:
+  total_phases: 4
+  completed_phases: 4
+  total_plans: 32
+  completed_plans: 32
+  percent: 100
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: executing
 stopped_at: Completed 04-08-PLAN.md
 last_updated: "2026-03-09T20:58:54Z"
 last_activity: 2026-03-09 — Plan 04-08 complete (Phase 4 deployed, migrated, PR merged to main)
 progress:
-  total_phases: 4
+  [██████████] 100%
   completed_phases: 4
   total_plans: 31
   completed_plans: 31
@@ -115,6 +131,7 @@ Progress: [██████████] 100%
 | Phase 04-attachments-comments-and-mobile P06 | 8min | 2 tasks | 5 files |
 | Phase 04-attachments-comments-and-mobile P07 | 8min | 2 tasks | 4 files |
 | Phase 04-attachments-comments-and-mobile P08 | 9min | 3 tasks | 7 files |
+| Phase 04-attachments-comments-and-mobile P09 | 8min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -200,6 +217,8 @@ Recent decisions affecting current work:
 - [Phase 04-attachments-comments-and-mobile]: Drizzle _journal.json must contain ALL migration entries — migrate() uses the journal to discover SQL files; missing entries means SQL is silently skipped
 - [Phase 04-attachments-comments-and-mobile]: Docker tsc -b (composite) is stricter than tsc --noEmit — includes test files and rejects TS2352 overlapping casts; use wrapper functions instead
 - [Phase 04-attachments-comments-and-mobile]: gh pr merge --squash diverges local branch from main — switch to main and git pull to sync after remote PR merge
+- [Phase 04-attachments-comments-and-mobile]: focusOnMount set to noteVisible && bullet.note === null — focuses NoteRow only on new creation, not when bullet already has a note
+- [Phase 04-attachments-comments-and-mobile]: Two separate useEffects for focus-note and attach-file events in BulletNode, each filtered by bullet.id to scope per-bullet
 
 ### Pending Todos
 
@@ -213,6 +232,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T20:58:54Z
-Stopped at: Completed 04-08-PLAN.md (ALL PHASES COMPLETE — milestone v1.0)
+Last session: 2026-03-10T04:59:05.819Z
+Stopped at: Completed 04-09-PLAN.md (gap-closure: CustomEvent wiring in BulletNode)
 Resume file: None

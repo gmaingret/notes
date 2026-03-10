@@ -649,7 +649,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         style={{
           flex: 1,
           fontSize: '0.9375rem',
-          color: '#333',
           lineHeight: 1.6,
           minHeight: '1.6em',
           wordBreak: 'break-word',
@@ -682,7 +681,6 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         flex: 1,
         outline: 'none',
         fontSize: '0.9375rem',
-        color: '#333',
         lineHeight: 1.6,
         minHeight: '1.6em',
         wordBreak: 'break-word',

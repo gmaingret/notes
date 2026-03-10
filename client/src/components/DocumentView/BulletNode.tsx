@@ -96,10 +96,12 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
 
   function handleDotPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.button !== 0) return;
     pointerDownPos.current = { x: e.clientX, y: e.clientY };
   }
 
   function handleDotPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.button !== 0) return;
     if (!pointerDownPos.current) return;
     const dx = e.clientX - pointerDownPos.current.x;
     const dy = e.clientY - pointerDownPos.current.y;

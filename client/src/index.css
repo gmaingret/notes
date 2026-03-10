@@ -138,7 +138,7 @@ body {
 }
 
 /* === Chip styles (moved from BulletContent.tsx dynamic injection) === */
-.chip { display: inline-block; border-radius: 3px; padding: 0 4px; font-size: 0.85em; cursor: pointer; font-weight: 500; }
+.chip { display: inline-block; border-radius: 3px; padding: 0 4px; font-size: 0.85em; cursor: pointer; font-weight: 500; font-family: 'JetBrains Mono Variable', monospace; }
 .chip-tag     { background: var(--color-chip-tag-bg);     color: var(--color-chip-tag-text); }
 .chip-mention { background: var(--color-chip-mention-bg);  color: var(--color-chip-mention-text); }
 .chip-date    { background: var(--color-chip-date-bg);     color: var(--color-chip-date-text); }
@@ -156,7 +156,7 @@ body {
 .bullet-shake { animation: bullet-shake 400ms ease; }
 
 *, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+body { margin: 0; font-family: 'Inter Variable', sans-serif; }
 
 /* Sidebar document row — 3-dot menu reveals on hover/focus only */
 .document-row .row-menu-trigger { opacity: 0; }
@@ -262,11 +262,12 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Ro
 .focus-toolbar-btn--delete { color: var(--color-accent-danger); }
 
 /* NoteRow */
-.note-row-text { color: var(--color-text-muted); }
+.note-row-text { color: var(--color-text-muted); font-family: 'JetBrains Mono Variable', monospace; }
 
 /* SearchModal */
 .search-modal-text { color: var(--color-text-secondary); }
 .search-modal-empty { color: var(--color-text-faint); }
+.search-modal-input { font-family: 'JetBrains Mono Variable', monospace; background: var(--color-bg-raised); color: var(--color-text-secondary); }
 
 /* Breadcrumb */
 .breadcrumb-separator { color: var(--color-text-disabled); }

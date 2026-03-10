@@ -145,35 +145,6 @@ export function ContextMenu({ bullet, bulletMap, position, onClose }: Props) {
     onClose();
   }
 
-  const buttonStyle: React.CSSProperties = {
-    display: 'block',
-    width: '100%',
-    padding: '6px 12px',
-    textAlign: 'left',
-    border: 'none',
-    background: 'transparent',
-    cursor: 'pointer',
-    fontSize: '0.875rem',
-    color: '#333',
-  };
-
-  const disabledButtonStyle: React.CSSProperties = {
-    ...buttonStyle,
-    color: '#ccc',
-    cursor: 'default',
-  };
-
-  const deleteButtonStyle: React.CSSProperties = {
-    ...buttonStyle,
-    color: '#e55',
-  };
-
-  const separatorStyle: React.CSSProperties = {
-    height: 1,
-    backgroundColor: '#e0e0e0',
-    margin: '4px 0',
-  };
-
   return (
     <div
       ref={menuRef}
@@ -182,8 +153,8 @@ export function ContextMenu({ bullet, bulletMap, position, onClose }: Props) {
         top: position.y,
         left: position.x,
         zIndex: 1000,
-        background: 'white',
-        border: '1px solid #e0e0e0',
+        background: 'var(--color-bg-raised)',
+        border: '1px solid var(--color-border-default)',
         borderRadius: 4,
         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
         minWidth: 160,
@@ -191,96 +162,74 @@ export function ContextMenu({ bullet, bulletMap, position, onClose }: Props) {
       }}
     >
       <button
-        style={hasPreviousSibling ? buttonStyle : disabledButtonStyle}
+        className={`context-menu-item${!hasPreviousSibling ? ' context-menu-item--disabled' : ''}`}
         disabled={!hasPreviousSibling}
         onClick={handleIndent}
-        onMouseEnter={e => { if (hasPreviousSibling) (e.target as HTMLElement).style.background = '#f5f5f5'; }}
-        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
       >
         Indent
       </button>
       <button
-        style={!isRootLevel ? buttonStyle : disabledButtonStyle}
+        className={`context-menu-item${isRootLevel ? ' context-menu-item--disabled' : ''}`}
         disabled={isRootLevel}
         onClick={handleOutdent}
-        onMouseEnter={e => { if (!isRootLevel) (e.target as HTMLElement).style.background = '#f5f5f5'; }}
-        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
       >
         Outdent
       </button>
       <button
-        style={hasPreviousSibling ? buttonStyle : disabledButtonStyle}
+        className={`context-menu-item${!hasPreviousSibling ? ' context-menu-item--disabled' : ''}`}
         disabled={!hasPreviousSibling}
         onClick={handleMoveUp}
-        onMouseEnter={e => { if (hasPreviousSibling) (e.target as HTMLElement).style.background = '#f5f5f5'; }}
-        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
       >
         Move Up
       </button>
       <button
-        style={hasNextSibling ? buttonStyle : disabledButtonStyle}
+        className={`context-menu-item${!hasNextSibling ? ' context-menu-item--disabled' : ''}`}
         disabled={!hasNextSibling}
         onClick={handleMoveDown}
-        onMouseEnter={e => { if (hasNextSibling) (e.target as HTMLElement).style.background = '#f5f5f5'; }}
-        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
       >
         Move Down
       </button>
-      <div style={separatorStyle} />
+      <div className="context-menu-divider" />
       <button
-        style={buttonStyle}
+        className="context-menu-item"
         onClick={() => void handleUndo()}
-        onMouseEnter={e => { (e.target as HTMLElement).style.background = '#f5f5f5'; }}
-        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
       >
         Undo
       </button>
       <button
-        style={buttonStyle}
+        className="context-menu-item"
         onClick={() => void handleRedo()}
-        onMouseEnter={e => { (e.target as HTMLElement).style.background = '#f5f5f5'; }}
-        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
       >
         Redo
       </button>
-      <div style={separatorStyle} />
+      <div className="context-menu-divider" />
       <button
-        style={buttonStyle}
+        className="context-menu-item"
         onClick={handleToggleComplete}
-        onMouseEnter={e => { (e.target as HTMLElement).style.background = '#f5f5f5'; }}
-        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
       >
         {bullet.isComplete ? 'Unmark complete' : 'Mark complete'}
       </button>
       <button
-        style={buttonStyle}
+        className="context-menu-item"
         onClick={handleToggleBookmark}
-        onMouseEnter={e => { (e.target as HTMLElement).style.background = '#f5f5f5'; }}
-        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
       >
         {isBookmarked ? 'Remove bookmark' : 'Bookmark'}
       </button>
       <button
-        style={buttonStyle}
+        className="context-menu-item"
         onClick={handleAttachFile}
-        onMouseEnter={e => { (e.target as HTMLElement).style.background = '#f5f5f5'; }}
-        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
       >
         Attach file
       </button>
       <button
-        style={buttonStyle}
+        className="context-menu-item"
         onClick={handleAddNote}
-        onMouseEnter={e => { (e.target as HTMLElement).style.background = '#f5f5f5'; }}
-        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
       >
         Add note
       </button>
       <button
-        style={deleteButtonStyle}
+        className="context-menu-item context-menu-item--destructive"
         onClick={handleDelete}
-        onMouseEnter={e => { (e.target as HTMLElement).style.background = '#f5f5f5'; }}
-        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
       >
         Delete
       </button>

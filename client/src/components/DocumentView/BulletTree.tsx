@@ -258,9 +258,9 @@ export function BulletTree({
                   },
                 }
               )}
+              className="bullet-tree-placeholder"
               style={{
                 padding: '0.2rem 0',
-                color: '#bbb',
                 cursor: 'text',
                 userSelect: 'none',
                 fontSize: '0.9375rem',
@@ -307,7 +307,7 @@ function DropIndicator({ depth }: { depth: number }) {
     <div
       style={{
         height: 2,
-        backgroundColor: '#4A90E2',
+        backgroundColor: 'var(--color-accent-blue)',
         marginLeft: depth * INDENTATION_WIDTH + 32, // 32 = chevron (16) + dot (16)
         borderRadius: 1,
         pointerEvents: 'none',

@@ -181,11 +181,11 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
   const handleLongPressTouchEnd: React.TouchEventHandler<HTMLDivElement> = (e) =>
     longPressHandler.handleTouchEnd(e as unknown as { preventDefault?: () => void });
 
-  // Background color for swipe reveal
+  // Background color for swipe reveal — uses CSS token vars for dark mode awareness
   const swipeBackground = swipeX > 0
-    ? '#4caf50'  // green for complete
+    ? 'var(--color-swipe-complete)'
     : swipeX < 0
-    ? '#f44336'  // red for delete
+    ? 'var(--color-swipe-delete)'
     : 'transparent';
 
   const swipeIcon = swipeX > 0 ? '✅' : swipeX < 0 ? '🗑️' : null;
@@ -247,7 +247,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
           width: '100%',
           transform: `translateX(${swipeX}px)`,
           transition: isSwiping ? 'none' : 'transform 0.2s ease',
-          background: 'var(--bg, #fff)',
+          background: 'var(--color-bg-base)',
           zIndex: 1,
           position: 'relative',
         }}
@@ -255,6 +255,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
         {/* Chevron column — always reserves space, only shows icon when children exist */}
         {!isDragOverlay && (
           <div
+            className="bullet-chevron"
             style={{
               width: 16,
               flexShrink: 0,
@@ -262,7 +263,6 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
               userSelect: 'none',
               fontSize: '0.75rem',
               lineHeight: '1.6rem',
-              color: '#666',
             }}
             onClick={() => {
               if (hasChildren) {
@@ -282,11 +282,11 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
         {/* MOB-04: touch drag handled by dnd-kit PointerSensor; touch-action:none on dot enables drag without text selection */}
         <div
           className="bullet-dot"
+          className="bullet-timestamp"
           style={{
             width: 16,
             flexShrink: 0,
             cursor: isDragOverlay ? 'grabbing' : 'grab',
-            color: '#999',
             userSelect: 'none',
             lineHeight: '1.6rem',
             touchAction: 'none',
@@ -302,7 +302,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
           •
         </div>
         {isBookmarked && !isDragOverlay && (
-          <span style={{ fontSize: '0.6rem', lineHeight: '1.6rem', color: '#d97706', flexShrink: 0 }}>
+          <span className="bullet-date-label" style={{ fontSize: '0.6rem', lineHeight: '1.6rem', flexShrink: 0 }}>
             🔖
           </span>
         )}

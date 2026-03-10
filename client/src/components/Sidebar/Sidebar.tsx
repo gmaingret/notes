@@ -118,6 +118,11 @@ const iconButtonStyle = {
   fontSize: '1rem',
   color: '#666',
   lineHeight: 1,
+  minWidth: 44,
+  minHeight: 44,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
 } as const;
 
 const dropdownStyle = {

@@ -10,3 +10,13 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Ro
 @media (max-width: 768px) {
   .mobile-overlay { display: block !important; }
 }
+
+/* Touch target: bullet dot drag handle — expands tap area, not visual size */
+.bullet-dot {
+  position: relative;
+}
+.bullet-dot::after {
+  content: '';
+  position: absolute;
+  inset: -14px; /* expands 16px dot to 44px tap area */
+}

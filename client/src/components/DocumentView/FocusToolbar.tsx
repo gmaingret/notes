@@ -36,6 +36,11 @@ const btnStyle: React.CSSProperties = {
   color: '#444',
   borderRadius: 4,
   lineHeight: 1,
+  minWidth: 44,
+  minHeight: 44,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
 };
 
 export function FocusToolbar({ bulletId, documentId }: Props) {

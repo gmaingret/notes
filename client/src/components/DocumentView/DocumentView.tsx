@@ -14,7 +14,7 @@ type Props = { document: Document };
 export function DocumentView({ document }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { canvasView, setCanvasView } = useUiStore();
+  const { canvasView, setCanvasView, setSidebarOpen } = useUiStore();
   const { data: flatBullets = [] } = useDocumentBullets(document.id);
   const bulletMap = useMemo(() => buildBulletMap(flatBullets), [flatBullets]);
 
@@ -85,20 +85,37 @@ export function DocumentView({ document }: Props) {
   }
 
   return (
-    <div style={{ padding: '2rem 3rem', maxWidth: 720, margin: '0 auto' }}>
-      {/* Show breadcrumb when zoomed, h1 title otherwise */}
-      {zoomedBulletId ? (
-        <Breadcrumb
-          documentTitle={document.title}
-          zoomedBulletId={zoomedBulletId}
-          bulletMap={bulletMap}
-        />
-      ) : (
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 600, margin: '0 0 1.5rem', color: '#111' }}>
-          {document.title}
-        </h1>
-      )}
-
+    <div style={{ padding: '0 3rem', maxWidth: 720, margin: '0 auto' }}>
+      {/* Sticky header: hamburger (mobile) + breadcrumb or title */}
+      <div className="sticky-header" style={{ background: '#fff' }}>
+        <button
+          className="mobile-only"
+          onClick={() => setSidebarOpen(true)}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            padding: '0.25rem', borderRadius: 4,
+            fontSize: '1.25rem', color: '#666', lineHeight: 1,
+            minWidth: 44, minHeight: 44,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}
+          title="Open sidebar"
+          aria-label="Open sidebar"
+        >
+          &#9776;
+        </button>
+        {zoomedBulletId ? (
+          <Breadcrumb
+            documentTitle={document.title}
+            zoomedBulletId={zoomedBulletId}
+            bulletMap={bulletMap}
+          />
+        ) : (
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, margin: '0 0 1.5rem', color: '#111' }}>
+            {document.title}
+          </h1>
+        )}
+      </div>
       <BulletTree documentId={document.id} zoomedBulletId={zoomedBulletId} />
     </div>
   );

@@ -1,26 +1,188 @@
+/* === Color tokens === */
+:root {
+  /* Backgrounds */
+  --color-bg-base:    #ffffff;   /* body / main content area */
+  --color-bg-surface: #fafafa;   /* sidebar, cards */
+  --color-bg-raised:  #ffffff;   /* modals, dropdowns, context menus */
+  --color-bg-overlay: rgba(0, 0, 0, 0.4); /* backdrops */
+
+  /* Text */
+  --color-text-primary:   #111111;  /* headings, primary content */
+  --color-text-secondary: #333333;  /* body text */
+  --color-text-muted:     #666666;  /* secondary labels, timestamps */
+  --color-text-faint:     #999999;  /* placeholders, empty states */
+  --color-text-disabled:  #bbbbbb;  /* disabled/inactive elements */
+
+  /* Borders */
+  --color-border-default: #e0e0e0;  /* visible borders */
+  --color-border-subtle:  #f0f0f0;  /* decorative dividers */
+
+  /* Accents */
+  --color-accent-blue:   #4a90e2;   /* active states, links */
+  --color-accent-red:    #e53e3e;   /* destructive actions */
+  --color-accent-danger: #e55555;   /* delete icon color */
+  --color-accent-amber:  #d97706;   /* bookmarks, date chips */
+  --color-accent-green:  #22c55e;   /* complete state */
+
+  /* Chips */
+  --color-chip-tag-bg:      #e8f0fe;
+  --color-chip-tag-text:    #1a56db;
+  --color-chip-mention-bg:  #f3e8fd;
+  --color-chip-mention-text:#7c3aed;
+  --color-chip-date-bg:     #fef3c7;
+  --color-chip-date-text:   #b45309;  /* darkened from #d97706 for WCAG AA: 4.7:1 on #fef3c7 */
+
+  /* Swipe gestures */
+  --color-swipe-complete: #4caf50;
+  --color-swipe-delete:   #f44336;
+
+  /* Search highlight */
+  --color-highlight-bg: #fff3cd;
+
+  /* Misc */
+  --color-shadow: rgba(0, 0, 0, 0.12);
+  --color-focus-ring: #4a90e2;
+
+  /* Row active state */
+  --color-row-active-bg: rgba(0, 0, 0, 0.06);
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-base:    #0d1117;
+    --color-bg-surface: #161b22;
+    --color-bg-raised:  #1f2937;
+    --color-bg-overlay: rgba(0, 0, 0, 0.6);
+
+    --color-text-primary:   #e6edf3;
+    --color-text-secondary: #c9d1d9;
+    --color-text-muted:     #8b949e;
+    --color-text-faint:     #6e7681;
+    --color-text-disabled:  #484f58;
+
+    --color-border-default: #30363d;
+    --color-border-subtle:  #21262d;
+
+    --color-accent-blue:   #58a6ff;
+    --color-accent-red:    #ff7b72;
+    --color-accent-danger: #ff7b72;
+    --color-accent-amber:  #e3b341;
+    --color-accent-green:  #3fb950;
+
+    --color-chip-tag-bg:      #1c2d4a;
+    --color-chip-tag-text:    #79b8ff;
+    --color-chip-mention-bg:  #2a1f4a;
+    --color-chip-mention-text:#c084fc;
+    --color-chip-date-bg:     #3d2a00;
+    --color-chip-date-text:   #e3b341;
+
+    --color-swipe-complete: #238636;
+    --color-swipe-delete:   #da3633;
+
+    --color-highlight-bg: #3d3300;
+
+    --color-shadow: rgba(0, 0, 0, 0.4);
+    --color-focus-ring: #58a6ff;
+
+    --color-row-active-bg: rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* Mirror of @media block — for immediate FOUC paint before CSS @media kicks in */
+:root.dark {
+  --color-bg-base:    #0d1117;
+  --color-bg-surface: #161b22;
+  --color-bg-raised:  #1f2937;
+  --color-bg-overlay: rgba(0, 0, 0, 0.6);
+
+  --color-text-primary:   #e6edf3;
+  --color-text-secondary: #c9d1d9;
+  --color-text-muted:     #8b949e;
+  --color-text-faint:     #6e7681;
+  --color-text-disabled:  #484f58;
+
+  --color-border-default: #30363d;
+  --color-border-subtle:  #21262d;
+
+  --color-accent-blue:   #58a6ff;
+  --color-accent-red:    #ff7b72;
+  --color-accent-danger: #ff7b72;
+  --color-accent-amber:  #e3b341;
+  --color-accent-green:  #3fb950;
+
+  --color-chip-tag-bg:      #1c2d4a;
+  --color-chip-tag-text:    #79b8ff;
+  --color-chip-mention-bg:  #2a1f4a;
+  --color-chip-mention-text:#c084fc;
+  --color-chip-date-bg:     #3d2a00;
+  --color-chip-date-text:   #e3b341;
+
+  --color-swipe-complete: #238636;
+  --color-swipe-delete:   #da3633;
+
+  --color-highlight-bg: #3d3300;
+
+  --color-shadow: rgba(0, 0, 0, 0.4);
+  --color-focus-ring: #58a6ff;
+
+  --color-row-active-bg: rgba(255, 255, 255, 0.08);
+}
+
+body {
+  background: var(--color-bg-base);
+  color: var(--color-text-secondary);
+}
+
+/* === Chip styles (moved from BulletContent.tsx dynamic injection) === */
+.chip { display: inline-block; border-radius: 3px; padding: 0 4px; font-size: 0.85em; cursor: pointer; font-weight: 500; }
+.chip-tag     { background: var(--color-chip-tag-bg);     color: var(--color-chip-tag-text); }
+.chip-mention { background: var(--color-chip-mention-bg);  color: var(--color-chip-mention-text); }
+.chip-date    { background: var(--color-chip-date-bg);     color: var(--color-chip-date-text); }
+
+/* === Shake animation (moved from BulletContent.tsx dynamic injection) === */
+@keyframes bullet-shake {
+  0%,100% { transform: translateX(0); }
+  25%      { transform: translateX(-4px); }
+  75%      { transform: translateX(4px); }
+}
+.bullet-shake { animation: bullet-shake 400ms ease; }
+
 *, *::before, *::after { box-sizing: border-box; }
 body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 
-/* Sidebar document row — 3-dot menu reveals on hover/focus only (locked UX decision) */
+/* Sidebar document row — 3-dot menu reveals on hover/focus only */
 .document-row .row-menu-trigger { opacity: 0; }
 .document-row:hover .row-menu-trigger,
 .document-row:focus-within .row-menu-trigger { opacity: 1; }
 
-/* === Phase 5: Mobile Layout Foundation === */
-
-/* Mobile-only elements hidden on desktop */
-@media (min-width: 769px) {
-  .mobile-only { display: none !important; }
+/* === Desktop sidebar === */
+.sidebar {
+  width: 240px;
+  min-width: 240px;
+  max-width: 240px;
+  border-right: 1px solid var(--color-border-default);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-surface);
+  flex-shrink: 0;
 }
 
-/* Sidebar: off-canvas drawer on mobile */
+/* Hide mobile-only controls on desktop */
+.mobile-close-btn { display: none; }
+.hamburger-btn    { display: none; }
+
+/* === Mobile sidebar (off-canvas drawer) === */
 @media (max-width: 768px) {
   .sidebar {
     position: fixed !important;
     top: 0;
     left: 0;
-    height: 100dvh !important;
-    z-index: 10;
+    width: 240px !important;
+    max-width: 240px !important;
+    height: 100dvh;
+    z-index: 1000;
     transform: translateX(-100%);
     transition: transform 250ms ease-out;
   }
@@ -28,47 +190,23 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Ro
     transform: translateX(0);
   }
 
-  /* Backdrop: always rendered, fades in/out */
+  /* Backdrop rendered only when sidebar is open (conditional in React) */
   .sidebar-backdrop {
-    display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.3);
-    z-index: 9;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 250ms ease-out;
-  }
-  .sidebar-backdrop.sidebar-open {
-    opacity: 1;
-    pointer-events: auto;
+    z-index: 999;
+    background: rgba(0, 0, 0, 0.4);
   }
 
-  /* Mobile-only elements shown on mobile */
-  .mobile-only { display: flex !important; }
-
-  /* Keep legacy mobile-overlay rule */
-  .mobile-overlay { display: block !important; }
+  /* Show mobile controls */
+  .mobile-close-btn { display: flex; }
+  .hamburger-btn    { display: flex; }
 }
 
-/* Sticky document header */
-.sticky-header {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  display: flex;
-  align-items: flex-start;
-  padding-top: 2rem;
-  padding-bottom: 0.5rem;
-  gap: 0.5rem;
-}
-
-/* Touch target: bullet dot drag handle — expands tap area, not visual size */
-.bullet-dot {
-  position: relative;
-}
+/* Touch target: bullet dot drag handle */
+.bullet-dot { position: relative; }
 .bullet-dot::after {
   content: '';
   position: absolute;
-  inset: -14px; /* expands 16px dot to 44px tap area */
+  inset: -14px;
 }

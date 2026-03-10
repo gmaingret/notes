@@ -64,6 +64,7 @@ export function SearchModal({ onClose }: Props) {
           placeholder="Search bullets..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          className="search-modal-input"
           style={{
             display: 'block',
             width: '100%',

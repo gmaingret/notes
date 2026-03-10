@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
+import { Menu, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { Document } from '../../hooks/useDocuments';
 import { BulletTree, buildBulletMap } from './BulletTree';
@@ -34,6 +35,16 @@ export function DocumentView({ document }: Props) {
     return match ? match[1] : null;
   }, [location.hash]);
 
+  const isOverlayView = canvasView.type === 'bookmarks' || canvasView.type === 'filtered';
+  useEffect(() => {
+    if (!isOverlayView) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setCanvasView({ type: 'document' });
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOverlayView, setCanvasView]);
+
   if (canvasView.type === 'bookmarks') {
     const rows: FilteredBulletRow[] = bookmarkedBullets.map(b => ({
       bulletId: b.id, bulletContent: b.content,
@@ -41,6 +52,16 @@ export function DocumentView({ document }: Props) {
     }));
     return (
       <div style={{ padding: '2rem 3rem', maxWidth: 720, margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <span />
+          <button
+            onClick={() => setCanvasView({ type: 'document' })}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: 'var(--color-text-muted)' }}
+            aria-label="Close"
+          >
+            <X size={20} strokeWidth={1.5} />
+          </button>
+        </div>
         <FilteredBulletList
           title="Bookmarks" rows={rows}
           onRowClick={(row) => { navigate(`/doc/${row.documentId}#bullet/${row.bulletId}`); setCanvasView({ type: 'document' }); }}
@@ -60,6 +81,16 @@ export function DocumentView({ document }: Props) {
     const prefix = cv.chipType === 'tag' ? '#' : cv.chipType === 'mention' ? '@' : '!!';
     return (
       <div style={{ padding: '2rem 3rem', maxWidth: 720, margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <span />
+          <button
+            onClick={() => setCanvasView({ type: 'document' })}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: 'var(--color-text-muted)' }}
+            aria-label="Close"
+          >
+            <X size={20} strokeWidth={1.5} />
+          </button>
+        </div>
         <FilteredBulletList
           title={`Results for ${prefix}${cv.chipValue}`} rows={rows}
           onRowClick={(row) => { navigate(`/doc/${row.documentId}#bullet/${row.bulletId}`); setCanvasView({ type: 'document' }); }}
@@ -79,14 +110,14 @@ export function DocumentView({ document }: Props) {
             onClick={() => setSidebarOpen(true)}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: '1.25rem', lineHeight: 1,
+              lineHeight: 1,
               minWidth: 36, minHeight: 36, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: '0.25rem',
             }}
             aria-label="Open sidebar"
           >
-            &#9776;
+            <Menu size={20} strokeWidth={1.5} />
           </button>
         )}
         {zoomedBulletId ? (

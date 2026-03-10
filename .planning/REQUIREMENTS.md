@@ -26,15 +26,15 @@ Requirements for the Mobile & UI Polish milestone. Each maps to roadmap phases.
 
 ### Visual Design
 
-- [ ] **VISL-01**: All Unicode/emoji icons replaced with Lucide React SVG components
-- [ ] **VISL-02**: UI text uses self-hosted Inter variable font (no Google Fonts)
-- [ ] **VISL-03**: Inline code and tag chips use self-hosted JetBrains Mono variable font
+- [x] **VISL-01**: All Unicode/emoji icons replaced with Lucide React SVG components
+- [x] **VISL-02**: UI text uses self-hosted Inter variable font (no Google Fonts)
+- [x] **VISL-03**: Inline code and tag chips use self-hosted JetBrains Mono variable font
 
 ### PWA
 
-- [ ] **PWA-01**: App has a valid PWA manifest enabling Add to Home Screen
-- [ ] **PWA-02**: App has 192×192 and 512×512 PNG icons for home screen
-- [ ] **PWA-03**: App opens in standalone mode when launched from home screen
+- [x] **PWA-01**: App has a valid PWA manifest enabling Add to Home Screen
+- [x] **PWA-02**: App has 192×192 and 512×512 PNG icons for home screen
+- [x] **PWA-03**: App opens in standalone mode when launched from home screen
 
 ### Gestures
 
@@ -97,12 +97,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DRKM-02 | Phase 6 | Complete |
 | DRKM-03 | Phase 6 | Complete |
 | DRKM-04 | Phase 6 | Complete |
-| VISL-01 | Phase 7 | Pending |
-| VISL-02 | Phase 7 | Pending |
-| VISL-03 | Phase 7 | Pending |
-| PWA-01 | Phase 7 | Pending |
-| PWA-02 | Phase 7 | Pending |
-| PWA-03 | Phase 7 | Pending |
+| VISL-01 | Phase 7 | Complete |
+| VISL-02 | Phase 7 | Complete |
+| VISL-03 | Phase 7 | Complete |
+| PWA-01 | Phase 7 | Complete |
+| PWA-02 | Phase 7 | Complete |
+| PWA-03 | Phase 7 | Complete |
 | GEST-01 | Phase 8 | Pending |
 | GEST-02 | Phase 8 | Pending |
 | GEST-03 | Phase 8 | Pending |

@@ -1,4 +1,5 @@
 import { useState, useRef, type KeyboardEvent } from 'react';
+import { MoreHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -115,7 +116,7 @@ export function DocumentRow({ document, isActive }: Props) {
           fontSize: '1rem',
           lineHeight: 1,
         }} title="Document options">
-          ⋯
+          <MoreHorizontal size={20} strokeWidth={1.5} />
         </button>
 
         {showMenu && (

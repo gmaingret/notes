@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import * as pdfjsLib from 'pdfjs-dist';
+import { Paperclip } from 'lucide-react';
 import { apiClient } from '../../api/client';
 import type { Attachment } from '../../hooks/useAttachments';
 import { Lightbox } from './Lightbox';
@@ -133,7 +134,7 @@ function OtherAttachmentRow({ attachment, onDelete }: Props) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 24, marginTop: 4 }}>
-      <span style={{ fontSize: '1.1em' }}>📎</span>
+      <Paperclip size={20} strokeWidth={1.5} />
       <span
         className="attachment-link"
         style={{ fontSize: '0.85em', cursor: 'pointer', textDecoration: 'underline' }}

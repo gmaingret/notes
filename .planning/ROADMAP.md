@@ -24,8 +24,8 @@ Full details: [`.planning/milestones/v1.0-ROADMAP.md`](milestones/v1.0-ROADMAP.m
 **Milestone Goal:** Transform the app into a genuinely great mobile experience with a polished dark mode, responsive layout, hamburger navigation, improved visual design, PWA installation, and a quick-open palette.
 
 - [x] **Phase 5: Mobile Layout Foundation** - Responsive sidebar, hamburger menu, touch targets, and desktop toggle (completed 2026-03-10)
-- [x] **Phase 6: Dark Mode** - System-preference dark theme with WCAG AA colors and FOUC prevention (completed 2026-03-10)
-- [ ] **Phase 7: Icons, Fonts, and PWA** - Lucide icons, self-hosted fonts, and home screen installation
+- [x] **Phase 6: Dark Mode** - System-preference dark theme with WCAG AA colors and FOUC prevention (completed 2026-03-10)
+- [x] **Phase 7: Icons, Fonts, and PWA** - Lucide icons, self-hosted fonts, and home screen installation (completed 2026-03-10)
 - [ ] **Phase 8: Swipe Polish and Quick-Open Palette** - Swipe gesture animations and Ctrl+K navigation palette
 
 ## Phase Details
@@ -73,7 +73,13 @@ Plans:
   2. The app displays Inter as the UI font and JetBrains Mono for code and tag chips, loaded from the app server (no Google Fonts)
   3. An "Add to Home Screen" prompt is available on both iOS Safari and Chrome Android
   4. After installation, the app opens in standalone mode without browser chrome
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 07-01-PLAN.md — Test scaffold (iconsAndFonts.test.ts, RED state for all 6 requirements)
+- [ ] 07-02-PLAN.md — npm install deps + Sidebar/DocumentRow/DocumentView icon replacements
+- [ ] 07-03-PLAN.md — BulletNode/FilteredBulletList/AttachmentRow icon replacements [parallel with 07-04]
+- [ ] 07-04-PLAN.md — Font setup: fontsource imports, Inter body font, JetBrains Mono classes [parallel with 07-03]
+- [ ] 07-05-PLAN.md — PWA assets (favicon, manifest, PNG icons), index.html wiring, human verify
 
 ### Phase 8: Swipe Polish and Quick-Open Palette
 **Goal**: Swipe gestures feel intentional and satisfying, and users can navigate to any document or bookmark from anywhere in the app with two keystrokes
@@ -96,6 +102,6 @@ Plans:
 | 3. Rich Content | v1.0 | 9/9 | Complete | 2026-03-09 |
 | 4. Attachments, Comments, and Mobile | v1.0 | 9/9 | Complete | 2026-03-10 |
 | 5. Mobile Layout Foundation | v1.1 | 4/4 | Complete | 2026-03-10 |
-| 6. Dark Mode | 5/5 | Complete   | 2026-03-10 | - |
-| 7. Icons, Fonts, and PWA | v1.1 | 0/? | Not started | - |
+| 6. Dark Mode | v1.1 | 5/5 | Complete   | 2026-03-10 |
+| 7. Icons, Fonts, and PWA | 5/5 | Complete   | 2026-03-10 | - |
 | 8. Swipe Polish and Quick-Open Palette | v1.1 | 0/? | Not started | - |

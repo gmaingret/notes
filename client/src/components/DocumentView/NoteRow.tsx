@@ -28,8 +28,8 @@ export function NoteRow({ bulletId, initialNote, focusTrigger = 0 }: Props) {
 
   function handleBlur() {
     if (!ref.current) return;
-    const current = ref.current.textContent ?? '';
-    const original = initialNoteRef.current ?? '';
+    const current = (ref.current.textContent ?? '').trim();
+    const original = (initialNoteRef.current ?? '').trim();
     if (current === original) return;
     patchNote.mutate({ id: bulletId, note: current || null });
   }

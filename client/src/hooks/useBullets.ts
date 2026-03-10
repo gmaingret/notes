@@ -125,8 +125,10 @@ export function useSoftDeleteBullet() {
     onError: (_err, vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(bulletKey(vars.documentId), ctx.prev);
     },
-    onSettled: (_data, _err, vars) =>
-      qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
+    onSettled: (_data, _err, vars) => {
+      qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) });
+      qc.invalidateQueries({ queryKey: ['tags'] });
+    },
   });
 }
 

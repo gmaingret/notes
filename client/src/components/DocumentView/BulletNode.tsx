@@ -326,7 +326,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
             bulletMap={isDragOverlay ? {} : bulletMap}
             isDragOverlay={isDragOverlay}
           />
-          {!isDragOverlay && (bullet.note !== null || noteVisible) && (
+          {!isDragOverlay && (!!bullet.note?.trim() || noteVisible) && (
             <NoteRow
               bulletId={bullet.id}
               initialNote={bullet.note}

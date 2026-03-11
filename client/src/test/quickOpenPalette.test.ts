@@ -19,9 +19,8 @@ describe('Phase 8 — QKOP-01: palette state and Ctrl+K listener', () => {
   it('uiStore contains setQuickOpenOpen action', () => {
     expect(uiStore).toContain('setQuickOpenOpen');
   });
-  it('AppPage.tsx listens for Ctrl+Shift+K / Cmd+Shift+K', () => {
-    expect(appPage).toContain("key === 'K'");
-    expect(appPage).toContain('shiftKey');
+  it('AppPage.tsx listens for Ctrl+F / Cmd+F to open palette', () => {
+    expect(appPage).toContain("key === 'f'");
   });
 });
 

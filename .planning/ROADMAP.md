@@ -123,4 +123,4 @@ Plans:
 | 6. Dark Mode | v1.1 | 5/5 | Complete   | 2026-03-10 |
 | 7. Icons, Fonts, and PWA | 5/5 | Complete   | 2026-03-10 | - |
 | 07.1. UI Polish Tweaks | 4/4 | Complete   | 2026-03-10 | - |
-| 8. Swipe Polish and Quick-Open Palette | 1/5 | In Progress|  | - |
+| 8. Swipe Polish and Quick-Open Palette | 3/5 | In Progress|  | - |

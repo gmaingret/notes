@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mobile & UI Polish
 status: ready_to_plan
-stopped_at: Completed 08-00-PLAN.md
-last_updated: "2026-03-11T06:05:25.665Z"
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-03-11T06:10:12.463Z"
 last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 23
-  completed_plans: 19
+  completed_plans: 21
 ---
 
 ---
@@ -127,6 +127,8 @@ Progress: [██░░░░░░░░] 50% (v1.0 complete, v1.1 not started)
 | Phase 07.1-ui-polish-tweaks P02 | 12 | 2 tasks | 4 files |
 | Phase 07.1-ui-polish-tweaks P03 | 5 | 2 tasks | 0 files |
 | Phase 08-swipe-polish-and-quick-open-palette P00 | 7 | 2 tasks | 2 files |
+| Phase 08-swipe-polish-and-quick-open-palette P02 | 2 | 2 tasks | 3 files |
+| Phase 08-swipe-polish-and-quick-open-palette P01 | 5 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -175,6 +177,11 @@ Recent decisions affecting current work:
 - [Phase 07.1-ui-polish-tweaks]: User approved all four Phase 7.1 behaviors on https://notes.gregorymaingret.fr — FocusToolbar icons, bullet spacing, sidebar footer, and inline rename verified working
 - [Phase 08-swipe-polish-and-quick-open-palette]: Wave 0 TDD: all Phase 8 test assertions written before any production code — establishes verification contract
 - [Phase 08-swipe-polish-and-quick-open-palette]: existsSync fallback pattern for files not yet created: falls back to empty string so assertions fail cleanly rather than throwing
+- [Phase 08-swipe-polish-and-quick-open-palette]: QuickOpenPalette uses flat PaletteResult union type for keyboard navigation across grouped result sections
+- [Phase 08-swipe-polish-and-quick-open-palette]: quickOpenOpen intentionally excluded from uiStore partialize — resets to false on page reload
+- [Phase 08-swipe-polish-and-quick-open-palette]: exitDirection + onTransitionEnd pattern: mutations fire after CSS slide-off animation, not at pointer-up
+- [Phase 08-swipe-polish-and-quick-open-palette]: pendingActionRef captures bullet.id/documentId/isComplete before setExitDirection() to avoid stale React closure in onTransitionEnd
+- [Phase 08-swipe-polish-and-quick-open-palette]: iconScale computed in render from live swipeX ratio (0.5x→1.0x charging, 1.2x pulse at threshold)
 
 ### Roadmap Evolution
 
@@ -191,6 +198,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T06:05:25.659Z
-Stopped at: Completed 08-00-PLAN.md
+Last session: 2026-03-11T06:10:12.460Z
+Stopped at: Completed 08-01-PLAN.md
 Resume file: None

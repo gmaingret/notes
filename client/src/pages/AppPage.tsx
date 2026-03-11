@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { DocumentView } from '../components/DocumentView/DocumentView';
@@ -25,6 +25,16 @@ export function AppPage() {
       setSidebarOpen(false);
     }
   }, []);
+
+  // Close sidebar when transitioning desktop → mobile (sidebar becomes a full-screen overlay).
+  // Without this, sidebarOpen stays true from desktop and the sidebar covers the screen on mobile.
+  const prevIsMobileRef = useRef(isMobile);
+  useEffect(() => {
+    if (isMobile && !prevIsMobileRef.current) {
+      setSidebarOpen(false);
+    }
+    prevIsMobileRef.current = isMobile;
+  }, [isMobile, setSidebarOpen]);
 
   // After login, navigate to last opened doc or first doc (Inbox)
   useEffect(() => {

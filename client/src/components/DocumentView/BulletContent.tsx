@@ -61,6 +61,9 @@ export function splitAtCursor(el: HTMLDivElement): { before: string; after: stri
 }
 
 function setCursorAtPosition(el: HTMLDivElement, offset: number) {
+  // Set contentEditable before focus so the mobile keyboard stays open when
+  // focus moves from one bullet to another programmatically.
+  el.contentEditable = 'true';
   el.focus();
   const textNode = el.firstChild;
   if (!textNode) return;
@@ -168,11 +171,16 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing]);
 
-  // Keep view-mode HTML in sync when localContent changes while not editing
+  // Keep view-mode HTML in sync when localContent changes while not editing.
+  // Guard against re-setting identical HTML — avoids visible flash on every
+  // React Query re-fetch even when the bullet content hasn't changed.
   useLayoutEffect(() => {
     const el = divRef.current;
     if (!el || isEditing) return;
-    el.innerHTML = renderWithChips(renderBulletMarkdown(localContent));
+    const newHtml = renderWithChips(renderBulletMarkdown(localContent));
+    if (el.innerHTML !== newHtml) {
+      el.innerHTML = newHtml;
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localContent]);
 
@@ -419,14 +427,18 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       }
 
       if (currentContent === '' && bullet.parentId === null) {
-        setIsEditing(false);
         createBullet.mutate(
           { documentId: bullet.documentId, parentId: null, afterId: bullet.id, content: '' },
           {
             onSuccess: (data) => {
               setTimeout(() => {
                 const newEl = document.getElementById(`bullet-${data.id}`) as HTMLDivElement | null;
-                if (newEl) newEl.focus();
+                if (newEl) {
+                  // Set contentEditable before focus so the browser keeps the keyboard open
+                  // (focus moving from contentEditable→non-editable dismisses the keyboard).
+                  newEl.contentEditable = 'true';
+                  newEl.focus();
+                }
               }, 50);
             },
           }
@@ -439,32 +451,31 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
 
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: before });
+      // Update React state but leave the DOM untouched — setting el.textContent would reset
+      // the cursor to position 0. The DOM will be corrected when isEditing becomes false
+      // via the natural blur that fires when focus moves to the new element.
       setLocalContent(before);
-      setIsEditing(false);
+
+      const focusNewBullet = (id: string) => {
+        setTimeout(() => {
+          const newEl = document.getElementById(`bullet-${id}`) as HTMLDivElement | null;
+          if (newEl) {
+            // Set contentEditable before focus so the browser keeps the keyboard open.
+            newEl.contentEditable = 'true';
+            newEl.focus();
+          }
+        }, 50);
+      };
 
       if (children.length > 0) {
         createBullet.mutate(
           { documentId: bullet.documentId, parentId: bullet.id, afterId: null, content: after },
-          {
-            onSuccess: (data) => {
-              setTimeout(() => {
-                const newEl = document.getElementById(`bullet-${data.id}`) as HTMLDivElement | null;
-                if (newEl) newEl.focus();
-              }, 50);
-            },
-          }
+          { onSuccess: (data) => focusNewBullet(data.id) }
         );
       } else {
         createBullet.mutate(
           { documentId: bullet.documentId, parentId: bullet.parentId, afterId: bullet.id, content: after },
-          {
-            onSuccess: (data) => {
-              setTimeout(() => {
-                const newEl = document.getElementById(`bullet-${data.id}`) as HTMLDivElement | null;
-                if (newEl) newEl.focus();
-              }, 50);
-            },
-          }
+          { onSuccess: (data) => focusNewBullet(data.id) }
         );
       }
       return;
@@ -482,33 +493,34 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       const siblings = getChildren(bulletMap, bullet.parentId);
       const myIdx = siblings.findIndex(s => s.id === bullet.id);
 
-      // Empty node: just delete it and move focus to nearest neighbor
+      // Empty node: move focus synchronously BEFORE deleting so blur+focus fire in
+      // the same React batch while both elements are still in the DOM. This keeps
+      // focusedBulletId from briefly going null (which causes the toolbar to flash).
       if ((el.textContent ?? '') === '') {
-        softDeleteBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
-        setTimeout(() => {
-          if (myIdx > 0) {
-            let prevBullet = siblings[myIdx - 1];
-            let candidate = prevBullet;
-            while (true) {
-              if (candidate.isCollapsed) break;
-              const prevChildren = getChildren(bulletMap, candidate.id).filter(b => !b.deletedAt);
-              if (prevChildren.length === 0) break;
-              candidate = prevChildren[prevChildren.length - 1];
-            }
-            prevBullet = candidate;
-            const prevEl = document.getElementById(`bullet-${prevBullet.id}`) as HTMLDivElement | null;
-            if (prevEl) prevEl.focus();
-          } else if (bullet.parentId !== null) {
-            const parentEl = document.getElementById(`bullet-${bullet.parentId}`) as HTMLDivElement | null;
-            if (parentEl) parentEl.focus();
-          } else {
-            // First root — focus next
-            const allBulletEls = Array.from(document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]'));
-            const myDomIdx = allBulletEls.findIndex(d => d === divRef.current);
-            const next = allBulletEls[myDomIdx + 1];
-            if (next) next.focus();
+        let target: HTMLDivElement | null = null;
+        if (myIdx > 0) {
+          let prevBullet = siblings[myIdx - 1];
+          let candidate = prevBullet;
+          while (true) {
+            if (candidate.isCollapsed) break;
+            const prevChildren = getChildren(bulletMap, candidate.id).filter(b => !b.deletedAt);
+            if (prevChildren.length === 0) break;
+            candidate = prevChildren[prevChildren.length - 1];
           }
-        }, 50);
+          prevBullet = candidate;
+          target = document.getElementById(`bullet-${prevBullet.id}`) as HTMLDivElement | null;
+        } else if (bullet.parentId !== null) {
+          target = document.getElementById(`bullet-${bullet.parentId}`) as HTMLDivElement | null;
+        } else {
+          const allBulletEls = Array.from(document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]'));
+          const myDomIdx = allBulletEls.findIndex(d => d === divRef.current);
+          target = allBulletEls[myDomIdx + 1] ?? null;
+        }
+        if (target) {
+          target.contentEditable = 'true';
+          target.focus();
+        }
+        softDeleteBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
         return;
       }
 
@@ -566,7 +578,10 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
             const allBulletEls = Array.from(document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]'));
             const myDomIdx = allBulletEls.findIndex(d => d === divRef.current);
             const target = allBulletEls[myDomIdx - 1];
-            if (target) target.focus();
+            if (target) {
+              target.contentEditable = 'true';
+              target.focus();
+            }
           }, 50);
         }
         return;

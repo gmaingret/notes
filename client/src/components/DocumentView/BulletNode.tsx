@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ChevronRight, Check, Trash2, Star } from 'lucide-react';
+import { ChevronRight, Check, Trash2, Bookmark } from 'lucide-react';
 import type { FlatBullet, BulletMap } from './BulletTree';
 import { getChildren } from './BulletTree';
 import { useSetCollapsed, useMarkComplete, useSoftDeleteBullet } from '../../hooks/useBullets';
@@ -295,7 +295,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
         </div>
         {isBookmarked && !isDragOverlay && (
           <span className="bullet-date-label" style={{ fontSize: '0.6rem', lineHeight: '1.6rem', flexShrink: 0 }}>
-            <Star size={16} strokeWidth={1.5} className="star-filled" />
+            <Bookmark size={16} strokeWidth={1.5} className="star-filled" />
           </span>
         )}
 

@@ -16,14 +16,14 @@ interface Document {
 }
 
 interface SearchResult {
-  bulletId: string;
+  id: string;
   content: string;
   documentId: string;
   documentTitle: string;
 }
 
 interface BookmarkRow {
-  bulletId: string;
+  id: string;
   content: string;
   documentId: string;
   documentTitle: string;
@@ -104,9 +104,9 @@ export function QuickOpenPalette({ onClose }: QuickOpenPaletteProps) {
     if (item.type === 'document') {
       navigate(`/doc/${item.doc.id}`);
     } else if (item.type === 'bullet') {
-      navigate(`/doc/${item.result.documentId}#bullet/${item.result.bulletId}`);
+      navigate(`/doc/${item.result.documentId}#bullet/${item.result.id}`);
     } else if (item.type === 'bookmark') {
-      navigate(`/doc/${item.bookmark.documentId}#bullet/${item.bookmark.bulletId}`);
+      navigate(`/doc/${item.bookmark.documentId}#bullet/${item.bookmark.id}`);
     }
     onClose();
   }
@@ -186,10 +186,10 @@ export function QuickOpenPalette({ onClose }: QuickOpenPaletteProps) {
                 <>
                   <div className="qop-section-header">Bullets</div>
                   {bulletResults.map((result) => {
-                    const idx = flatResults.findIndex(r => r.type === 'bullet' && r.result.bulletId === result.bulletId);
+                    const idx = flatResults.findIndex(r => r.type === 'bullet' && r.result.id === result.id);
                     return (
                       <div
-                        key={result.bulletId}
+                        key={result.id}
                         className={`qop-result-row${idx === selectedIndex ? ' qop-result-row--selected' : ''}`}
                         onClick={() => openResult({ type: 'bullet', result })}
                       >
@@ -205,10 +205,10 @@ export function QuickOpenPalette({ onClose }: QuickOpenPaletteProps) {
                 <>
                   <div className="qop-section-header">Bookmarks</div>
                   {bookmarkResults.map((bookmark) => {
-                    const idx = flatResults.findIndex(r => r.type === 'bookmark' && r.bookmark.bulletId === bookmark.bulletId);
+                    const idx = flatResults.findIndex(r => r.type === 'bookmark' && r.bookmark.id === bookmark.id);
                     return (
                       <div
-                        key={bookmark.bulletId}
+                        key={bookmark.id}
                         className={`qop-result-row${idx === selectedIndex ? ' qop-result-row--selected' : ''}`}
                         onClick={() => openResult({ type: 'bookmark', bookmark })}
                       >

@@ -42,14 +42,15 @@ export function AppPage() {
     }
   }, [docId, setLastOpenedDocId, openDocument]);
 
-  // Ctrl+E / Cmd+E keyboard shortcut to toggle sidebar; Ctrl+K / Cmd+K to open quick-open palette
+  // Ctrl+E / Cmd+E keyboard shortcut to toggle sidebar; Ctrl+Shift+K / Cmd+Shift+K to open quick-open palette
+  // Note: Ctrl+K is intercepted by Chrome to focus the address bar and cannot be overridden in web apps
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
         e.preventDefault();
         setSidebarOpen(!sidebarOpen);
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'K') {
         e.preventDefault();
         setQuickOpenOpen(true);
       }

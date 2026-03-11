@@ -418,3 +418,22 @@ body { margin: 0; font-family: 'Inter Variable', sans-serif; }
   color: var(--color-text-muted);
   font-size: 14px;
 }
+
+/* Header search button (opens quick-open palette) */
+.header-search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.header-search-btn:hover {
+  background: var(--color-row-active-bg);
+  color: var(--color-text);
+}

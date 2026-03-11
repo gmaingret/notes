@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { DocumentView } from '../components/DocumentView/DocumentView';
+import { QuickOpenPalette } from '../components/DocumentView/QuickOpenPalette';
 import { useDocuments, useOpenDocument } from '../hooks/useDocuments';
 import { useUiStore } from '../store/uiStore';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -11,7 +12,7 @@ export function AppPage() {
   const navigate = useNavigate();
   const { data: docs } = useDocuments();
   const { mutate: openDocument } = useOpenDocument();
-  const { lastOpenedDocId, setLastOpenedDocId, sidebarOpen, setSidebarOpen } = useUiStore();
+  const { lastOpenedDocId, setLastOpenedDocId, sidebarOpen, setSidebarOpen, quickOpenOpen, setQuickOpenOpen } = useUiStore();
   const isMobile = useIsMobile();
 
   // On mobile, close sidebar on initial load when a document is already in the URL.
@@ -41,17 +42,21 @@ export function AppPage() {
     }
   }, [docId, setLastOpenedDocId, openDocument]);
 
-  // Ctrl+E / Cmd+E keyboard shortcut to toggle sidebar
+  // Ctrl+E / Cmd+E keyboard shortcut to toggle sidebar; Ctrl+K / Cmd+K to open quick-open palette
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
         e.preventDefault();
         setSidebarOpen(!sidebarOpen);
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setQuickOpenOpen(true);
+      }
     }
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [sidebarOpen, setSidebarOpen]);
+  }, [sidebarOpen, setSidebarOpen, setQuickOpenOpen]);
 
   const activeDoc = docs?.find(d => d.id === docId) ?? null;
 
@@ -65,6 +70,7 @@ export function AppPage() {
           <div style={{ padding: '2rem' }} className="app-empty-state">Select a document</div>
         )}
       </main>
+      {quickOpenOpen && <QuickOpenPalette onClose={() => setQuickOpenOpen(false)} />}
     </div>
   );
 }

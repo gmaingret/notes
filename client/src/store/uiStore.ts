@@ -13,12 +13,14 @@ type UiStore = {
   canvasView: CanvasView;
   searchOpen: boolean;
   focusedBulletId: string | null;
+  quickOpenOpen: boolean;
   setLastOpenedDocId: (id: string | null) => void;
   setSidebarOpen: (open: boolean) => void;
   setSidebarTab: (tab: 'docs' | 'tags' | 'bookmarks') => void;
   setCanvasView: (view: CanvasView) => void;
   setSearchOpen: (open: boolean) => void;
   setFocusedBulletId: (id: string | null) => void;
+  setQuickOpenOpen: (open: boolean) => void;
 };
 
 export const useUiStore = create<UiStore>()(
@@ -30,12 +32,14 @@ export const useUiStore = create<UiStore>()(
       canvasView: { type: 'document' } as CanvasView,
       searchOpen: false,
       focusedBulletId: null,
+      quickOpenOpen: false,
       setLastOpenedDocId: (id) => set({ lastOpenedDocId: id }),
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       setSidebarTab: (tab) => set({ sidebarTab: tab }),
       setCanvasView: (view) => set({ canvasView: view }),
       setSearchOpen: (open) => set({ searchOpen: open }),
       setFocusedBulletId: (id) => set({ focusedBulletId: id }),
+      setQuickOpenOpen: (open) => set({ quickOpenOpen: open }),
     }),
     {
       name: 'notes-ui',

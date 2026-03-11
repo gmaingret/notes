@@ -1,4 +1,4 @@
-html { font-size: 20px; }
+html { font-size: 20px; background: var(--color-bg-base); }
 
 /* === Color tokens === */
 :root {

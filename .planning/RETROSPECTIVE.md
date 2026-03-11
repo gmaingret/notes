@@ -53,8 +53,57 @@
 
 ---
 
+## Milestone: v1.1 — Mobile & UI Polish
+
+**Shipped:** 2026-03-11
+**Phases:** 5 (5, 6, 7, 7.1, 8) | **Plans:** 23
+
+### What Was Built
+
+- Phase 5 (Mobile Layout): Off-canvas sidebar drawer with CSS translateX, hamburger, backdrop dismiss, X close, 100dvh, 44px touch targets, Ctrl+E desktop toggle
+- Phase 6 (Dark Mode): Full CSS custom property token system, FOUC-prevention synchronous inline script, color-scheme meta, WCAG AA contrast throughout all components
+- Phase 7 (Icons, Fonts, PWA): Lucide SVG icons replacing all Unicode glyphs; Inter Variable + JetBrains Mono Variable self-hosted; SVG letter-mark favicon; PWA manifest + 192/512px icons
+- Phase 7.1 (UI Polish): FocusToolbar 11 Lucide icons, 2px bullet row breathing room, persistent sidebar footer (Export all/Logout), + button auto-opens inline rename
+- Phase 8 (Swipe + Palette): Proportional swipe icon scale (0.5x→1.2x pulse) + exit-direction slide-off animation; Ctrl+F quick-open palette with grouped search and full keyboard nav
+
+### What Worked
+
+- **CSS custom property token system** — Single `@media (prefers-color-scheme: dark)` override with CSS vars cascaded everywhere. Zero runtime cost, clean separation.
+- **FOUC prevention via synchronous script** — Running the dark class assignment before any React hydration meant zero white flashes. Simple and correct.
+- **Decimal phase (7.1) for inserted work** — Adding UI polish tweaks as phase 7.1 kept the roadmap clean without renumbering.
+- **onTransitionEnd for swipe mutations** — Firing the actual delete/complete mutation after the CSS exit animation (not setTimeout) was timing-safe and felt intentional.
+- **Static file-scan tests for visual requirements** — Grep-based tests for icon/font/shortcut presence are fast (<100ms), don't require mounting React, and give clear failure messages.
+
+### What Was Inefficient
+
+- **Multiple fix commits after Phase 8 feature work** — Swipe exit animation, Ctrl+F palette, resize black screen, keyboard behavior, re-render flash all required separate fix commits after initial implementation. More careful planning of mobile edge cases (keyboard open, viewport resize) would have prevented this.
+- **Shortcut drift** — Ctrl+K → Ctrl+Shift+K → Ctrl+F across three commits. The UX decision should have been made upfront; test was written for the wrong target and had to be fixed before deploy.
+- **Server disk full** — Docker build cache grew unmanaged to 2.7GB and blocked deployment. Should be addressed proactively (add `docker builder prune` to deploy procedure or increase disk).
+
+### Patterns Established
+
+- **CSS token system pattern** — All colors via `--color-*` variables in `:root`, overridden in `@media (prefers-color-scheme: dark)`. Components use CSS classes that reference vars, never hardcoded hex.
+- **FOUC prevention script** — Synchronous inline `<script>` in `<head>` before any CSS/JS, applies `.dark` class immediately based on `window.matchMedia`.
+- **Swipe exit animation** — Set `exitDirection` state ('left'|'right'), apply CSS translate + transition, fire mutation in `onTransitionEnd` handler.
+
+### Key Lessons
+
+1. **Mobile edge cases need explicit planning.** Keyboard open/close, viewport resize, and focus behavior on mobile are all non-trivial. Budget a dedicated plan for them rather than treating as fix-up work.
+2. **Shortcut UX decisions should be locked before writing tests.** The Ctrl+K → Ctrl+F drift caused unnecessary churn.
+3. **Manage Docker build cache proactively.** After several image builds, cache grows significantly. Add `docker builder prune -f` to routine maintenance.
+4. **Static file-scan tests scale well for UI requirements.** ~100 assertions in 8 test files, all running in <2s. Pattern is worth continuing.
+
+### Cost Observations
+
+- Sessions: ~6-8 AI sessions across 2 days
+- Model: claude-sonnet-4-6 throughout
+- Notable: 23 plans across 5 phases in 2 calendar days. Phase 6 (dark mode with full token migration across 20+ files) was the most complex single phase; completed in a single session.
+
+---
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Days | Plans/Day |
 |-----------|--------|-------|------|-----------|
 | v1.0 MVP  | 4      | 32    | 2    | 16        |
+| v1.1 Polish | 5    | 23    | 2    | 11.5      |

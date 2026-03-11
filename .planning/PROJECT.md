@@ -30,31 +30,24 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - ✓ Mobile touch interactions (swipe right = complete, swipe left = delete, long press = context menu) — v1.0
 - ✓ Export document(s) as Markdown file — v1.0
 - ✓ New users start with one blank "Inbox" document — v1.0
-
-## Current Milestone: v1.1 Mobile & UI Polish
-
-**Goal:** Transform the app into a genuinely great mobile experience with a polished dark mode, responsive layout, hamburger navigation, and improved visual design.
-
-**Target features:**
-- Responsive mobile layout with hidden sidebar + hamburger menu (auto-close on outside tap)
-- System-preference dark mode with WCAG AA-compliant color tokens
-- Swipe gesture polish (improved animation + feedback)
-- Modern icon library and font pairing
-- PWA manifest for home screen installation
-- Quick-open palette (Ctrl+K fuzzy search)
-- Ctrl/Cmd+E sidebar toggle on desktop
+- ✓ Responsive sidebar hidden on mobile, full-width content; hamburger opens/closes with off-canvas animation — v1.1
+- ✓ System-preference dark mode with WCAG AA colors and no FOUC on hard refresh — v1.1
+- ✓ Lucide SVG icons throughout, Inter Variable + JetBrains Mono Variable self-hosted fonts — v1.1
+- ✓ PWA manifest for home screen installation (standalone mode, 192/512px icons) — v1.1
+- ✓ Swipe animations: proportional icon scale + exit-direction slide-off before mutation — v1.1
+- ✓ Quick-open palette (Ctrl+F) with recent docs, grouped search, keyboard navigation, mobile search button — v1.1
+- ✓ Sidebar persistent footer with Export all / Logout; + button auto-opens inline rename — v1.1
+- ✓ Ctrl/Cmd+E sidebar toggle on desktop — v1.1
 
 ### Active
 
-- [ ] Responsive mobile layout — sidebar hidden on mobile, full-width content
-- [ ] Hamburger menu opens sidebar on mobile, auto-closes on outside tap
-- [ ] System-preference dark mode (prefers-color-scheme) with WCAG AA colors
-- [ ] Modern icon library (e.g., Lucide) replacing all current icons
-- [ ] Polished font pairing (e.g., Inter + JetBrains Mono)
-- [ ] Swipe gesture animations and haptic-like feedback improved
-- [ ] Progressive Web App (PWA) manifest for home screen installation
-- [ ] Quick-open palette (Ctrl+K fuzzy document + bullet search)
-- [ ] Ctrl/Cmd+E to toggle sidebar visibility on desktop
+(No active requirements — planning next milestone)
+
+### Deferred
+
+- Manual dark mode toggle (requires three-state settings UI — defer to v1.2)
+- PWA richer install prompt on Android (requires service worker — defer)
+- Quick-open action commands beyond navigation (full VS Code-style palette — defer)
 
 ### Out of Scope
 
@@ -74,13 +67,15 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 
 ## Context
 
-- **Shipped:** v1.0 with 42,417+ lines of code across 204 files (TypeScript/React frontend, Node/Express backend, PostgreSQL)
+- **Shipped:** v1.1 (2026-03-11) — two milestones complete; ~44k+ LOC
 - **Live at:** https://notes.gregorymaingret.fr
 - **Tech stack:** React + Vite + TypeScript (client), Express + Drizzle ORM + PostgreSQL (server), Docker (deployment), Nginx reverse proxy
+- **UI libraries:** lucide-react (icons), @fontsource-variable/inter + jetbrains-mono (fonts), @dnd-kit (drag-and-drop), zustand (state)
 - **Inspiration**: Dynalist and Workflowy — infinite outlining tools. Goal is feature parity for core use cases without paywalls.
 - **Deployment**: Docker-based on a self-hosted Linux server (`192.168.1.50`). Nginx reverse proxy at `192.168.1.204`.
 - **Testing**: Claude creates its own email/password account on the running server for E2E testing. Google SSO cannot be tested by Claude.
 - **CI/CD**: Develop locally → push to GitHub (`gmaingret/notes`) → deploy to server → confirm live → merge to main.
+- **Known tech debt**: Server disk (30GB) reached 100% during Phase 8 deploy — Docker build cache grows with each image build. Consider periodic `docker builder prune` or larger disk.
 
 ## Constraints
 
@@ -109,6 +104,11 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 | Drizzle _journal.json must list ALL migrations | migrate() uses journal for discovery; missing entries = silently skipped SQL | ✓ Good — learned in Phase 4, documented |
 | FocusToolbar in BulletTree (not DocumentView) | DocumentToolbar lives inside DndContext in BulletTree | ✓ Good — avoids pointer event capture issues |
 | gestures.ts uses closure-based state (not useRef) | Pure functions can be unit tested without React | ✓ Good — enables isolated gesture tests |
+| CSS custom property token system (not CSS-in-JS) | Native CSS variables are zero-cost at runtime and cascade correctly | ✓ Good — clean dark mode with single @media override |
+| Synchronous FOUC script in index.html (not React) | FOUC must be prevented before first paint — React hydration is too late | ✓ Good — zero white flash on hard refresh in dark mode |
+| exitDirection + onTransitionEnd pattern for swipe exit | Fires mutation after CSS transition completes — no setTimeout guessing | ✓ Good — exit animation feels intentional and timing-safe |
+| Ctrl+F replaces browser Find bar (capture: true) | Ctrl+F is the universal search shortcut; users already know it | ✓ Good — intuitive; intercepts browser Find cleanly |
+| Inter Variable + JetBrains Mono via @fontsource (no Google Fonts) | Self-hosted fonts maintain privacy-first approach | ✓ Good — no external dependencies, fast load from same server |
 
 ---
-*Last updated: 2026-03-10 after v1.1 milestone start*
+*Last updated: 2026-03-11 after v1.1 milestone complete*

@@ -25,7 +25,7 @@ Full details: [`.planning/milestones/v1.0-ROADMAP.md`](milestones/v1.0-ROADMAP.m
 
 - [x] **Phase 5: Mobile Layout Foundation** - Responsive sidebar, hamburger menu, touch targets, and desktop toggle (completed 2026-03-10)
 - [x] **Phase 6: Dark Mode** - System-preference dark theme with WCAG AA colors and FOUC prevention (completed 2026-03-10)
-- [x] **Phase 7: Icons, Fonts, and PWA** - Lucide icons, self-hosted fonts, and home screen installation (completed 2026-03-10)
+- [x] **Phase 7: Icons, Fonts, and PWA** - Lucide icons, self-hosted fonts, and home screen installation (completed 2026-03-10)
 - [ ] **Phase 8: Swipe Polish and Quick-Open Palette** - Swipe gesture animations and Ctrl+K navigation palette
 
 ## Phase Details
@@ -81,6 +81,18 @@ Plans:
 - [ ] 07-04-PLAN.md — Font setup: fontsource imports, Inter body font, JetBrains Mono classes [parallel with 07-03]
 - [ ] 07-05-PLAN.md — PWA assets (favicon, manifest, PNG icons), index.html wiring, human verify
 
+### Phase 07.1: UI Polish Tweaks (INSERTED)
+
+**Goal:** FocusToolbar icon cleanup, bullet row spacing, sidebar footer with logout/export, and + button inline rename on new documents
+**Depends on:** Phase 7
+**Plans:** 4/4 plans complete
+
+Plans:
+- [ ] 07.1-00-PLAN.md — Test scaffold (uiPolish.test.ts, RED state)
+- [ ] 07.1-01-PLAN.md — FocusToolbar icon swap + BulletNode 2px spacing [Wave 2]
+- [ ] 07.1-02-PLAN.md — Sidebar footer + ... removal + + button inline rename [Wave 2, parallel with 01]
+- [ ] 07.1-03-PLAN.md — Deploy + human verification checkpoint [Wave 3]
+
 ### Phase 8: Swipe Polish and Quick-Open Palette
 **Goal**: Swipe gestures feel intentional and satisfying, and users can navigate to any document or bookmark from anywhere in the app with two keystrokes
 **Depends on**: Phase 7
@@ -104,4 +116,5 @@ Plans:
 | 5. Mobile Layout Foundation | v1.1 | 4/4 | Complete | 2026-03-10 |
 | 6. Dark Mode | v1.1 | 5/5 | Complete   | 2026-03-10 |
 | 7. Icons, Fonts, and PWA | 5/5 | Complete   | 2026-03-10 | - |
+| 07.1. UI Polish Tweaks | 4/4 | Complete   | 2026-03-10 | - |
 | 8. Swipe Polish and Quick-Open Palette | v1.1 | 0/? | Not started | - |

@@ -8,11 +8,16 @@ import type { Document } from '../../hooks/useDocuments';
 import { useUiStore } from '../../store/uiStore';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
-type Props = { document: Document; isActive: boolean };
+type Props = {
+  document: Document;
+  isActive: boolean;
+  initiallyRenaming?: boolean;
+  onRenameComplete?: () => void;
+};
 
-export function DocumentRow({ document, isActive }: Props) {
+export function DocumentRow({ document, isActive, initiallyRenaming, onRenameComplete }: Props) {
   const [showMenu, setShowMenu] = useState(false);
-  const [isRenaming, setIsRenaming] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(initiallyRenaming ?? false);
   const [renameValue, setRenameValue] = useState(document.title);
   const navigate = useNavigate();
   const { setCanvasView, setSidebarOpen } = useUiStore();
@@ -38,6 +43,7 @@ export function DocumentRow({ document, isActive }: Props) {
       rename({ id: document.id, title: trimmed });
     }
     setIsRenaming(false);
+    onRenameComplete?.();
   };
 
   const handleRenameKeyDown = (e: KeyboardEvent) => {

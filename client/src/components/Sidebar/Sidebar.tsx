@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MoreHorizontal, X, Plus, FileText, Tag, Star } from 'lucide-react';
+import { X, Plus, FileText, Tag, Star, Upload, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCreateDocument, useExportAllDocuments } from '../../hooks/useDocuments';
 import { DocumentList } from './DocumentList';
@@ -16,9 +16,16 @@ export function Sidebar({ activeDocId }: SidebarProps) {
   const { mutate: createDocument } = useCreateDocument();
   const { mutate: exportAll } = useExportAllDocuments();
   const { sidebarOpen, setSidebarOpen, sidebarTab, setSidebarTab } = useUiStore();
-  const [showSidebarMenu, setShowSidebarMenu] = useState(false);
+  const [pendingRenameId, setPendingRenameId] = useState<string | null>(null);
 
-  const handleCreate = () => { createDocument(undefined); };
+  const handleCreate = () => {
+    if (sidebarTab !== 'docs') setSidebarTab('docs');
+    createDocument(undefined, {
+      onSuccess: (newDoc) => {
+        setPendingRenameId(newDoc.id);
+      },
+    });
+  };
   const handleLogout = async () => { await logout(); };
 
   return (
@@ -35,23 +42,6 @@ export function Sidebar({ activeDocId }: SidebarProps) {
         {/* Header — position:relative here so the dropdown anchors to the full header width */}
         <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--color-border-default)', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
           <span style={{ flex: 1, fontWeight: 600, fontSize: '1rem' }}>Notes</span>
-
-          <div>
-            <button onClick={() => setShowSidebarMenu(v => !v)} className="sidebar-icon-btn" style={iconButtonBase} title="More options"><MoreHorizontal size={20} strokeWidth={1.5} /></button>
-            {showSidebarMenu && (
-              <>
-                {/* Transparent overlay — tapping outside the dropdown closes it (mobile + desktop) */}
-                <div
-                  style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-                  onClick={() => setShowSidebarMenu(false)}
-                />
-                <div style={dropdownStyle}>
-                  <button style={dropdownItemBase} className="sidebar-menu-item" onClick={() => { exportAll(); setShowSidebarMenu(false); }}>Export all documents</button>
-                  <button style={dropdownItemBase} className="sidebar-menu-item" onClick={() => { handleLogout(); setShowSidebarMenu(false); }}>Logout</button>
-                </div>
-              </>
-            )}
-          </div>
 
           {/* X close — only shown on mobile via CSS (.mobile-close-btn display:none on desktop).
                Do NOT apply display via inline style here — CSS controls visibility. */}
@@ -94,9 +84,36 @@ export function Sidebar({ activeDocId }: SidebarProps) {
         })()}
 
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {sidebarTab === 'docs' ? <DocumentList activeDocId={activeDocId} />
-            : sidebarTab === 'tags' ? <TagBrowser />
+          {sidebarTab === 'docs' ? (
+            <DocumentList
+              activeDocId={activeDocId}
+              pendingRenameId={pendingRenameId}
+              onRenameComplete={() => setPendingRenameId(null)}
+            />
+          ) : sidebarTab === 'tags' ? <TagBrowser />
             : <BookmarkBrowser />}
+        </div>
+
+        <div style={{
+          borderTop: '1px solid var(--color-border-default)',
+          padding: '0.5rem 0',
+        }}>
+          <button
+            className="sidebar-footer-btn"
+            onClick={() => exportAll()}
+            style={footerBtnBase}
+          >
+            <Upload size={20} strokeWidth={1.5} />
+            <span>Export all</span>
+          </button>
+          <button
+            className="sidebar-footer-btn"
+            onClick={() => void handleLogout()}
+            style={footerBtnBase}
+          >
+            <LogOut size={20} strokeWidth={1.5} />
+            <span>Logout</span>
+          </button>
         </div>
       </aside>
     </>
@@ -119,14 +136,16 @@ const closeBtnBase = {
   alignItems: 'center', justifyContent: 'center',
 } as const;
 
-const dropdownStyle = {
-  position: 'absolute' as const, right: 0, top: '100%',
-  background: 'var(--color-bg-raised)', border: '1px solid var(--color-border-default)', borderRadius: 4,
-  boxShadow: '0 2px 8px var(--color-shadow)', zIndex: 100, minWidth: 180,
-};
-
-const dropdownItemBase = {
-  display: 'block', width: '100%', padding: '0.5rem 0.75rem',
-  background: 'none', border: 'none', cursor: 'pointer',
-  textAlign: 'left' as const, fontSize: '1rem',
+const footerBtnBase: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  width: '100%',
+  padding: '0.5rem 1rem',
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  fontSize: '1rem',
+  color: 'var(--color-text-muted)',
+  textAlign: 'left',
 };

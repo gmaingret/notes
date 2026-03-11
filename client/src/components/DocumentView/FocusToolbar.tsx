@@ -1,4 +1,11 @@
 import { useState, useEffect } from 'react';
+import {
+  IndentIncrease, IndentDecrease,
+  ArrowUp, ArrowDown,
+  Undo2, Redo2,
+  Paperclip, StickyNote,
+  Bookmark, Check, Trash2,
+} from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
 // MOB-05: pure function to calculate keyboard bottom offset from visualViewport values
@@ -173,7 +180,7 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
         onClick={handleIndent}
         title="Indent"
       >
-        &#8677;
+        <IndentIncrease size={20} strokeWidth={1.5} />
       </button>
       <button
         className="focus-toolbar-btn"
@@ -181,7 +188,7 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
         onClick={handleOutdent}
         title="Outdent"
       >
-        &#8676;
+        <IndentDecrease size={20} strokeWidth={1.5} />
       </button>
       <button
         className="focus-toolbar-btn"
@@ -189,7 +196,7 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
         onClick={handleMoveUp}
         title="Move Up"
       >
-        &#8593;
+        <ArrowUp size={20} strokeWidth={1.5} />
       </button>
       <button
         className="focus-toolbar-btn"
@@ -197,16 +204,16 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
         onClick={handleMoveDown}
         title="Move Down"
       >
-        &#8595;
+        <ArrowDown size={20} strokeWidth={1.5} />
       </button>
       <button className="focus-toolbar-btn" style={btnStyle} onClick={() => void handleUndo()} title="Undo">
-        &#8617;
+        <Undo2 size={20} strokeWidth={1.5} />
       </button>
       <button className="focus-toolbar-btn" style={btnStyle} onClick={() => void handleRedo()} title="Redo">
-        &#8618;
+        <Redo2 size={20} strokeWidth={1.5} />
       </button>
       <button className="focus-toolbar-btn" style={btnStyle} onClick={handleAttach} title="Attach file">
-        &#128206;
+        <Paperclip size={20} strokeWidth={1.5} />
       </button>
       <button
         className={`focus-toolbar-btn${hasNote ? ' focus-toolbar-btn--note-active' : ''}`}
@@ -214,7 +221,7 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
         onClick={handleNote}
         title="Note"
       >
-        &#128172;
+        <StickyNote size={20} strokeWidth={1.5} />
       </button>
       <button
         className={`focus-toolbar-btn${isBookmarked ? ' focus-toolbar-btn--bookmark-active' : ''}`}
@@ -222,7 +229,7 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
         onClick={handleBookmark}
         title="Bookmark"
       >
-        &#128278;
+        <Bookmark size={20} strokeWidth={1.5} />
       </button>
       <button
         className={`focus-toolbar-btn${bullet.isComplete ? ' focus-toolbar-btn--complete-active' : ''}`}
@@ -230,10 +237,10 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
         onClick={handleComplete}
         title="Mark complete"
       >
-        &#10003;
+        <Check size={20} strokeWidth={1.5} />
       </button>
       <button className="focus-toolbar-btn focus-toolbar-btn--delete" style={btnStyle} onClick={handleDelete} title="Delete">
-        &#128465;
+        <Trash2 size={20} strokeWidth={1.5} />
       </button>
     </div>
   );

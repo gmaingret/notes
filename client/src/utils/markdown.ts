@@ -13,8 +13,13 @@ export function renderBulletMarkdown(content: string): string {
   // Decode any HTML entities stored literally in content (e.g. &#39; → ')
   // before passing to marked, so they aren't double-encoded on render.
   const decoded = decodeHtmlEntities(content);
+  // Normalize trailing spaces inside bold/italic markers: "**text **" → "**text**"
+  // CommonMark forbids whitespace before the closing delimiter, so "**more **" won't bold.
+  const normalized = decoded
+    .replace(/\*\*(\S[^*]*?)\s+\*\*/g, '**$1**')
+    .replace(/\*(\S[^*]*?)\s+\*/g, '*$1*');
   // parseInline avoids wrapping <p> tags — CRITICAL for inline bullet display
-  const html = marked.parseInline(decoded) as string;
+  const html = marked.parseInline(normalized) as string;
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: ['strong', 'em', 'del', 'a', 'img', 'code', 'span'],
     ALLOWED_ATTR: ['href', 'src', 'alt', 'class', 'data-chip-type', 'data-chip-value', 'target'],

@@ -215,6 +215,8 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
         display: 'flex',
         alignItems: 'flex-start',
         paddingLeft: depth * 24,
+        paddingTop: 5,
+        paddingBottom: 5,
         textDecoration: 'none',
         touchAction: 'pan-y',
         overflow: 'hidden',

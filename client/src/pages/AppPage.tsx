@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { DocumentView } from '../components/DocumentView/DocumentView';
@@ -29,8 +29,10 @@ export function AppPage() {
   // Sync sidebar visibility when viewport crosses the mobile/desktop breakpoint.
   // desktop → mobile: close sidebar (it becomes a full-screen overlay — would black out the screen)
   // mobile → desktop: open sidebar (it's a permanent panel on desktop)
+  // useLayoutEffect fires before browser paint — prevents the one-frame flash where the
+  // sidebar backdrop CSS activates (via media query) before React can close the sidebar.
   const prevIsMobileRef = useRef(isMobile);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isMobile && !prevIsMobileRef.current) {
       setSidebarOpen(false);
     } else if (!isMobile && prevIsMobileRef.current) {

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mobile & UI Polish
 status: ready_to_plan
-stopped_at: Phase 8 context gathered
-last_updated: "2026-03-11T05:36:15.540Z"
+stopped_at: Completed 08-00-PLAN.md
+last_updated: "2026-03-11T06:05:25.665Z"
 last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 18
-  completed_plans: 18
+  total_plans: 23
+  completed_plans: 19
 ---
 
 ---
@@ -126,6 +126,7 @@ Progress: [██░░░░░░░░] 50% (v1.0 complete, v1.1 not started)
 | Phase 07.1-ui-polish-tweaks P01 | 4 | 2 tasks | 2 files |
 | Phase 07.1-ui-polish-tweaks P02 | 12 | 2 tasks | 4 files |
 | Phase 07.1-ui-polish-tweaks P03 | 5 | 2 tasks | 0 files |
+| Phase 08-swipe-polish-and-quick-open-palette P00 | 7 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -172,6 +173,8 @@ Recent decisions affecting current work:
 - [Phase 07.1-ui-polish-tweaks]: Footer buttons use sidebar-footer-btn CSS class with :hover token rule for dark mode correctness
 - [Phase 07.1-ui-polish-tweaks]: pendingRenameId in Sidebar local state threaded as prop to DocumentList/DocumentRow for inline rename on creation
 - [Phase 07.1-ui-polish-tweaks]: User approved all four Phase 7.1 behaviors on https://notes.gregorymaingret.fr — FocusToolbar icons, bullet spacing, sidebar footer, and inline rename verified working
+- [Phase 08-swipe-polish-and-quick-open-palette]: Wave 0 TDD: all Phase 8 test assertions written before any production code — establishes verification contract
+- [Phase 08-swipe-polish-and-quick-open-palette]: existsSync fallback pattern for files not yet created: falls back to empty string so assertions fail cleanly rather than throwing
 
 ### Roadmap Evolution
 
@@ -188,6 +191,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T05:36:15.537Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-swipe-polish-and-quick-open-palette/08-CONTEXT.md
+Last session: 2026-03-11T06:05:25.659Z
+Stopped at: Completed 08-00-PLAN.md
+Resume file: None

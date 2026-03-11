@@ -38,21 +38,21 @@ Requirements for the Mobile & UI Polish milestone. Each maps to roadmap phases.
 
 ### Gestures
 
-- [ ] **GEST-01**: Swiping right reveals a green backing with checkmark icon proportional to drag distance
-- [ ] **GEST-02**: Swiping left reveals a red backing with trash icon proportional to drag distance
-- [ ] **GEST-03**: Cancelled swipe snaps back to rest with ease-out animation
-- [ ] **GEST-04**: Committed swipe animates the row out before it disappears
-- [ ] **GEST-05**: dnd-kit drag sensor uses delay-based activation so it never intercepts horizontal swipes
+- [x] **GEST-01**: Swiping right reveals a green backing with checkmark icon proportional to drag distance
+- [x] **GEST-02**: Swiping left reveals a red backing with trash icon proportional to drag distance
+- [x] **GEST-03**: Cancelled swipe snaps back to rest with ease-out animation
+- [x] **GEST-04**: Committed swipe animates the row out before it disappears
+- [x] **GEST-05**: dnd-kit drag sensor uses delay-based activation so it never intercepts horizontal swipes
 
 ### Quick-Open Palette
 
-- [ ] **QKOP-01**: User can open the quick-open palette with Ctrl+K from anywhere in the app
-- [ ] **QKOP-02**: Palette shows recent documents when opened with no query typed
-- [ ] **QKOP-03**: Typing in the palette instantly fuzzy-matches document titles from cache
-- [ ] **QKOP-04**: Typing ≥2 characters also searches bullet content via existing search endpoint
-- [ ] **QKOP-05**: Bookmarks appear in palette results
-- [ ] **QKOP-06**: User can navigate results with arrow keys and open with Enter
-- [ ] **QKOP-07**: Palette closes on Escape or click outside
+- [x] **QKOP-01**: User can open the quick-open palette with Ctrl+K from anywhere in the app
+- [x] **QKOP-02**: Palette shows recent documents when opened with no query typed
+- [x] **QKOP-03**: Typing in the palette instantly fuzzy-matches document titles from cache
+- [x] **QKOP-04**: Typing ≥2 characters also searches bullet content via existing search endpoint
+- [x] **QKOP-05**: Bookmarks appear in palette results
+- [x] **QKOP-06**: User can navigate results with arrow keys and open with Enter
+- [x] **QKOP-07**: Palette closes on Escape or click outside
 
 ## v2 Requirements
 
@@ -103,18 +103,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PWA-01 | Phase 7 | Complete |
 | PWA-02 | Phase 7 | Complete |
 | PWA-03 | Phase 7 | Complete |
-| GEST-01 | Phase 8 | Pending |
-| GEST-02 | Phase 8 | Pending |
-| GEST-03 | Phase 8 | Pending |
-| GEST-04 | Phase 8 | Pending |
-| GEST-05 | Phase 8 | Pending |
-| QKOP-01 | Phase 8 | Pending |
-| QKOP-02 | Phase 8 | Pending |
-| QKOP-03 | Phase 8 | Pending |
-| QKOP-04 | Phase 8 | Pending |
-| QKOP-05 | Phase 8 | Pending |
-| QKOP-06 | Phase 8 | Pending |
-| QKOP-07 | Phase 8 | Pending |
+| GEST-01 | Phase 8 | Complete |
+| GEST-02 | Phase 8 | Complete |
+| GEST-03 | Phase 8 | Complete |
+| GEST-04 | Phase 8 | Complete |
+| GEST-05 | Phase 8 | Complete |
+| QKOP-01 | Phase 8 | Complete |
+| QKOP-02 | Phase 8 | Complete |
+| QKOP-03 | Phase 8 | Complete |
+| QKOP-04 | Phase 8 | Complete |
+| QKOP-05 | Phase 8 | Complete |
+| QKOP-06 | Phase 8 | Complete |
+| QKOP-07 | Phase 8 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 27 total

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mobile & UI Polish
 status: ready_to_plan
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-03-11T06:10:12.463Z"
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-03-11T06:15:18.643Z"
 last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 23
-  completed_plans: 21
+  completed_plans: 22
 ---
 
 ---
@@ -129,6 +129,7 @@ Progress: [██░░░░░░░░] 50% (v1.0 complete, v1.1 not started)
 | Phase 08-swipe-polish-and-quick-open-palette P00 | 7 | 2 tasks | 2 files |
 | Phase 08-swipe-polish-and-quick-open-palette P02 | 2 | 2 tasks | 3 files |
 | Phase 08-swipe-polish-and-quick-open-palette P01 | 5 | 2 tasks | 1 files |
+| Phase 08-swipe-polish-and-quick-open-palette P03 | 8 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -182,6 +183,8 @@ Recent decisions affecting current work:
 - [Phase 08-swipe-polish-and-quick-open-palette]: exitDirection + onTransitionEnd pattern: mutations fire after CSS slide-off animation, not at pointer-up
 - [Phase 08-swipe-polish-and-quick-open-palette]: pendingActionRef captures bullet.id/documentId/isComplete before setExitDirection() to avoid stale React closure in onTransitionEnd
 - [Phase 08-swipe-polish-and-quick-open-palette]: iconScale computed in render from live swipeX ratio (0.5x→1.0x charging, 1.2x pulse at threshold)
+- [Phase 08-swipe-polish-and-quick-open-palette]: Ctrl+K branch added inside existing handleKeyDown useEffect alongside Ctrl+E — single event listener handles both shortcuts
+- [Phase 08-swipe-polish-and-quick-open-palette]: header-search-btn visible on all screen sizes (not mobile-only) — search is universally useful
 
 ### Roadmap Evolution
 
@@ -198,6 +201,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T06:10:12.460Z
-Stopped at: Completed 08-01-PLAN.md
+Last session: 2026-03-11T06:15:18.638Z
+Stopped at: Completed 08-03-PLAN.md
 Resume file: None

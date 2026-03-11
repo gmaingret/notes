@@ -26,12 +26,15 @@ export function AppPage() {
     }
   }, []);
 
-  // Close sidebar when transitioning desktop → mobile (sidebar becomes a full-screen overlay).
-  // Without this, sidebarOpen stays true from desktop and the sidebar covers the screen on mobile.
+  // Sync sidebar visibility when viewport crosses the mobile/desktop breakpoint.
+  // desktop → mobile: close sidebar (it becomes a full-screen overlay — would black out the screen)
+  // mobile → desktop: open sidebar (it's a permanent panel on desktop)
   const prevIsMobileRef = useRef(isMobile);
   useEffect(() => {
     if (isMobile && !prevIsMobileRef.current) {
       setSidebarOpen(false);
+    } else if (!isMobile && prevIsMobileRef.current) {
+      setSidebarOpen(true);
     }
     prevIsMobileRef.current = isMobile;
   }, [isMobile, setSidebarOpen]);
@@ -52,27 +55,26 @@ export function AppPage() {
     }
   }, [docId, setLastOpenedDocId, openDocument]);
 
-  // Ctrl+E / Cmd+E keyboard shortcut to toggle sidebar; Ctrl+Shift+K / Cmd+Shift+K to open quick-open palette
-  // Note: Ctrl+K is intercepted by Chrome to focus the address bar and cannot be overridden in web apps
+  // Keyboard shortcuts — capture:true lets us intercept Ctrl+F before the browser's Find bar
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
         e.preventDefault();
         setSidebarOpen(!sidebarOpen);
       }
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'K') {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
         setQuickOpenOpen(true);
       }
     }
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [sidebarOpen, setSidebarOpen, setQuickOpenOpen]);
 
   const activeDoc = docs?.find(d => d.id === docId) ?? null;
 
   return (
-    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', background: 'var(--color-bg-base)' }}>
       <Sidebar activeDocId={docId ?? null} />
       <main style={{ flex: 1, overflow: 'auto' }}>
         {activeDoc ? (

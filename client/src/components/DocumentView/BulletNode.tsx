@@ -178,17 +178,21 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
         documentId: bullet.documentId,
         isComplete: !bullet.isComplete,
       };
-      setExitDirection('complete');
+      // rAF: let browser paint one frame with isSwiping=false (transition: 0.2s ease active)
+      // before setting exitDirection. This ensures the CSS transition picks up and animates.
+      // swipeX is intentionally NOT reset here — backing stays visible during slide-off.
+      requestAnimationFrame(() => setExitDirection('complete'));
     } else if (result === 'delete') {
       pendingActionRef.current = {
         type: 'delete',
         bulletId: bullet.id,
         documentId: bullet.documentId,
       };
-      setExitDirection('delete');
+      requestAnimationFrame(() => setExitDirection('delete'));
+    } else {
+      // Cancelled swipe — snap back
+      setSwipeX(0);
     }
-
-    setSwipeX(0);
   }
 
   // Long-press handler (persisted across renders via useMemo with stable ref)
@@ -309,6 +313,7 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
           const action = pendingActionRef.current;
           pendingActionRef.current = null;
           setExitDirection(null);
+          setSwipeX(0); // reset backing now that animation is done
           if (action.type === 'complete') {
             markComplete.mutate({ id: action.bulletId, documentId: action.documentId, isComplete: action.isComplete! });
           } else if (action.type === 'delete') {

@@ -69,13 +69,21 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
 
   // Swipe gesture state
+  // dnd-kit TouchSensor uses delay: 250 (tolerance: 5) configured in BulletTree — preserved here
   const [swipeX, setSwipeX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
+  const [exitDirection, setExitDirection] = useState<'complete' | 'delete' | null>(null);
   const [showUndoToast, setShowUndoToast] = useState(false);
   const startX = useRef(0);
   const startY = useRef(0);
   const isPointerDown = useRef(false);
   const rowRef = useRef<HTMLDivElement>(null);
+  const pendingActionRef = useRef<{
+    type: 'complete' | 'delete';
+    bulletId: string;
+    documentId: string;
+    isComplete?: boolean;
+  } | null>(null);
 
   const {
     attributes,
@@ -164,14 +172,20 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
     const result = swipeThresholdReached(swipeX, rowWidth);
 
     if (result === 'complete') {
-      markComplete.mutate({
-        id: bullet.id,
+      pendingActionRef.current = {
+        type: 'complete',
+        bulletId: bullet.id,
         documentId: bullet.documentId,
         isComplete: !bullet.isComplete,
-      });
+      };
+      setExitDirection('complete');
     } else if (result === 'delete') {
-      softDelete.mutate({ id: bullet.id, documentId: bullet.documentId });
-      setShowUndoToast(true);
+      pendingActionRef.current = {
+        type: 'delete',
+        bulletId: bullet.id,
+        documentId: bullet.documentId,
+      };
+      setExitDirection('delete');
     }
 
     setSwipeX(0);
@@ -202,6 +216,14 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
     : swipeX < 0
     ? 'var(--color-swipe-delete)'
     : 'transparent';
+
+  // Icon scale: proportional from 0.5x to 1.0x as drag reaches threshold, then 1.2x pulse at threshold
+  const threshold = (rowRef.current?.offsetWidth ?? 300) * 0.4;
+  const ratio = Math.min(Math.abs(swipeX) / threshold, 1);
+  const atThreshold = ratio >= 1;
+  const iconScale = isSwiping
+    ? (atThreshold ? 1.2 : 0.5 + ratio * 0.5)
+    : 1.0;
 
   return (
     <div
@@ -250,22 +272,49 @@ export function BulletNode({ bullet, bulletMap, depth, isDragOverlay = false }: 
             zIndex: 0,
           }}
         >
-          {swipeX > 0 && <Check size={20} strokeWidth={1.5} />}
-          {swipeX < 0 && <Trash2 size={20} strokeWidth={1.5} />}
+          {swipeX > 0 && (
+            <span style={{ transform: `scale(${iconScale})`, display: 'inline-flex', transition: 'transform 0.1s ease' }}>
+              <Check size={20} strokeWidth={1.5} />
+            </span>
+          )}
+          {swipeX < 0 && (
+            <span style={{ transform: `scale(${iconScale})`, display: 'inline-flex', transition: 'transform 0.1s ease' }}>
+              <Trash2 size={20} strokeWidth={1.5} />
+            </span>
+          )}
         </div>
       )}
 
-      {/* Row content — translated by swipeX */}
+      {/* Row content — translated by swipeX, or slid off screen on commit via exitDirection */}
       <div
         style={{
           display: 'flex',
           alignItems: 'flex-start',
           width: '100%',
-          transform: `translateX(${swipeX}px)`,
-          transition: isSwiping ? 'none' : 'transform 0.2s ease',
+          transform: exitDirection === 'complete'
+            ? 'translateX(110%)'
+            : exitDirection === 'delete'
+            ? 'translateX(-110%)'
+            : `translateX(${swipeX}px)`,
+          transition: exitDirection
+            ? 'transform 0.25s ease-out'
+            : isSwiping ? 'none' : 'transform 0.2s ease',
           background: 'var(--color-bg-base)',
           zIndex: 1,
           position: 'relative',
+        }}
+        onTransitionEnd={(e) => {
+          if (e.propertyName !== 'transform') return;
+          if (!exitDirection || !pendingActionRef.current) return;
+          const action = pendingActionRef.current;
+          pendingActionRef.current = null;
+          setExitDirection(null);
+          if (action.type === 'complete') {
+            markComplete.mutate({ id: action.bulletId, documentId: action.documentId, isComplete: action.isComplete! });
+          } else if (action.type === 'delete') {
+            softDelete.mutate({ id: action.bulletId, documentId: action.documentId });
+            setShowUndoToast(true);
+          }
         }}
       >
         {/* Dot — drag handle + click to zoom */}

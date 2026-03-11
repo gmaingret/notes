@@ -66,13 +66,15 @@ describe('Phase 7.1 — FocusToolbar: no HTML entity characters', () => {
   });
 });
 
-describe('Phase 7.1 — BulletNode: outer row has 2px vertical padding', () => {
-  it('BulletNode.tsx outer row div has paddingTop: 2', () => {
-    expect(bulletNode).toContain('paddingTop: 2');
+describe('Phase 7.1 — BulletNode: outer row has vertical padding', () => {
+  it('BulletNode.tsx outer row div has paddingTop', () => {
+    // Padding was set to 5px in phase 8 spacing fix (increased from 2px for better touch targets)
+    expect(bulletNode).toContain('paddingTop: 5');
   });
 
-  it('BulletNode.tsx outer row div has paddingBottom: 2', () => {
-    expect(bulletNode).toContain('paddingBottom: 2');
+  it('BulletNode.tsx outer row div has paddingBottom', () => {
+    // Padding was set to 5px in phase 8 spacing fix (increased from 2px for better touch targets)
+    expect(bulletNode).toContain('paddingBottom: 5');
   });
 });
 

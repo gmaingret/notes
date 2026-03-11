@@ -248,7 +248,7 @@ export function BulletTree({
           {visibleItems.length === 0 && !isLoading && (
             <div
               onClick={() => createBullet.mutate(
-                { documentId, parentId: null, afterId: null, content: '' },
+                { documentId, parentId: zoomedBulletId ?? null, afterId: null, content: '' },
                 {
                   onSuccess: (data) => {
                     setTimeout(() => {
@@ -267,7 +267,7 @@ export function BulletTree({
                 lineHeight: 1.6,
               }}
             >
-              Click to add your first bullet...
+              {zoomedBulletId ? 'Tap to add bullet point' : 'Click to add your first bullet...'}
             </div>
           )}
           {visibleItems.map((b, idx) => (
@@ -286,6 +286,8 @@ export function BulletTree({
           {dropIndicatorIndex === visibleItems.length && activeId && (
             <DropIndicator depth={projectedDropDepth} />
           )}
+          {/* Spacer so FocusToolbar (fixed, ~60px) never covers the last bullet */}
+          {focusedBulletId && <div style={{ height: 72 }} />}
         </div>
       </SortableContext>
       <DragOverlay>

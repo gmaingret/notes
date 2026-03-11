@@ -103,7 +103,13 @@ Plans:
   3. Completing a swipe animates the row out before it disappears from the list
   4. Pressing Ctrl+K opens a palette showing recent documents, and typing instantly filters documents and searches bullet content
   5. The user can navigate palette results with arrow keys and open a result with Enter, or dismiss with Escape
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 08-00-PLAN.md — Test scaffold (swipePolish.test.ts + quickOpenPalette.test.ts, RED state)
+- [ ] 08-01-PLAN.md — Swipe icon scale + exitDirection exit animation in BulletNode [Wave 2]
+- [ ] 08-02-PLAN.md — QuickOpenPalette component + uiStore quickOpenOpen [Wave 2, parallel with 08-01]
+- [ ] 08-03-PLAN.md — Wire Ctrl+K + mobile search button in AppPage/DocumentView [Wave 3]
+- [ ] 08-04-PLAN.md — Deploy + human verification checkpoint [Wave 4]
 
 ## Progress
 
@@ -117,4 +123,4 @@ Plans:
 | 6. Dark Mode | v1.1 | 5/5 | Complete   | 2026-03-10 |
 | 7. Icons, Fonts, and PWA | 5/5 | Complete   | 2026-03-10 | - |
 | 07.1. UI Polish Tweaks | 4/4 | Complete   | 2026-03-10 | - |
-| 8. Swipe Polish and Quick-Open Palette | v1.1 | 0/? | Not started | - |
+| 8. Swipe Polish and Quick-Open Palette | 4/5 | In Progress|  | - |

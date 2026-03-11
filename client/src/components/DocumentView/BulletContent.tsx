@@ -13,6 +13,7 @@ import {
   useMoveBullet,
   useBulletUndoCheckpoint,
 } from '../../hooks/useBullets';
+import { useUploadAttachment } from '../../hooks/useAttachments';
 import { renderBulletMarkdown } from '../../utils/markdown';
 import { renderWithChips } from '../../utils/chips';
 import { useUiStore } from '../../store/uiStore';
@@ -127,6 +128,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   const outdentBullet = useOutdentBullet();
   const moveBullet = useMoveBullet();
   const undoCheckpoint = useBulletUndoCheckpoint();
+  const uploadAttachment = useUploadAttachment();
 
   const { setSidebarTab, setCanvasView, setFocusedBulletId } = useUiStore();
 
@@ -609,6 +611,26 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     }
   }
 
+  function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
+    const items = Array.from(e.clipboardData.items);
+    const imageItem = items.find(item => item.type.startsWith('image/'));
+    if (imageItem) {
+      // Upload image as attachment instead of letting browser paste it into the div
+      e.preventDefault();
+      const file = imageItem.getAsFile();
+      if (file) {
+        uploadAttachment.mutate({ bulletId: bullet.id, file });
+      }
+      return;
+    }
+    // For non-image content: paste as plain text to avoid pasting rich HTML
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    if (text) {
+      document.execCommand('insertText', false, text);
+    }
+  }
+
   function wrapSelection(marker: string) {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
@@ -675,6 +697,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
       onInput={isEditing ? handleInput : undefined}
       onKeyDown={handleKeyDown}
       onMouseDown={handleMouseDown}
+      onPaste={isEditing ? handlePaste : undefined}
       onFocus={handleFocus}
       onBlur={isEditing ? handleBlur : undefined}
       style={{

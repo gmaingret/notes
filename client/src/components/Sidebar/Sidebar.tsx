@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { X, Plus, FileText, Tag, Bookmark, Upload, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCreateDocument, useExportAllDocuments } from '../../hooks/useDocuments';
@@ -16,6 +17,7 @@ export function Sidebar({ activeDocId }: SidebarProps) {
   const { mutate: createDocument } = useCreateDocument();
   const { mutate: exportAll } = useExportAllDocuments();
   const { sidebarOpen, setSidebarOpen, sidebarTab, setSidebarTab } = useUiStore();
+  const isMobile = useIsMobile();
   const [pendingRenameId, setPendingRenameId] = useState<string | null>(null);
 
   const handleCreate = () => {
@@ -30,8 +32,8 @@ export function Sidebar({ activeDocId }: SidebarProps) {
 
   return (
     <>
-      {/* Backdrop — only in DOM on mobile when open, so it never interferes with desktop */}
-      {sidebarOpen && (
+      {/* Backdrop — only rendered on mobile when open (double guard: JS + CSS) */}
+      {sidebarOpen && isMobile && (
         <div
           className="sidebar-backdrop"
           onClick={() => setSidebarOpen(false)}

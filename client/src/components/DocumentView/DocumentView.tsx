@@ -1,5 +1,5 @@
 import { useMemo, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Search } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { Document } from '../../hooks/useDocuments';
 import { BulletTree, buildBulletMap } from './BulletTree';
@@ -15,7 +15,7 @@ type Props = { document: Document };
 export function DocumentView({ document }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { canvasView, setCanvasView, sidebarOpen, setSidebarOpen } = useUiStore();
+  const { canvasView, setCanvasView, sidebarOpen, setSidebarOpen, setQuickOpenOpen } = useUiStore();
   const { data: flatBullets = [] } = useDocumentBullets(document.id);
   const bulletMap = useMemo(() => buildBulletMap(flatBullets), [flatBullets]);
 
@@ -102,7 +102,7 @@ export function DocumentView({ document }: Props) {
 
   return (
     <div style={{ padding: '0 1rem', maxWidth: 720, margin: '0 auto' }}>
-      {/* Title row: hamburger (CSS-shown on mobile when sidebar closed) + title/breadcrumb */}
+      {/* Title row: hamburger (CSS-shown on mobile when sidebar closed) + title/breadcrumb + search */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
         {!sidebarOpen && (
           <button
@@ -120,6 +120,13 @@ export function DocumentView({ document }: Props) {
             <Menu size={20} strokeWidth={1.5} />
           </button>
         )}
+        <button
+          className="header-search-btn"
+          onClick={() => setQuickOpenOpen(true)}
+          aria-label="Open search palette"
+        >
+          <Search size={20} strokeWidth={1.5} />
+        </button>
         {zoomedBulletId ? (
           <Breadcrumb
             documentTitle={document.title}

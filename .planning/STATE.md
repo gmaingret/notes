@@ -3,6 +3,21 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Mobile & UI Polish
 status: ready_to_plan
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-03-11T06:15:18.643Z"
+last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
+progress:
+  total_phases: 5
+  completed_phases: 4
+  total_plans: 23
+  completed_plans: 22
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.1
+milestone_name: Mobile & UI Polish
+status: ready_to_plan
 stopped_at: Completed 07.1-03-PLAN.md — Phase 7.1 approved by user
 last_updated: "2026-03-10T20:19:38.250Z"
 last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
@@ -111,6 +126,10 @@ Progress: [██░░░░░░░░] 50% (v1.0 complete, v1.1 not started)
 | Phase 07.1-ui-polish-tweaks P01 | 4 | 2 tasks | 2 files |
 | Phase 07.1-ui-polish-tweaks P02 | 12 | 2 tasks | 4 files |
 | Phase 07.1-ui-polish-tweaks P03 | 5 | 2 tasks | 0 files |
+| Phase 08-swipe-polish-and-quick-open-palette P00 | 7 | 2 tasks | 2 files |
+| Phase 08-swipe-polish-and-quick-open-palette P02 | 2 | 2 tasks | 3 files |
+| Phase 08-swipe-polish-and-quick-open-palette P01 | 5 | 2 tasks | 1 files |
+| Phase 08-swipe-polish-and-quick-open-palette P03 | 8 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -157,6 +176,15 @@ Recent decisions affecting current work:
 - [Phase 07.1-ui-polish-tweaks]: Footer buttons use sidebar-footer-btn CSS class with :hover token rule for dark mode correctness
 - [Phase 07.1-ui-polish-tweaks]: pendingRenameId in Sidebar local state threaded as prop to DocumentList/DocumentRow for inline rename on creation
 - [Phase 07.1-ui-polish-tweaks]: User approved all four Phase 7.1 behaviors on https://notes.gregorymaingret.fr — FocusToolbar icons, bullet spacing, sidebar footer, and inline rename verified working
+- [Phase 08-swipe-polish-and-quick-open-palette]: Wave 0 TDD: all Phase 8 test assertions written before any production code — establishes verification contract
+- [Phase 08-swipe-polish-and-quick-open-palette]: existsSync fallback pattern for files not yet created: falls back to empty string so assertions fail cleanly rather than throwing
+- [Phase 08-swipe-polish-and-quick-open-palette]: QuickOpenPalette uses flat PaletteResult union type for keyboard navigation across grouped result sections
+- [Phase 08-swipe-polish-and-quick-open-palette]: quickOpenOpen intentionally excluded from uiStore partialize — resets to false on page reload
+- [Phase 08-swipe-polish-and-quick-open-palette]: exitDirection + onTransitionEnd pattern: mutations fire after CSS slide-off animation, not at pointer-up
+- [Phase 08-swipe-polish-and-quick-open-palette]: pendingActionRef captures bullet.id/documentId/isComplete before setExitDirection() to avoid stale React closure in onTransitionEnd
+- [Phase 08-swipe-polish-and-quick-open-palette]: iconScale computed in render from live swipeX ratio (0.5x→1.0x charging, 1.2x pulse at threshold)
+- [Phase 08-swipe-polish-and-quick-open-palette]: Ctrl+K branch added inside existing handleKeyDown useEffect alongside Ctrl+E — single event listener handles both shortcuts
+- [Phase 08-swipe-polish-and-quick-open-palette]: header-search-btn visible on all screen sizes (not mobile-only) — search is universally useful
 
 ### Roadmap Evolution
 
@@ -173,6 +201,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-10T20:16:04.046Z
-Stopped at: Completed 07.1-03-PLAN.md — Phase 7.1 approved by user
+Last session: 2026-03-11T06:15:18.638Z
+Stopped at: Completed 08-03-PLAN.md
 Resume file: None

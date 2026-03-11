@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   IndentIncrease, IndentDecrease,
   ArrowUp, ArrowDown,
@@ -49,25 +49,63 @@ const btnStyle: React.CSSProperties = {
   justifyContent: 'center',
 };
 
+function scrollBulletAboveToolbar(bulletId: string) {
+  const el = document.getElementById(`bullet-${bulletId}`);
+  if (!el) return;
+  const toolbarEl = document.querySelector<HTMLElement>('[data-focus-toolbar="true"]');
+  const toolbarHeight = toolbarEl ? toolbarEl.getBoundingClientRect().height : 64;
+  const rect = el.getBoundingClientRect();
+  const vvHeight = window.visualViewport?.height ?? window.innerHeight;
+  if (rect.bottom > vvHeight - toolbarHeight) {
+    const excess = rect.bottom - (vvHeight - toolbarHeight) + 8;
+    // Query <main> directly — avoids the scrollHeight > clientHeight check which
+    // fails if the container was not scrollable before the keyboard opened.
+    const main = document.querySelector<HTMLElement>('main');
+    if (main) {
+      main.scrollTop += excess;
+    }
+  }
+}
+
 export function FocusToolbar({ bulletId, documentId }: Props) {
   const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
 
-  // visualViewport: position toolbar above soft keyboard on mobile
+  // Position toolbar above soft keyboard + scroll the focused bullet above toolbar.
+  // We debounce the scroll correction: the browser re-scrolls on every keyboard animation
+  // frame, so we wait 100 ms after the last resize event before correcting (by then the
+  // keyboard has settled and the browser won't override us).
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
+
     function update() {
       setKeyboardOffset(computeKeyboardOffset(window.innerHeight, vv!.offsetTop, vv!.height));
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        debounceRef.current = null;
+        scrollBulletAboveToolbar(bulletId);
+      }, 100);
     }
+
     vv.addEventListener('resize', update);
     vv.addEventListener('scroll', update);
     update();
     return () => {
       vv.removeEventListener('resize', update);
       vv.removeEventListener('scroll', update);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, []);
+  }, [bulletId]);
+
+  // On initial focus (no keyboard involved), do a double-rAF so the browser finishes
+  // its own scroll-to-caret before we correct for the toolbar.
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => scrollBulletAboveToolbar(bulletId));
+    });
+  }, [bulletId]);
 
   // Bullet data
   const { data: flatBullets = [] } = useDocumentBullets(documentId);
@@ -131,12 +169,10 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
   }
 
   function handleAttach() {
-    // Dispatch to BulletNode's file input — avoids toolbar unmounting when file dialog opens
     document.dispatchEvent(new CustomEvent('attach-file', { detail: { bulletId } }));
   }
 
   function handleNote() {
-    // Dispatch custom event so BulletNode can focus the NoteRow for this bullet
     document.dispatchEvent(new CustomEvent('focus-note', { detail: { bulletId } }));
   }
 

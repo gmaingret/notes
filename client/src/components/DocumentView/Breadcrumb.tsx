@@ -83,7 +83,7 @@ export function Breadcrumb({ documentTitle, zoomedBulletId, bulletMap }: Props) 
         alignItems: 'center',
         flexWrap: 'wrap',
         fontSize: '0.9rem',
-        margin: '0 0 1.5rem',
+        margin: 0,
         lineHeight: 1.4,
       }}
       aria-label="Breadcrumb"

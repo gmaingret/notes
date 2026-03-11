@@ -78,7 +78,7 @@ export function AppPage() {
   return (
     <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', background: 'var(--color-bg-base)' }}>
       <Sidebar activeDocId={docId ?? null} />
-      <main style={{ flex: 1, overflow: 'auto' }}>
+      <main style={{ flex: 1, overflow: 'auto', background: 'var(--color-bg-base)' }}>
         {activeDoc ? (
           <DocumentView document={activeDoc} />
         ) : (

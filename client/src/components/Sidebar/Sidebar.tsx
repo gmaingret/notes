@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Plus, FileText, Tag, Star, Upload, LogOut } from 'lucide-react';
+import { X, Plus, FileText, Tag, Bookmark, Upload, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCreateDocument, useExportAllDocuments } from '../../hooks/useDocuments';
 import { DocumentList } from './DocumentList';
@@ -63,7 +63,7 @@ export function Sidebar({ activeDocId }: SidebarProps) {
           const tabIcon = {
             docs: <FileText size={20} strokeWidth={1.5} />,
             tags: <Tag size={20} strokeWidth={1.5} />,
-            bookmarks: <Star size={20} strokeWidth={1.5} />,
+            bookmarks: <Bookmark size={20} strokeWidth={1.5} />,
           } as const;
           return (
             <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border-default)' }}>

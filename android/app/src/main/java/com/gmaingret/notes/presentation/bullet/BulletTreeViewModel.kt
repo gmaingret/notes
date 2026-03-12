@@ -1,10 +1,17 @@
 package com.gmaingret.notes.presentation.bullet
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.app.DownloadManager
+import android.content.Context
+import android.net.Uri
+import android.os.Environment
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.gmaingret.notes.data.local.TokenStore
 import com.gmaingret.notes.data.model.CreateBulletRequest
 import com.gmaingret.notes.data.model.MoveBulletRequest
 import com.gmaingret.notes.data.model.PatchBulletRequest
+import com.gmaingret.notes.domain.model.Attachment
 import com.gmaingret.notes.domain.model.Bullet
 import com.gmaingret.notes.domain.usecase.AddBookmarkUseCase
 import com.gmaingret.notes.domain.usecase.CreateBulletUseCase
@@ -44,9 +51,13 @@ import javax.inject.Inject
  * - Support zoom-into-bullet mode with breadcrumb navigation
  * - Debounce content and note edits at 500ms to avoid per-keystroke API calls
  * - Apply optimistic updates for instant UI feedback, reverting on failure
+ * - Toggle complete/bookmark state with optimistic updates
+ * - Lazy-load and expand/collapse attachment lists per bullet
+ * - Download attachments via DownloadManager with auth header
  */
 @HiltViewModel
 class BulletTreeViewModel @Inject constructor(
+    application: Application,
     private val getBulletsUseCase: GetBulletsUseCase,
     private val createBulletUseCase: CreateBulletUseCase,
     private val patchBulletUseCase: PatchBulletUseCase,
@@ -61,8 +72,9 @@ class BulletTreeViewModel @Inject constructor(
     private val getBookmarksUseCase: GetBookmarksUseCase,
     private val addBookmarkUseCase: AddBookmarkUseCase,
     private val removeBookmarkUseCase: RemoveBookmarkUseCase,
-    private val getAttachmentsUseCase: GetAttachmentsUseCase
-) : ViewModel() {
+    private val getAttachmentsUseCase: GetAttachmentsUseCase,
+    private val tokenStore: TokenStore
+) : AndroidViewModel(application) {
 
     // -----------------------------------------------------------------------
     // State flows
@@ -85,6 +97,22 @@ class BulletTreeViewModel @Inject constructor(
 
     private val _canRedo = MutableStateFlow(false)
     val canRedo: StateFlow<Boolean> = _canRedo.asStateFlow()
+
+    /** Bookmarked bullet IDs — updated on document load and after toggle operations. */
+    private val _bookmarkedBulletIds = MutableStateFlow<Set<String>>(emptySet())
+    val bookmarkedBulletIds: StateFlow<Set<String>> = _bookmarkedBulletIds.asStateFlow()
+
+    /** Lazily loaded attachments per bullet ID. Only populated after first expansion. */
+    private val _attachments = MutableStateFlow<Map<String, List<Attachment>>>(emptyMap())
+    val attachments: StateFlow<Map<String, List<Attachment>>> = _attachments.asStateFlow()
+
+    /** Bullet IDs whose attachment list is currently expanded. */
+    private val _expandedAttachments = MutableStateFlow<Set<String>>(emptySet())
+    val expandedAttachments: StateFlow<Set<String>> = _expandedAttachments.asStateFlow()
+
+    /** Whether a pull-to-refresh is currently in progress (used by Plan 04). */
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     // -----------------------------------------------------------------------
     // Internal state
@@ -167,7 +195,7 @@ class BulletTreeViewModel @Inject constructor(
 
     /**
      * Loads bullets for [documentId], transitioning to Loading then Success/Error.
-     * Also fetches initial undo status to set toolbar button states.
+     * Also fetches initial undo status and bookmarks to set toolbar button states.
      */
     fun loadBullets(documentId: String) {
         currentDocumentId = documentId
@@ -177,6 +205,10 @@ class BulletTreeViewModel @Inject constructor(
                 onSuccess = { bullets ->
                     updateState(bullets)
                     loadUndoStatus()
+                    // Load bookmarks in parallel after bullets are shown
+                    getBookmarksUseCase().onSuccess { bookmarks ->
+                        _bookmarkedBulletIds.value = bookmarks.map { it.bulletId }.toSet()
+                    }
                 },
                 onFailure = { e ->
                     _uiState.value = BulletTreeUiState.Error(
@@ -498,6 +530,135 @@ class BulletTreeViewModel @Inject constructor(
     }
 
     /**
+     * Toggles the complete state of [bulletId].
+     *
+     * Optimistic: flips isComplete in the local bullet list immediately.
+     * PATCHes the new isComplete value to the server.
+     * On failure: emits snackbar and reloads from server to revert.
+     */
+    fun toggleComplete(bulletId: String) {
+        val bullets = currentBullets()
+        val target = bullets.find { it.id == bulletId } ?: return
+        val newComplete = !target.isComplete
+
+        // Optimistic update
+        val optimisticBullets = bullets.map { b ->
+            if (b.id == bulletId) b.copy(isComplete = newComplete) else b
+        }
+        updateState(optimisticBullets)
+
+        enqueue {
+            patchBulletUseCase(bulletId, PatchBulletRequest.updateIsComplete(newComplete))
+                .onFailure {
+                    _snackbarMessage.emit("Failed to update bullet")
+                    reloadFromServer()
+                }
+        }
+    }
+
+    /**
+     * Toggles the bookmark state of [bulletId].
+     *
+     * Optimistic: updates [_bookmarkedBulletIds] immediately.
+     * Calls add/remove bookmark API on server.
+     * On failure: emits snackbar and reloads bookmarks.
+     */
+    fun toggleBookmark(bulletId: String) {
+        val isCurrentlyBookmarked = bulletId in _bookmarkedBulletIds.value
+        // Optimistic update
+        _bookmarkedBulletIds.value = if (isCurrentlyBookmarked) {
+            _bookmarkedBulletIds.value - bulletId
+        } else {
+            _bookmarkedBulletIds.value + bulletId
+        }
+
+        enqueue {
+            val result = if (isCurrentlyBookmarked) {
+                removeBookmarkUseCase(bulletId)
+            } else {
+                addBookmarkUseCase(bulletId)
+            }
+            result.onFailure {
+                _snackbarMessage.emit("Failed to update bookmark")
+                // Revert bookmark state
+                getBookmarksUseCase().onSuccess { bookmarks ->
+                    _bookmarkedBulletIds.value = bookmarks.map { it.bulletId }.toSet()
+                }
+            }
+        }
+    }
+
+    /**
+     * Toggles the attachment expansion for [bulletId].
+     *
+     * If collapsing: removes from expanded set.
+     * If expanding: adds to expanded set and lazy-loads attachments if not already loaded.
+     */
+    fun toggleAttachmentExpansion(bulletId: String) {
+        val current = _expandedAttachments.value
+        if (bulletId in current) {
+            _expandedAttachments.value = current - bulletId
+        } else {
+            _expandedAttachments.value = current + bulletId
+            if (bulletId !in _attachments.value) {
+                loadAttachments(bulletId)
+            }
+        }
+    }
+
+    /**
+     * Loads attachments for [bulletId] from the server and caches in [_attachments].
+     */
+    private fun loadAttachments(bulletId: String) {
+        viewModelScope.launch {
+            getAttachmentsUseCase(bulletId).onSuccess { list ->
+                _attachments.value = _attachments.value + (bulletId to list)
+            }
+        }
+    }
+
+    /**
+     * Downloads [attachment] via DownloadManager with auth header.
+     *
+     * Retrieves the access token from [TokenStore] (suspend), then enqueues the download.
+     * The DownloadManager handles progress notification and filesystem placement.
+     */
+    fun downloadAttachment(attachment: Attachment) {
+        viewModelScope.launch {
+            val token = tokenStore.getAccessToken() ?: return@launch
+            val request = DownloadManager.Request(Uri.parse(attachment.downloadUrl))
+                .setTitle(attachment.filename)
+                .setDescription("Downloading...")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, attachment.filename)
+                .addRequestHeader("Authorization", "Bearer $token")
+            val dm = getApplication<Application>().getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            dm.enqueue(request)
+        }
+    }
+
+    /**
+     * Refreshes bullets from server, setting [_isRefreshing] appropriately.
+     * Used by pull-to-refresh (Plan 04).
+     */
+    fun refresh() {
+        val docId = currentDocumentId ?: return
+        _isRefreshing.value = true
+        viewModelScope.launch {
+            try {
+                getBulletsUseCase(docId).onSuccess { bullets ->
+                    updateState(bullets)
+                    getBookmarksUseCase().onSuccess { bookmarks ->
+                        _bookmarkedBulletIds.value = bookmarks.map { it.bulletId }.toSet()
+                    }
+                }
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
+
+    /**
      * Records [content] for [bulletId] in the local override map and emits to the debounce flow.
      * The actual PATCH fires 500ms after the last call for a given bullet ID.
      * The override is cleared once the debounced PATCH fires so the UI reverts to server state.
@@ -681,43 +842,6 @@ class BulletTreeViewModel @Inject constructor(
                 },
                 onFailure = {
                     _snackbarMessage.emit("Failed to move bullet")
-                    reloadFromServer()
-                }
-            )
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // toggleComplete (Plan 02 — swipe-to-complete)
-    // -----------------------------------------------------------------------
-
-    /**
-     * Optimistically toggles the isComplete flag on a bullet, then persists via PATCH.
-     * On failure, reverts and emits a snackbar message.
-     */
-    fun toggleComplete(bulletId: String) {
-        enqueue {
-            val current = _uiState.value as? BulletTreeUiState.Success ?: return@enqueue
-            val bullet = current.bullets.find { it.id == bulletId } ?: return@enqueue
-            val newComplete = !bullet.isComplete
-
-            // Optimistic update
-            val optimisticBullets = current.bullets.map { b ->
-                if (b.id == bulletId) b.copy(isComplete = newComplete) else b
-            }
-            updateState(optimisticBullets)
-
-            // Persist via PATCH
-            patchBulletUseCase(bulletId, PatchBulletRequest.updateIsComplete(newComplete)).fold(
-                onSuccess = { updatedBullet ->
-                    val latestCurrent = _uiState.value as? BulletTreeUiState.Success ?: return@fold
-                    val updatedBullets = latestCurrent.bullets.map { b ->
-                        if (b.id == bulletId) updatedBullet else b
-                    }
-                    updateState(updatedBullets)
-                },
-                onFailure = {
-                    _snackbarMessage.emit("Failed to update completion state")
                     reloadFromServer()
                 }
             )

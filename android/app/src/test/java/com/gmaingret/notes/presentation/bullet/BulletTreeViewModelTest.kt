@@ -1,14 +1,19 @@
 package com.gmaingret.notes.presentation.bullet
 
+import android.app.Application
+import com.gmaingret.notes.data.local.TokenStore
 import com.gmaingret.notes.data.model.CreateBulletRequest
 import com.gmaingret.notes.data.model.MoveBulletRequest
 import com.gmaingret.notes.data.model.PatchBulletRequest
 import com.gmaingret.notes.domain.model.Bullet
 import com.gmaingret.notes.domain.model.FlatBullet
 import com.gmaingret.notes.domain.model.UndoStatus
+import com.gmaingret.notes.domain.usecase.AddBookmarkUseCase
 import com.gmaingret.notes.domain.usecase.CreateBulletUseCase
 import com.gmaingret.notes.domain.usecase.DeleteBulletUseCase
 import com.gmaingret.notes.domain.usecase.FlattenTreeUseCase
+import com.gmaingret.notes.domain.usecase.GetAttachmentsUseCase
+import com.gmaingret.notes.domain.usecase.GetBookmarksUseCase
 import com.gmaingret.notes.domain.usecase.GetBulletsUseCase
 import com.gmaingret.notes.domain.usecase.GetUndoStatusUseCase
 import com.gmaingret.notes.domain.usecase.IndentBulletUseCase
@@ -16,6 +21,7 @@ import com.gmaingret.notes.domain.usecase.MoveBulletUseCase
 import com.gmaingret.notes.domain.usecase.OutdentBulletUseCase
 import com.gmaingret.notes.domain.usecase.PatchBulletUseCase
 import com.gmaingret.notes.domain.usecase.RedoUseCase
+import com.gmaingret.notes.domain.usecase.RemoveBookmarkUseCase
 import com.gmaingret.notes.domain.usecase.UndoUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -53,7 +59,13 @@ class BulletTreeViewModelTest {
     private lateinit var undoUseCase: UndoUseCase
     private lateinit var redoUseCase: RedoUseCase
     private lateinit var getUndoStatusUseCase: GetUndoStatusUseCase
+    private lateinit var getBookmarksUseCase: GetBookmarksUseCase
+    private lateinit var addBookmarkUseCase: AddBookmarkUseCase
+    private lateinit var removeBookmarkUseCase: RemoveBookmarkUseCase
+    private lateinit var getAttachmentsUseCase: GetAttachmentsUseCase
+    private lateinit var tokenStore: TokenStore
     private val flattenTreeUseCase = FlattenTreeUseCase()
+    private val application: Application = mockk(relaxed = true)
 
     private lateinit var viewModel: BulletTreeViewModel
 
@@ -91,8 +103,14 @@ class BulletTreeViewModelTest {
         undoUseCase = mockk()
         redoUseCase = mockk()
         getUndoStatusUseCase = mockk()
+        getBookmarksUseCase = mockk()
+        addBookmarkUseCase = mockk()
+        removeBookmarkUseCase = mockk()
+        getAttachmentsUseCase = mockk()
+        tokenStore = mockk(relaxed = true)
 
         coEvery { getUndoStatusUseCase() } returns Result.success(undoStatusNone)
+        coEvery { getBookmarksUseCase() } returns Result.success(emptyList())
     }
 
     @After
@@ -101,6 +119,7 @@ class BulletTreeViewModelTest {
     }
 
     private fun createViewModel(): BulletTreeViewModel = BulletTreeViewModel(
+        application = application,
         getBulletsUseCase = getBulletsUseCase,
         createBulletUseCase = createBulletUseCase,
         patchBulletUseCase = patchBulletUseCase,
@@ -111,7 +130,12 @@ class BulletTreeViewModelTest {
         undoUseCase = undoUseCase,
         redoUseCase = redoUseCase,
         getUndoStatusUseCase = getUndoStatusUseCase,
-        flattenTreeUseCase = flattenTreeUseCase
+        flattenTreeUseCase = flattenTreeUseCase,
+        getBookmarksUseCase = getBookmarksUseCase,
+        addBookmarkUseCase = addBookmarkUseCase,
+        removeBookmarkUseCase = removeBookmarkUseCase,
+        getAttachmentsUseCase = getAttachmentsUseCase,
+        tokenStore = tokenStore
     )
 
     private fun loadedViewModel(bullets: List<Bullet> = listOf(bullet1, bullet2)): BulletTreeViewModel {
@@ -593,5 +617,60 @@ class BulletTreeViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 1) { outdentBulletUseCase("b3") }
+    }
+
+    // -----------------------------------------------------------------------
+    // toggleComplete
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `toggleComplete flips isComplete optimistically in flatList`() = runTest {
+        val vm = loadedViewModel(listOf(bullet1, bullet2))
+        advanceUntilIdle()
+
+        coEvery { patchBulletUseCase("b1", any()) } returns Result.success(bullet1.copy(isComplete = true))
+
+        vm.toggleComplete("b1")
+        // Check immediately after (optimistic — before API returns)
+        advanceUntilIdle()
+
+        val state = vm.uiState.value as BulletTreeUiState.Success
+        assertTrue(state.flatList.first { it.bullet.id == "b1" }.bullet.isComplete)
+    }
+
+    @Test
+    fun `toggleComplete on already-complete bullet sets isComplete to false`() = runTest {
+        val completeBullet = bullet1.copy(isComplete = true)
+        val vm = loadedViewModel(listOf(completeBullet, bullet2))
+        advanceUntilIdle()
+
+        coEvery { patchBulletUseCase("b1", any()) } returns Result.success(completeBullet.copy(isComplete = false))
+
+        vm.toggleComplete("b1")
+        advanceUntilIdle()
+
+        val state = vm.uiState.value as BulletTreeUiState.Success
+        assertFalse(state.flatList.first { it.bullet.id == "b1" }.bullet.isComplete)
+    }
+
+    @Test
+    fun `toggleComplete failure reverts state and emits snackbar`() = runTest {
+        val vm = loadedViewModel(listOf(bullet1, bullet2))
+        advanceUntilIdle()
+
+        coEvery { patchBulletUseCase("b1", any()) } returns Result.failure(RuntimeException("Server error"))
+        coEvery { getBulletsUseCase(docId) } returns Result.success(listOf(bullet1, bullet2))
+
+        val snackbarMessages = mutableListOf<String>()
+        val collectJob = launch { vm.snackbarMessage.collect { snackbarMessages.add(it) } }
+
+        vm.toggleComplete("b1")
+        advanceUntilIdle()
+
+        collectJob.cancel()
+        assertTrue(snackbarMessages.isNotEmpty())
+        // State should have been reverted — b1 isComplete should be false
+        val state = vm.uiState.value as BulletTreeUiState.Success
+        assertFalse(state.flatList.first { it.bullet.id == "b1" }.bullet.isComplete)
     }
 }

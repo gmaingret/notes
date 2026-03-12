@@ -26,7 +26,7 @@
 ### Bullet Tree
 
 - [ ] **TREE-01**: User can view nested bullets in flat LazyColumn with depth-based indent
-- [ ] **TREE-02**: User can create new bullets (Enter key / toolbar button)
+- [ ] **TREE-02**: User can create new bullets (Enter creates sibling; second Enter on empty bullet outdents instead of creating another)
 - [ ] **TREE-03**: User can edit bullet content with debounced save
 - [ ] **TREE-04**: User can delete bullets (Backspace on empty / toolbar)
 - [ ] **TREE-05**: User can indent/outdent bullets (toolbar buttons)
@@ -35,6 +35,7 @@
 - [ ] **TREE-08**: User can zoom into any bullet with breadcrumb navigation
 - [ ] **TREE-09**: User can drag-reorder bullets with projection algorithm
 - [ ] **TREE-10**: User can add/edit notes field per bullet
+- [ ] **TREE-11**: User can view and add comments on a bullet
 
 ### Content Rendering
 
@@ -63,7 +64,6 @@
 - **CONT-06**: Tag browser sidebar
 - **POLL-09**: Physical keyboard shortcuts (Tab, Ctrl+arrows)
 - **POLL-10**: Export document(s) as Markdown
-- **CONT-07**: Comments panel (view/add comments on bullets)
 
 ## Out of Scope
 
@@ -78,46 +78,47 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | — | Pending |
-| AUTH-02 | — | Pending |
-| AUTH-03 | — | Pending |
-| AUTH-04 | — | Pending |
-| AUTH-05 | — | Pending |
-| AUTH-06 | — | Pending |
-| DOCM-01 | — | Pending |
-| DOCM-02 | — | Pending |
-| DOCM-03 | — | Pending |
-| DOCM-04 | — | Pending |
-| DOCM-05 | — | Pending |
-| DOCM-06 | — | Pending |
-| TREE-01 | — | Pending |
-| TREE-02 | — | Pending |
-| TREE-03 | — | Pending |
-| TREE-04 | — | Pending |
-| TREE-05 | — | Pending |
-| TREE-06 | — | Pending |
-| TREE-07 | — | Pending |
-| TREE-08 | — | Pending |
-| TREE-09 | — | Pending |
-| TREE-10 | — | Pending |
-| CONT-01 | — | Pending |
-| CONT-02 | — | Pending |
-| CONT-03 | — | Pending |
-| CONT-04 | — | Pending |
-| POLL-01 | — | Pending |
-| POLL-02 | — | Pending |
-| POLL-03 | — | Pending |
-| POLL-04 | — | Pending |
-| POLL-05 | — | Pending |
-| POLL-06 | — | Pending |
-| POLL-07 | — | Pending |
-| POLL-08 | — | Pending |
+| AUTH-01 | Phase 9 | Pending |
+| AUTH-02 | Phase 9 | Pending |
+| AUTH-03 | Phase 9 | Pending |
+| AUTH-04 | Phase 9 | Pending |
+| AUTH-05 | Phase 9 | Pending |
+| AUTH-06 | Phase 9 | Pending |
+| DOCM-01 | Phase 10 | Pending |
+| DOCM-02 | Phase 10 | Pending |
+| DOCM-03 | Phase 10 | Pending |
+| DOCM-04 | Phase 10 | Pending |
+| DOCM-05 | Phase 10 | Pending |
+| DOCM-06 | Phase 10 | Pending |
+| TREE-01 | Phase 11 | Pending |
+| TREE-02 | Phase 11 | Pending |
+| TREE-03 | Phase 11 | Pending |
+| TREE-04 | Phase 11 | Pending |
+| TREE-05 | Phase 11 | Pending |
+| TREE-06 | Phase 11 | Pending |
+| TREE-07 | Phase 11 | Pending |
+| TREE-08 | Phase 11 | Pending |
+| TREE-09 | Phase 11 | Pending |
+| TREE-10 | Phase 11 | Pending |
+| CONT-01 | Phase 11 | Pending |
+| CONT-02 | Phase 11 | Pending |
+| TREE-11 | Phase 11 | Pending |
+| CONT-03 | Phase 12 | Pending |
+| CONT-04 | Phase 12 | Pending |
+| POLL-01 | Phase 12 | Pending |
+| POLL-02 | Phase 12 | Pending |
+| POLL-03 | Phase 12 | Pending |
+| POLL-04 | Phase 12 | Pending |
+| POLL-05 | Phase 12 | Pending |
+| POLL-06 | Phase 12 | Pending |
+| POLL-07 | Phase 12 | Pending |
+| POLL-08 | Phase 12 | Pending |
 
 **Coverage:**
-- v2.0 requirements: 34 total
-- Mapped to phases: 0
-- Unmapped: 34
+- v2.0 requirements: 35 total
+- Mapped to phases: 35
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-12*
-*Last updated: 2026-03-12 after initial definition*
+*Last updated: 2026-03-12 — added TREE-11 comments, refined TREE-02 Enter behavior*

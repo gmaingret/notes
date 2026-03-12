@@ -1,8 +1,259 @@
 # Stack Research
 
 **Domain:** Self-hosted multi-user outliner / PKM web app (Dynalist/Workflowy clone)
-**Researched:** 2026-03-09 (v1.0) | Updated: 2026-03-10 (v1.1 additions)
-**Confidence:** HIGH (all new package versions verified against npm registry 2026-03-10)
+**Researched:** 2026-03-09 (v1.0) | Updated: 2026-03-10 (v1.1 additions) | Updated: 2026-03-12 (v2.0 Android)
+**Confidence:** HIGH (all new package versions verified against official sources 2026-03-12)
+
+---
+
+## v2.0 Android Client
+
+This section documents the full stack for the new native Android client milestone. The existing backend (Express + PostgreSQL) is unchanged — the Android client is a new consumer of the same REST API.
+
+### What Already Exists (Backend — Do Not Re-Add or Change)
+
+- Express 5.x REST API at `https://notes.gregorymaingret.fr`
+- JWT auth: access token in response body, refresh token via `httpOnly` cookie
+- All endpoints documented and working: auth, documents, bullets (tree), search, bookmarks, tags, attachments, comments
+- No new backend endpoints are needed for the Android client milestone
+
+### Platform & Build Tooling
+
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| Kotlin | 2.3.0 | Primary language | Stable Dec 2025 release; K2 compiler is production-grade; first-class Coroutines and Compose support; all Jetpack libraries target Kotlin 2.x |
+| Android Gradle Plugin (AGP) | 9.1.0 | Build system plugin | Latest stable March 2026; requires Gradle 9.1+; introduces built-in Kotlin support (no longer need to apply `org.jetbrains.kotlin.android` separately in AGP 9.0+) |
+| KSP (Kotlin Symbol Processing) | 2.3.0-1.0.31 | Annotation processor (replaces KAPT) | Up to 2x faster than KAPT for Hilt, Room, and Retrofit; Hilt 2.48+ and Room 2.6+ both require/prefer KSP; KAPT is being deprecated |
+| Android min SDK | 26 (Android 8.0) | Minimum supported API level | Covers 95%+ of active Android devices; required for AES-GCM key generation via Android Keystore without workarounds; EncryptedSharedPreferences replacement (Tink) targets API 24+, but API 26 is the safe floor for modern crypto |
+| Android target/compile SDK | 35 (Android 15) | Target platform | Latest stable; required to ship on Google Play |
+
+### Core Android Stack
+
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| Jetpack Compose (via BOM) | BOM 2025.12.00 → Compose 1.10.0 | Declarative UI framework | The standard for new Android UI; Material 3 1.4.0 included in this BOM; use BOM to pin all Compose library versions in sync |
+| Material Design 3 | 1.4.0 (via BOM) | Design system | Google's current Material spec; includes NavigationDrawer, TopAppBar, FloatingActionButton, SwipeToDismiss, PullToRefresh, SearchBar, Chip — covers all required Notes UI patterns |
+| Hilt (Dagger Hilt) | 2.56 | Dependency injection | Google's official Android DI; integrates directly with ViewModel, WorkManager, Navigation; KSP-based (faster than KAPT); the standard for new Android projects; Koin is simpler but Hilt's compile-time verification is worth the setup cost for a project this size |
+| Hilt AndroidX extensions | 1.3.0 | Hilt + Compose ViewModel bridge | `hilt-lifecycle-viewmodel-compose` provides `hiltViewModel()` in Compose without transitive Navigation dependency (API change in 1.3.0); `hilt-navigation-compose` only needed if using Navigation2 + Hilt together |
+| Kotlin Coroutines | 1.10.x | Async programming | Built into Kotlin; `viewModelScope` for ViewModel-scoped coroutines; `lifecycleScope` + `repeatOnLifecycle(STARTED)` for UI collection; do NOT collect flows in `LazyColumn` without lifecycle awareness |
+| Kotlin Flow / StateFlow | Built into Coroutines | Reactive state streams | StateFlow replaces LiveData for Compose; `viewModel.uiState: StateFlow<UiState>` is the standard MVVM pattern; SharedFlow for one-time events |
+| ViewModel + Lifecycle | 2.10.0 | Architecture: MVVM | `lifecycle-viewmodel-ktx:2.10.0` + `lifecycle-runtime-ktx:2.10.0`; `viewModelScope` cancels automatically on ViewModel destruction; survives configuration changes |
+
+### Networking
+
+| Library | Version | Purpose | Why Recommended |
+|---------|---------|---------|-----------------|
+| Retrofit | 3.0.0 | HTTP client / API layer | Latest stable; now fully Kotlin-native; native coroutine support built-in (no adapter needed); `suspend fun getDocuments(): List<Document>` just works; eliminates Call<T> wrapper boilerplate |
+| OkHttp | 4.12.0 | HTTP transport (Retrofit dependency) | Retrofit 3.0.0 depends on OkHttp 4.12 specifically (the first Kotlin-rewrite version); do not upgrade to OkHttp 5.x — Retrofit 3.0 does not yet support it |
+| OkHttp Logging Interceptor | 4.12.0 | Debug request/response logging | Same version as OkHttp; add to debug builds only via BuildConfig.DEBUG flag |
+| kotlinx.serialization | 1.10.0 | JSON serialization | Kotlin-native; Retrofit 3.0 ships an official `kotlinx-serialization` converter factory (`com.squareup.retrofit2:converter-kotlinx-serialization:3.0.0`); faster and more null-safe than Gson; no reflection |
+
+### Auth Integration with Existing Backend
+
+The existing backend uses JWT access tokens (short-lived, in response body) + refresh token in `httpOnly` cookie. The Android client must handle both.
+
+| Component | Implementation | Why |
+|-----------|---------------|-----|
+| Access token storage | In-memory only (ViewModel / singleton) | Matches web client security model; never write access token to disk |
+| Refresh token storage | OkHttp `CookieJar` (in-memory) backed by encrypted DataStore | httpOnly cookies from the server are received via `Set-Cookie` header; OkHttp's CookieJar interface intercepts and persists these; encrypted DataStore (see below) survives app restarts |
+| Token refresh flow | OkHttp `Authenticator` (not Interceptor) | `Authenticator` is called exactly when a 401 is received; handles the race condition of multiple concurrent requests all triggering refresh — only one refresh fires; simpler than manual Interceptor locking |
+
+**Cookie handling note:** The `httpOnly` flag is a browser-only concept. OkHttp receives and sends all cookies regardless of httpOnly flag — this is correct behavior for a native app. The security model shifts to encrypted storage instead.
+
+### Secure Storage
+
+| Library | Version | Purpose | Why Recommended |
+|---------|---------|---------|-----------------|
+| DataStore Preferences | 1.2.1 (stable) | Persistent key-value storage | Replacement for SharedPreferences; async, Coroutines-native, no ANR risk; used to persist the refresh cookie value across app restarts |
+| Google Tink (Android) | 1.8.0 | AES-GCM encryption for DataStore | `EncryptedSharedPreferences` was deprecated with `security-crypto:1.1.0-alpha07` (April 2025); the recommended replacement is DataStore + Tink; Tink uses Android Keystore for key storage; `tink-android:1.8.0` is the latest stable Android artifact |
+
+**Migration note:** Do NOT use `androidx.security:security-crypto` (EncryptedSharedPreferences). It was deprecated in 2025. The `EncryptedSharedPreferences` API no longer receives updates. Use `DataStore + Tink` instead.
+
+### Navigation
+
+| Library | Version | Purpose | Why Recommended |
+|---------|---------|---------|-----------------|
+| Navigation3 | 1.0.1 | In-app navigation | Stable as of November 2025; Compose-first design; type-safe destinations using data classes (no string routes); direct back-stack control; simpler ViewModel scoping than Navigation 2; for a new Compose-only app starting in 2026, Nav3 is the correct choice |
+
+**Why not Navigation 2 (`navigation-compose:2.9.7`):** Navigation 2's string-based routes are an impedance mismatch with Kotlin's type system. Nav3's type-safe approach (serialize destinations as data classes) eliminates an entire class of runtime crashes. For a greenfield Compose app, Nav3 is the standard going forward.
+
+**Why not Navigation 2 + Hilt:** `hilt-navigation-compose` was designed for Nav2. With Nav3, use `hilt-lifecycle-viewmodel-compose:1.3.0` instead — it provides `hiltViewModel()` without the transitive Nav2 dependency.
+
+### UI / Interaction Libraries
+
+| Library | Version | Purpose | Why Recommended |
+|---------|---------|---------|-----------------|
+| sh.calvin.reorderable | 3.0.0 | Drag-and-drop reorder in LazyColumn | The standard Compose drag-reorder library; uses `Modifier.animateItem` (Compose 1.7+ API); handles scroll-while-dragging; supports drag handles; required for document list reorder and bullet tree reorder |
+| Coil | 3.4.0 | Image loading (attachments) | Coroutine-native image loader; `io.coil-kt.coil3:coil-compose:3.4.0`; needed to display image attachments inline; Glide is the alternative but Coil 3's Kotlin-first API integrates better with Compose and Coroutines |
+
+### Testing
+
+| Library | Version | Purpose | Notes |
+|---------|---------|---------|-------|
+| JUnit 4 | 4.13.2 | Unit test runner | Standard Android unit testing |
+| Mockk | 1.14.x | Kotlin-idiomatic mocking | Prefer over Mockito for Kotlin; handles coroutines via `coEvery`/`coVerify` |
+| Turbine | 1.2.x | Flow testing utility | `app.cash.turbine:turbine`; makes StateFlow/SharedFlow testing ergonomic with `awaitItem()` |
+| Compose UI Test | 1.10.0 (via BOM) | Instrumented UI tests | `androidx.compose.ui:ui-test-junit4`; semantic tree-based testing |
+
+---
+
+### Gradle Version Catalog (`gradle/libs.versions.toml`)
+
+```toml
+[versions]
+kotlin = "2.3.0"
+agp = "9.1.0"
+ksp = "2.3.0-1.0.31"
+composeBom = "2025.12.00"
+hilt = "2.56"
+hiltAndroidx = "1.3.0"
+lifecycle = "2.10.0"
+navigation3 = "1.0.1"
+retrofit = "3.0.0"
+okhttp = "4.12.0"
+kotlinxSerialization = "1.10.0"
+datastore = "1.2.1"
+tink = "1.8.0"
+reorderable = "3.0.0"
+coil = "3.4.0"
+turbine = "1.2.0"
+mockk = "1.14.0"
+
+[libraries]
+# Compose (managed by BOM — no explicit versions)
+compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+compose-ui = { group = "androidx.compose.ui", name = "ui" }
+compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+compose-activity = { group = "androidx.activity", name = "activity-compose", version = "1.10.1" }
+
+# Hilt
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+hilt-viewmodel-compose = { group = "androidx.hilt", name = "hilt-lifecycle-viewmodel-compose", version.ref = "hiltAndroidx" }
+
+# Lifecycle / ViewModel
+lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
+lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
+
+# Navigation3
+navigation3-runtime = { group = "androidx.navigation3", name = "navigation3-runtime", version.ref = "navigation3" }
+navigation3-ui = { group = "androidx.navigation3", name = "navigation3-ui", version.ref = "navigation3" }
+
+# Networking
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-kotlinx-serialization = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+
+# Secure Storage
+datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+tink-android = { group = "com.google.crypto.tink", name = "tink-android", version.ref = "tink" }
+
+# UI
+reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+
+# Testing
+junit = { group = "junit", name = "junit", version = "4.13.2" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+```
+
+---
+
+### What NOT to Add
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| Room | No offline mode in scope; PROJECT.md explicitly defers offline; Room adds schema migration complexity for zero gain | Remove from scope; re-evaluate if offline mode is added in v3.0 |
+| EncryptedSharedPreferences (`security-crypto`) | Deprecated April 2025 with `security-crypto:1.1.0-alpha07`; no future updates | DataStore + Tink |
+| `retrofit2-kotlin-coroutines-adapter` (Jake Wharton) | Retrofit 3.0 has native coroutine support built in; the adapter is redundant | Remove; use `suspend fun` directly in interface |
+| KAPT | Being deprecated in favour of KSP; Hilt 2.48+ and all modern Jetpack processors support KSP; KAPT is 2x slower | KSP |
+| LiveData | Predates Coroutines/Flow; Compose integrates with StateFlow natively via `collectAsStateWithLifecycle()` | StateFlow + lifecycle-runtime-compose |
+| Navigation 2 (`navigation-compose:2.9.7`) | String-based routes are runtime-error-prone; Nav3 is stable and Compose-first | Navigation3 1.0.1 |
+| Koin | Simpler to set up but lacks compile-time DI verification; errors surface at runtime | Hilt (compile-time safe) |
+| WorkManager | No background sync in scope; app is online-only | Not needed |
+| Push notifications (FCM) | Explicitly out of scope in PROJECT.md | Not needed |
+| OkHttp 5.x | Retrofit 3.0 depends on OkHttp 4.12; OkHttp 5.x support in Retrofit is pending | OkHttp 4.12.0 |
+
+---
+
+### Integration Points with Existing Backend
+
+| Concern | Approach |
+|---------|----------|
+| Base URL | Configurable via `BuildConfig` field; default `https://notes.gregorymaingret.fr`; users can change in Settings |
+| Auth headers | OkHttp `Interceptor` adds `Authorization: Bearer <accessToken>` from in-memory token holder |
+| Cookie persistence | Custom `CookieJar` reads/writes refresh cookie to encrypted DataStore; ensures refresh survives app restart |
+| Token refresh | OkHttp `Authenticator` calls `POST /api/auth/refresh` on 401; updates in-memory access token; retries original request |
+| File uploads (attachments) | Retrofit `@Multipart` with `MultipartBody.Part`; matches existing `multipart/form-data` API |
+| Error handling | Retrofit 3.0 `suspend fun` throws `HttpException` on 4xx/5xx; catch in ViewModel and emit error state |
+| HTTPS only | Self-signed certs are not used; production runs Let's Encrypt via Nginx; no custom `TrustManager` needed |
+
+---
+
+### Alternatives Considered
+
+| Recommended | Alternative | When to Use Alternative |
+|-------------|-------------|-------------------------|
+| Hilt | Koin | Koin for smaller apps or teams unfamiliar with Dagger; Hilt for anything that needs compile-time DI verification |
+| Navigation3 | Navigation 2 (`navigation-compose`) | Nav2 if you need Fragment interop or already have a Nav2 codebase; for pure-Compose greenfield, Nav3 is preferred |
+| Retrofit 3.0 | Ktor Client | Ktor for Kotlin Multiplatform; Retrofit for Android-only; this project has no KMP requirement |
+| kotlinx.serialization | Moshi | Both work with Retrofit 3.0; Moshi is solid but requires separate annotation processor; kotlinx.serialization is Kotlin-native with no reflection |
+| DataStore + Tink | `security-crypto` (EncryptedSharedPreferences) | Only for legacy codebases that haven't migrated; deprecated and receiving no updates |
+| sh.calvin.reorderable | Custom drag implementation | Custom only if reorderable's API doesn't fit the tree structure; the tree flattening approach (render flat list of BulletNodes) makes LazyColumn drag-reorder viable |
+
+---
+
+### Version Compatibility
+
+| Package | Compatible With | Notes |
+|---------|-----------------|-------|
+| Retrofit 3.0.0 | OkHttp 4.12.0 | Hard dependency — do not use OkHttp 5.x with Retrofit 3.0 |
+| Compose BOM 2025.12.00 | Kotlin 2.3.0 | Compose 1.10 requires the Compose Compiler Kotlin plugin (`org.jetbrains.kotlin.plugin.compose`); separate from `kotlin.android` |
+| Hilt 2.56 | KSP 2.3.0-1.0.31 | KSP version format is `<kotlin-version>-<ksp-version>` |
+| Navigation3 1.0.1 | Compose 1.10.0 | Nav3 is Compose-only; requires Compose 1.7+ for `Modifier.animateItem` |
+| Coil 3.4.0 | OkHttp 4.12.0 | Use `coil-network-okhttp` artifact to share the same OkHttp instance as Retrofit |
+| sh.calvin.reorderable 3.0.0 | Compose 1.7+ | Uses `Modifier.animateItem` — available from Compose 1.7 (BOM 2024.09+) |
+| DataStore 1.2.1 | Kotlin Coroutines 1.10.x | DataStore is Coroutines-native; no compatibility issues with current versions |
+
+---
+
+### Sources
+
+- https://developer.android.com/develop/ui/compose/bom/bom-mapping — BOM 2025.12.00 verified; Compose 1.10.0, Material3 1.4.0 (HIGH)
+- https://developer.android.com/jetpack/androidx/releases/navigation3 — Navigation3 1.0.1 stable November 2025 (HIGH)
+- https://developer.android.com/jetpack/androidx/releases/lifecycle — lifecycle 2.10.0 stable November 2025 (HIGH)
+- https://developer.android.com/jetpack/androidx/releases/hilt — androidx.hilt 1.3.0 stable; API change for hilt-lifecycle-viewmodel-compose (HIGH)
+- https://github.com/square/retrofit/releases — Retrofit 3.0.0 stable; OkHttp 4.12 dependency confirmed (HIGH)
+- https://developer.android.com/jetpack/androidx/releases/security — EncryptedSharedPreferences deprecated in security-crypto 1.1.0-alpha07 (HIGH)
+- https://developer.android.com/topic/libraries/architecture/datastore — DataStore 1.2.1 stable; official migration from SharedPreferences (HIGH)
+- https://mvnrepository.com/artifact/com.google.crypto.tink/tink-android — tink-android 1.8.0 latest stable (MEDIUM)
+- https://github.com/Calvin-LL/Reorderable — sh.calvin.reorderable 3.0.0 latest; uses Modifier.animateItem (HIGH)
+- https://coil-kt.github.io/coil/ — Coil 3.4.0; coil-network-okhttp for shared OkHttp client (HIGH)
+- https://developer.android.com/build/releases/agp-9-1-0-release-notes — AGP 9.1.0 March 2026 (HIGH)
+- https://blog.jetbrains.com/kotlin/2025/12/kotlin-2-3-0-released/ — Kotlin 2.3.0 stable December 2025 (HIGH)
+- WebSearch: EncryptedSharedPreferences deprecation migration 2026 — DataStore + Tink pattern (MEDIUM, corroborated by official release notes)
+- WebSearch: Retrofit 3.0.0 migration guide — suspend fun, no coroutines adapter needed (MEDIUM, corroborated by official changelog)
+
+---
+
+*Stack research for: self-hosted multi-user outliner (Dynalist/Workflowy clone)*
+*v1.0 researched: 2026-03-09 | v1.1 additions researched: 2026-03-10 | v2.0 Android researched: 2026-03-12*
 
 ---
 
@@ -355,4 +606,4 @@ The original v1.0 stack research below remains valid. No changes to the backend,
 ---
 
 *Stack research for: self-hosted multi-user outliner (Dynalist/Workflowy clone)*
-*v1.0 researched: 2026-03-09 | v1.1 additions researched: 2026-03-10*
+*v1.0 researched: 2026-03-09 | v1.1 additions researched: 2026-03-10 | v2.0 Android researched: 2026-03-12*

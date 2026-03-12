@@ -2,6 +2,7 @@ package com.gmaingret.notes.domain.usecase
 
 import com.gmaingret.notes.domain.model.Bullet
 import com.gmaingret.notes.domain.model.FlatBullet
+import javax.inject.Inject
 
 /**
  * Pure Kotlin recursive DFS tree flattener.
@@ -9,7 +10,8 @@ import com.gmaingret.notes.domain.model.FlatBullet
  * Converts a flat list of parent-linked [Bullet] objects into a depth-ordered
  * [FlatBullet] list suitable for rendering in a flat LazyColumn.
  *
- * No Android dependencies — instantiated directly in unit tests.
+ * No Android dependencies — can be instantiated directly in unit tests via FlattenTreeUseCase()
+ * without any DI framework involvement (javax.inject.Inject is a pure Java annotation).
  *
  * Features:
  * - DFS traversal with children sorted by position ascending
@@ -18,7 +20,7 @@ import com.gmaingret.notes.domain.model.FlatBullet
  * - [maxDisplayDepth]: visual depth cap (bullets deeper than cap appear AT cap depth)
  * - [hasChildren] computed from the child map (includes collapsed children)
  */
-class FlattenTreeUseCase {
+class FlattenTreeUseCase @Inject constructor() {
 
     /**
      * @param bullets All bullets for a document (unordered is fine)

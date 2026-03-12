@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Mobile & UI Polish
-status: ready_to_plan
-stopped_at: Completed 08-03-PLAN.md
-last_updated: "2026-03-11T19:40:35.259Z"
-last_activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
+milestone: v2.0
+milestone_name: Native Android Client
+status: defining_requirements
+stopped_at: null
+last_updated: "2026-03-12T00:00:00Z"
+last_activity: 2026-03-12 — Milestone v2.0 started
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 23
-  completed_plans: 23
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 ---
@@ -94,19 +94,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-10)
+See: .planning/PROJECT.md (updated 2026-03-12)
 
 **Core value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
-**Current focus:** Phase 5 — Mobile Layout Foundation
+**Current focus:** Milestone v2.0 — Native Android Client
 
 ## Current Position
 
-Phase: 5 of 8 (Mobile Layout Foundation)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-03-10 — v1.1 roadmap created, phases 5-8 defined
-
-Progress: [██░░░░░░░░] 50% (v1.0 complete, v1.1 not started)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-12 — Milestone v2.0 started
 
 ## Performance Metrics
 

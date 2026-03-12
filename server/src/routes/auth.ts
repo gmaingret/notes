@@ -3,6 +3,7 @@ import { z } from 'zod';
 import passport from 'passport';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { OAuth2Client } from 'google-auth-library';
 import { db } from '../../db/index.js';
 import { users } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -13,6 +14,8 @@ import {
   hashPassword,
   createInboxIfNotExists,
 } from '../services/authService.js';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const authRouter = Router();
 
@@ -94,6 +97,49 @@ authRouter.post('/refresh', (req, res) => {
 authRouter.post('/logout', (req, res) => {
   clearRefreshCookie(res);
   return res.json({ message: 'Logged out' });
+});
+
+// AUTH-03: Google token endpoint for native Android Credential Manager flow
+authRouter.post('/google/token', async (req, res) => {
+  const { idToken } = req.body;
+  if (!idToken) return res.status(400).json({ error: 'Missing idToken' });
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    if (!payload?.email || !payload?.sub) {
+      return res.status(400).json({ error: 'Invalid Google token payload' });
+    }
+
+    // Same account-linking logic as Passport Google strategy in middleware/auth.ts
+    let user = await db.query.users.findFirst({ where: eq(users.googleId, payload.sub) });
+    if (!user) {
+      user = await db.query.users.findFirst({ where: eq(users.email, payload.email) });
+      if (user) {
+        // Link Google account to existing email/password user
+        await db.update(users)
+          .set({ googleId: payload.sub, updatedAt: new Date() })
+          .where(eq(users.id, user.id));
+      } else {
+        // New user via Google
+        const [newUser] = await db.insert(users)
+          .values({ email: payload.email, googleId: payload.sub })
+          .returning();
+        user = newUser;
+        await createInboxIfNotExists(user.id);
+      }
+    }
+
+    const accessToken = issueAccessToken(user.id);
+    setRefreshCookie(res, user.id);
+    return res.json({ accessToken, user: { id: user.id, email: user.email } });
+  } catch (e) {
+    console.error('Google token verification failed:', e);
+    return res.status(401).json({ error: 'Google token verification failed' });
+  }
 });
 
 // AUTH-03: Google OAuth initiation

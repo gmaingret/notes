@@ -618,6 +618,16 @@ class BulletTreeViewModel @Inject constructor(
     }
 
     /**
+     * Emits a snackbar message from outside the ViewModel (e.g., cycle prevention in UI).
+     * Launches in viewModelScope so callers don't need a coroutine context.
+     */
+    fun showSnackbar(message: String) {
+        viewModelScope.launch {
+            _snackbarMessage.emit(message)
+        }
+    }
+
+    /**
      * Fires [MoveBulletUseCase] after a drag ends.
      *
      * On success: updates the server-authoritative bullet in the local list and re-flattens.

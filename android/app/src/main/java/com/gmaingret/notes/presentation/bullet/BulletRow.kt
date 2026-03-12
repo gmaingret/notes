@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowRight
 import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.StickyNote2
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,11 +31,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
@@ -58,12 +60,15 @@ private val GUIDE_LINE_OFFSET_DP = 8.dp
  * - **Focused**: [BasicTextField] for inline editing with Enter/Backspace intercept
  * - **Unfocused**: Markdown-rendered text + inline chips, or strikethrough for completed bullets
  *
- * Layout (Row from left to right):
- * - Left padding based on [FlatBullet.depth], capped at [MAX_DISPLAY_DEPTH]
- * - Vertical guide lines drawn behind the row for each depth level
- * - Bullet icon (circle or checkbox for completed bullets)
- * - Content area (weighted to fill remaining width)
- * - Collapse/expand arrow (only for bullets with children)
+ * Layout (Column):
+ * - Top Row: depth-indented bullet icon + content area + collapse arrow
+ * - Bottom: [NoteField] (animated, shown when [isNoteExpanded] is true)
+ *
+ * When [isDragging] is true, a graphicsLayer applies 1.02x scale + shadowElevation = 8f
+ * to give the "lifted card" drag visual.
+ *
+ * A small note indicator icon (StickyNote2) is shown when the bullet has a non-empty note
+ * and the note field is not expanded. Tapping it calls [onToggleNote].
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -72,6 +77,8 @@ fun BulletRow(
     isFocused: Boolean,
     contentOverride: String?,
     focusCursorEnd: Boolean,
+    isDragging: Boolean,
+    isNoteExpanded: Boolean,
     onFocusRequest: () -> Unit,
     onContentChange: (String) -> Unit,
     onEnterWithContent: () -> Unit,
@@ -79,6 +86,8 @@ fun BulletRow(
     onBackspaceOnEmpty: () -> Unit,
     onCollapseToggle: () -> Unit,
     onBulletIconTap: () -> Unit,
+    onToggleNote: () -> Unit,
+    onNoteChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val bullet = flatBullet.bullet
@@ -119,170 +128,183 @@ fun BulletRow(
     }
 
     val collapseRotation by animateFloatAsState(
-        targetValue = if (bullet.isCollapsed) 0f else 0f, // will differentiate by icon choice
+        targetValue = if (bullet.isCollapsed) 0f else 0f, // differentiated by icon choice
         label = "collapseRotation"
     )
 
-    Row(
+    // Note indicator: shown when note exists and note field is NOT expanded
+    val hasNote = !bullet.note.isNullOrEmpty()
+    val showNoteIndicator = hasNote && !isNoteExpanded
+
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .bringIntoViewRequester(bringIntoViewRequester)
-            .padding(start = indentPx, top = 2.dp, bottom = 2.dp, end = 4.dp)
-            .drawBehind {
-                // Draw vertical guide lines for each depth level
-                for (level in 1..depth) {
-                    val x = (-(depth - level) * INDENT_DP.toPx()) + GUIDE_LINE_OFFSET_DP.toPx() - indentPx.toPx()
-                    val lineX = GUIDE_LINE_OFFSET_DP.toPx() + ((level - 1).toFloat() * -INDENT_DP.toPx())
-                    // Correct: draw line at (level-1)*24+8 offset from the ROW start (after padding applied)
-                    // Since padding is already applied by Modifier.padding, draw relative to content area
-                    drawLine(
-                        color = guideLineColor,
-                        start = Offset(x = (((level - 1) * INDENT_DP.toPx()) - depth * INDENT_DP.toPx() + GUIDE_LINE_OFFSET_DP.toPx()), y = 0f),
-                        end = Offset(x = (((level - 1) * INDENT_DP.toPx()) - depth * INDENT_DP.toPx() + GUIDE_LINE_OFFSET_DP.toPx()), y = size.height),
-                        strokeWidth = 1.dp.toPx()
-                    )
-                }
-            },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Bullet icon
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .clickable { onBulletIconTap() },
-            contentAlignment = Alignment.Center
-        ) {
-            if (bullet.isComplete) {
-                Icon(
-                    imageVector = Icons.Filled.CheckBox,
-                    contentDescription = "Completed",
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
-            } else {
-                androidx.compose.foundation.Canvas(modifier = Modifier.size(24.dp)) {
-                    drawCircle(
-                        color = Color(0xFF808080).copy(alpha = 0.6f),
-                        radius = 4.dp.toPx(),
-                        center = Offset(size.width / 2f, size.height / 2f)
-                    )
+            .graphicsLayer {
+                if (isDragging) {
+                    scaleX = 1.02f
+                    scaleY = 1.02f
+                    shadowElevation = 8f
                 }
             }
-        }
-
-        Spacer(modifier = Modifier.width(4.dp))
-
-        // Content area
-        Box(
+    ) {
+        Row(
             modifier = Modifier
-                .weight(1f)
-                .then(
-                    if (!isFocused) Modifier.clickable { onFocusRequest() } else Modifier
-                )
+                .fillMaxWidth()
+                .bringIntoViewRequester(bringIntoViewRequester)
+                .padding(start = indentPx, top = 2.dp, bottom = 2.dp, end = 4.dp)
+                .drawBehind {
+                    // Draw vertical guide lines for each depth level
+                    for (level in 1..depth) {
+                        val x = (-(depth - level) * INDENT_DP.toPx()) + GUIDE_LINE_OFFSET_DP.toPx() - indentPx.toPx()
+                        drawLine(
+                            color = guideLineColor,
+                            start = Offset(x = (((level - 1) * INDENT_DP.toPx()) - depth * INDENT_DP.toPx() + GUIDE_LINE_OFFSET_DP.toPx()), y = 0f),
+                            end = Offset(x = (((level - 1) * INDENT_DP.toPx()) - depth * INDENT_DP.toPx() + GUIDE_LINE_OFFSET_DP.toPx()), y = size.height),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                    }
+                },
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isFocused) {
-                // Edit mode: BasicTextField
-                BasicTextField(
-                    value = textFieldValue,
-                    onValueChange = { newValue ->
-                        val newText = newValue.text
-                        val newlineIndex = newText.indexOf('\n')
-                        if (newlineIndex >= 0) {
-                            val textBeforeNewline = newText.substring(0, newlineIndex)
-                            if (textBeforeNewline.isEmpty() && localText.isEmpty()) {
-                                onEnterOnEmpty()
-                            } else {
-                                localText = textBeforeNewline
-                                textFieldValue = TextFieldValue(
-                                    textBeforeNewline,
-                                    selection = TextRange(textBeforeNewline.length)
-                                )
-                                onContentChange(textBeforeNewline)
-                                onEnterWithContent()
-                            }
-                            // Do not update textFieldValue with newline
-                        } else {
-                            localText = newText
-                            textFieldValue = newValue
-                            onContentChange(newText)
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester)
-                        .onKeyEvent { keyEvent ->
-                            when (keyEvent.key) {
-                                Key.Backspace -> {
-                                    if (localText.isEmpty()) {
-                                        onBackspaceOnEmpty()
-                                        true
-                                    } else false
-                                }
-                                Key.Enter -> {
-                                    if (localText.isEmpty()) {
-                                        onEnterOnEmpty()
-                                    } else {
-                                        onEnterWithContent()
-                                    }
-                                    true
-                                }
-                                else -> false
-                            }
-                        },
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                )
-            } else {
-                // Display mode
+            // Bullet icon
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable { onBulletIconTap() },
+                contentAlignment = Alignment.Center
+            ) {
                 if (bullet.isComplete) {
-                    // Completed: strikethrough at 50% opacity
-                    Text(
-                        text = buildAnnotatedString {
-                            withStyle(
-                                SpanStyle(
-                                    textDecoration = TextDecoration.LineThrough,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                )
-                            ) {
-                                append(bullet.content)
-                            }
-                        },
-                        style = MaterialTheme.typography.bodyMedium
+                    Icon(
+                        imageVector = Icons.Filled.CheckBox,
+                        contentDescription = "Completed",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 } else {
-                    // Render content segments (chips + markdown)
-                    val segments = parseContentSegments(bullet.content)
-                    if (segments.isEmpty()) {
-                        // Empty bullet — show placeholder
-                        Text(
-                            text = "",
-                            style = MaterialTheme.typography.bodyMedium,
+                    androidx.compose.foundation.Canvas(modifier = Modifier.size(24.dp)) {
+                        drawCircle(
+                            color = Color(0xFF808080).copy(alpha = 0.6f),
+                            radius = 4.dp.toPx(),
+                            center = Offset(size.width / 2f, size.height / 2f)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // Content area
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .then(
+                        if (!isFocused) Modifier.clickable { onFocusRequest() } else Modifier
+                    )
+            ) {
+                if (isFocused) {
+                    // Edit mode: BasicTextField
+                    BasicTextField(
+                        value = textFieldValue,
+                        onValueChange = { newValue ->
+                            val newText = newValue.text
+                            val newlineIndex = newText.indexOf('\n')
+                            if (newlineIndex >= 0) {
+                                val textBeforeNewline = newText.substring(0, newlineIndex)
+                                if (textBeforeNewline.isEmpty() && localText.isEmpty()) {
+                                    onEnterOnEmpty()
+                                } else {
+                                    localText = textBeforeNewline
+                                    textFieldValue = TextFieldValue(
+                                        textBeforeNewline,
+                                        selection = TextRange(textBeforeNewline.length)
+                                    )
+                                    onContentChange(textBeforeNewline)
+                                    onEnterWithContent()
+                                }
+                                // Do not update textFieldValue with newline
+                            } else {
+                                localText = newText
+                                textFieldValue = newValue
+                                onContentChange(newText)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
+                            .onKeyEvent { keyEvent ->
+                                when (keyEvent.key) {
+                                    Key.Backspace -> {
+                                        if (localText.isEmpty()) {
+                                            onBackspaceOnEmpty()
+                                            true
+                                        } else false
+                                    }
+                                    Key.Enter -> {
+                                        if (localText.isEmpty()) {
+                                            onEnterOnEmpty()
+                                        } else {
+                                            onEnterWithContent()
+                                        }
+                                        true
+                                    }
+                                    else -> false
+                                }
+                            },
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                    } else if (segments.all { it is ContentSegment.TextSegment }) {
-                        // All text — use markdown AnnotatedString renderer
+                    )
+                } else {
+                    // Display mode
+                    if (bullet.isComplete) {
+                        // Completed: strikethrough at 50% opacity
                         Text(
-                            text = buildMarkdownAnnotatedString(bullet.content),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
+                            text = buildAnnotatedString {
+                                withStyle(
+                                    SpanStyle(
+                                        textDecoration = TextDecoration.LineThrough,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    )
+                                ) {
+                                    append(bullet.content)
+                                }
+                            },
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     } else {
-                        // Mixed text and chips — use FlowRow layout
-                        androidx.compose.foundation.layout.FlowRow(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            segments.forEach { segment ->
-                                when (segment) {
-                                    is ContentSegment.TextSegment -> {
-                                        Text(
-                                            text = buildMarkdownAnnotatedString(segment.text),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                    is ContentSegment.ChipSegment -> {
-                                        InlineChip(segment)
+                        // Render content segments (chips + markdown)
+                        val segments = parseContentSegments(bullet.content)
+                        if (segments.isEmpty()) {
+                            // Empty bullet — show placeholder
+                            Text(
+                                text = "",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        } else if (segments.all { it is ContentSegment.TextSegment }) {
+                            // All text — use markdown AnnotatedString renderer
+                            Text(
+                                text = buildMarkdownAnnotatedString(bullet.content),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        } else {
+                            // Mixed text and chips — use FlowRow layout
+                            androidx.compose.foundation.layout.FlowRow(
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                segments.forEach { segment ->
+                                    when (segment) {
+                                        is ContentSegment.TextSegment -> {
+                                            Text(
+                                                text = buildMarkdownAnnotatedString(segment.text),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                        is ContentSegment.ChipSegment -> {
+                                            InlineChip(segment)
+                                        }
                                     }
                                 }
                             }
@@ -290,23 +312,44 @@ fun BulletRow(
                     }
                 }
             }
+
+            // Note indicator icon — only shown when note exists and note field is collapsed
+            if (showNoteIndicator) {
+                Icon(
+                    imageVector = Icons.Filled.StickyNote2,
+                    contentDescription = "Has note",
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clickable { onToggleNote() },
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+
+            // Collapse/expand arrow — only shown if bullet has children
+            if (flatBullet.hasChildren) {
+                androidx.compose.material3.IconButton(
+                    onClick = onCollapseToggle,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = if (bullet.isCollapsed) Icons.Filled.ArrowRight else Icons.Filled.ArrowDropDown,
+                        contentDescription = if (bullet.isCollapsed) "Expand" else "Collapse",
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.size(24.dp))
+            }
         }
 
-        // Collapse/expand arrow — only shown if bullet has children
-        if (flatBullet.hasChildren) {
-            androidx.compose.material3.IconButton(
-                onClick = onCollapseToggle,
-                modifier = Modifier.size(24.dp)
-            ) {
-                Icon(
-                    imageVector = if (bullet.isCollapsed) Icons.Filled.ArrowRight else Icons.Filled.ArrowDropDown,
-                    contentDescription = if (bullet.isCollapsed) "Expand" else "Collapse",
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        } else {
-            Spacer(modifier = Modifier.size(24.dp))
-        }
+        // Inline note field — animated expand/collapse below the bullet content row
+        NoteField(
+            note = bullet.note,
+            isExpanded = isNoteExpanded,
+            onNoteChange = onNoteChange,
+            modifier = Modifier.padding(start = indentPx)
+        )
     }
 }
 

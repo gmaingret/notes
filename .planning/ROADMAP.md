@@ -37,7 +37,7 @@ Full details: [`.planning/milestones/v1.1-ROADMAP.md`](milestones/v1.1-ROADMAP.m
 
 **Milestone Goal:** Native Android client in Kotlin/Jetpack Compose + Material Design 3 that talks to the existing backend API — no new backend features, focus on reactivity and polish.
 
-- [ ] **Phase 9: Android Foundation and Auth** — Project scaffold with Clean Architecture, Hilt DI, OkHttp auth infrastructure, login and register screens
+- [x] **Phase 9: Android Foundation and Auth** — Project scaffold with Clean Architecture, Hilt DI, OkHttp auth infrastructure, login and register screens (completed 2026-03-12)
 - [ ] **Phase 10: Document Management** — ModalNavigationDrawer with full document CRUD, drag reorder, last-opened persistence
 - [ ] **Phase 11: Bullet Tree** — Flat LazyColumn outliner with all core editing interactions, markdown rendering, and chip syntax
 - [ ] **Phase 12: Reactivity and Polish** — Swipe gestures, search, undo/redo, pull-to-refresh, animations, attachments, bookmarks
@@ -54,7 +54,13 @@ Full details: [`.planning/milestones/v1.1-ROADMAP.md`](milestones/v1.1-ROADMAP.m
   3. User can log in with Google SSO via the Credential Manager picker
   4. On cold start after a previous login, the app opens directly to the main screen without prompting for credentials
   5. All API requests include a valid Bearer token; a 401 response triggers exactly one token refresh (no concurrent refresh races)
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 09-01-PLAN.md — Android project scaffold, Gradle, version catalog, theme, domain contracts
+- [ ] 09-02-PLAN.md — Backend POST /auth/google/token endpoint
+- [ ] 09-03-PLAN.md — Auth data layer: token store, cookie jar, interceptor, authenticator, DI
+- [ ] 09-04-PLAN.md — Auth UI: login/register screen, main screen, navigation, splash
+- [ ] 09-05-PLAN.md — Google SSO (Credential Manager), tests, CI
 
 ### Phase 10: Document Management
 **Goal**: Users can manage their document list in a native Android drawer and navigate between documents
@@ -106,7 +112,7 @@ Full details: [`.planning/milestones/v1.1-ROADMAP.md`](milestones/v1.1-ROADMAP.m
 | 7. Icons, Fonts, and PWA | v1.1 | 5/5 | Complete | 2026-03-10 |
 | 7.1. UI Polish Tweaks | v1.1 | 4/4 | Complete | 2026-03-10 |
 | 8. Swipe Polish and Quick-Open Palette | v1.1 | 5/5 | Complete | 2026-03-11 |
-| 9. Android Foundation and Auth | v2.0 | 0/TBD | Not started | - |
+| 9. Android Foundation and Auth | 5/5 | Complete   | 2026-03-12 | - |
 | 10. Document Management | v2.0 | 0/TBD | Not started | - |
 | 11. Bullet Tree | v2.0 | 0/TBD | Not started | - |
 | 12. Reactivity and Polish | v2.0 | 0/TBD | Not started | - |

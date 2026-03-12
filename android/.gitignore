@@ -1,0 +1,18 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.aab
+local.properties
+
+# Gradle wrapper jar - committed to repo for reproducible builds
+# !gradle/wrapper/gradle-wrapper.jar
+
+# Generated files
+app/build/

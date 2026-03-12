@@ -35,14 +35,25 @@ export function createApp() {
   configurePassport();
   app.use(passport.initialize());
 
-  // Rate limit auth endpoints
+  // Rate limit login/register (brute-force protection)
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 20,
     standardHeaders: true,
     legacyHeaders: false,
   });
-  app.use('/api/auth', authLimiter);
+  app.use('/api/auth/login', authLimiter);
+  app.use('/api/auth/register', authLimiter);
+  app.use('/api/auth/google/token', authLimiter);
+
+  // Separate higher limit for refresh (called on every app cold start)
+  const refreshLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use('/api/auth/refresh', refreshLimiter);
 
   // Health check
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));

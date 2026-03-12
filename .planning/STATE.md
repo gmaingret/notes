@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Native Android Client
 status: ready_to_plan
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-03-12T13:41:36.486Z"
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-03-12T13:54:00.702Z"
 last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 12
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 ---
@@ -72,6 +72,7 @@ Progress: [░░░░░░░░░░] 0% (v2.0)
 | Phase 10 P02 | 7 | 2 tasks | 15 files |
 | Phase 10 P03 | 12 | 3 tasks | 4 files |
 | Phase 11-bullet-tree P01 | 14 | 2 tasks | 28 files |
+| Phase 11-bullet-tree P02 | 9 | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -113,6 +114,9 @@ Recent decisions affecting v2.0:
 - [Phase 11-01]: FlattenTreeUseCase gets @Inject constructor for Hilt — javax.inject is pure Java, no Android deps, still directly instantiable in unit tests
 - [Phase 11-01]: PatchBulletRequest companion factory functions enforce server single-field-per-request contract at call site
 - [Phase 11-01]: BulletTreeViewModel.updateState preserves focusedBulletId across state rebuilds to prevent focus loss during silent server reloads
+- [Phase 11-02]: Content/note debounce uses MutableSharedFlow(extraBufferCapacity=64) + debounce(500ms) in init{} collect — simpler than per-bullet Job cancellation, handles rapid multi-bullet edits without coroutine leaks
+- [Phase 11-02]: createBullet inserts temp UUID bullet optimistically, replaced by server response on success — prevents flatList flicker while API is in flight
+- [Phase 11-02]: backspaceOnEmpty reparents deleted bullet's children to deleted bullet's own parentId — keeps tree consistent without extra API call
 
 ### Pending Todos
 
@@ -126,6 +130,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T13:41:36.483Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-03-12T13:54:00.699Z
+Stopped at: Completed 11-02-PLAN.md
 Resume file: None

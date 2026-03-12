@@ -13,9 +13,11 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
+import android.util.Log
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private const val TAG = "CookieJar"
 private val Context.cookieDataStore by preferencesDataStore(name = "cookie_jar")
 
 /**
@@ -62,8 +64,15 @@ class DataStoreCookieJar @Inject constructor(
         // with expiresAt == Long.MIN_VALUE indicate no Max-Age/Expires header).
         // We persist everything that has an expiry OR httpOnly cookies that carry
         // the refresh token (the server always sets maxAge=7 days).
+        Log.d(TAG, "saveFromResponse url=${url.host} cookies=${cookies.size}")
+        for (c in cookies) {
+            Log.d(TAG, "  cookie: name=${c.name} persistent=${c.persistent} expiresAt=${c.expiresAt} domain=${c.domain} httpOnly=${c.httpOnly}")
+        }
         val persistent = cookies.filter { it.persistent }
-        if (persistent.isEmpty()) return
+        if (persistent.isEmpty()) {
+            Log.w(TAG, "  NO persistent cookies to save!")
+            return
+        }
 
         runBlocking {
             context.cookieDataStore.edit { prefs ->
@@ -87,10 +96,16 @@ class DataStoreCookieJar @Inject constructor(
     }
 
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
+        Log.d(TAG, "loadForRequest url=${url.host}${url.encodedPath}")
         val now = System.currentTimeMillis()
         val prefs = runBlocking {
             context.cookieDataStore.data.firstOrNull()
-        } ?: return emptyList()
+        }
+        if (prefs == null) {
+            Log.w(TAG, "  prefs is null!")
+            return emptyList()
+        }
+        Log.d(TAG, "  prefs keys: ${prefs.asMap().keys.map { it.name }}")
 
         val result = mutableListOf<Cookie>()
 
@@ -126,6 +141,7 @@ class DataStoreCookieJar @Inject constructor(
             result.add(cookie)
         }
 
+        Log.d(TAG, "  returning ${result.size} cookies: ${result.map { it.name }}")
         return result
     }
 

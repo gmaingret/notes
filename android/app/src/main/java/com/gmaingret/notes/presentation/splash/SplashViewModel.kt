@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gmaingret.notes.domain.model.AuthState
 import com.gmaingret.notes.domain.usecase.CheckAuthUseCase
+import android.util.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,13 +39,16 @@ class SplashViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             try {
+                Log.d("SplashVM", "Checking auth...")
                 val isAuthenticated = checkAuthUseCase()
+                Log.d("SplashVM", "Auth result: $isAuthenticated")
                 _authState.value = if (isAuthenticated) {
                     AuthState.AUTHENTICATED
                 } else {
                     AuthState.UNAUTHENTICATED
                 }
             } catch (e: Exception) {
+                Log.e("SplashVM", "Auth check failed", e)
                 // Network failure or other error during cold-start refresh
                 _coldStartNetworkError.value = true
                 _authState.value = AuthState.UNAUTHENTICATED

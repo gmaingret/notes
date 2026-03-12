@@ -37,13 +37,18 @@ class MainActivity : ComponentActivity() {
                 val authState by splashViewModel.authState.collectAsStateWithLifecycle()
                 val networkError by splashViewModel.coldStartNetworkError.collectAsStateWithLifecycle()
 
-                val initialRoute = when {
-                    authState == AuthState.AUTHENTICATED -> MainRoute
-                    networkError -> AuthRoute(showNetworkError = true)
-                    else -> AuthRoute()
-                }
+                // Only render NotesApp after auth check resolves.
+                // rememberNavBackStack only uses initialRoute on first creation,
+                // so we must not compose it while authState is still CHECKING.
+                if (authState != AuthState.CHECKING) {
+                    val initialRoute = when {
+                        authState == AuthState.AUTHENTICATED -> MainRoute
+                        networkError -> AuthRoute(showNetworkError = true)
+                        else -> AuthRoute()
+                    }
 
-                NotesApp(initialRoute = initialRoute)
+                    NotesApp(initialRoute = initialRoute)
+                }
             }
         }
     }

@@ -2,6 +2,9 @@ package com.gmaingret.notes.presentation.bullet
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gmaingret.notes.data.model.CreateBulletRequest
+import com.gmaingret.notes.data.model.MoveBulletRequest
+import com.gmaingret.notes.data.model.PatchBulletRequest
 import com.gmaingret.notes.domain.model.Bullet
 import com.gmaingret.notes.domain.usecase.CreateBulletUseCase
 import com.gmaingret.notes.domain.usecase.DeleteBulletUseCase
@@ -22,7 +25,9 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 /**
@@ -33,8 +38,8 @@ import javax.inject.Inject
  * - Serialize all structural operations through [operationQueue] to prevent race conditions
  * - Expose undo/redo cursor state for toolbar button enabled states
  * - Support zoom-into-bullet mode with breadcrumb navigation
- *
- * Operations stubbed here are fully implemented in Plan 02 (BulletTreeViewModel operations + tests).
+ * - Debounce content and note edits at 500ms to avoid per-keystroke API calls
+ * - Apply optimistic updates for instant UI feedback, reverting on failure
  */
 @HiltViewModel
 class BulletTreeViewModel @Inject constructor(
@@ -79,6 +84,18 @@ class BulletTreeViewModel @Inject constructor(
 
     private var currentDocumentId: String? = null
 
+    /** Local overrides for content while the user is typing (before debounce fires). */
+    private val contentOverrides = mutableMapOf<String, String>()
+
+    /** Local overrides for note while the user is typing (before debounce fires). */
+    private val noteOverrides = mutableMapOf<String, String>()
+
+    /** Debounce channel for content edits: Pair(bulletId, newContent). */
+    private val contentEditFlow = MutableSharedFlow<Pair<String, String>>(replay = 0, extraBufferCapacity = 64)
+
+    /** Debounce channel for note edits: Pair(bulletId, newNote). */
+    private val noteEditFlow = MutableSharedFlow<Pair<String, String>>(replay = 0, extraBufferCapacity = 64)
+
     // -----------------------------------------------------------------------
     // Operation queue — serializes all server calls to prevent race conditions
     // -----------------------------------------------------------------------
@@ -86,8 +103,27 @@ class BulletTreeViewModel @Inject constructor(
     private val operationQueue = Channel<suspend () -> Unit>(capacity = Channel.UNLIMITED)
 
     init {
+        // Drain the operation queue sequentially
         viewModelScope.launch {
             for (op in operationQueue) { op() }
+        }
+
+        // Debounced content PATCH: fire 500ms after the last keystroke per bullet
+        viewModelScope.launch {
+            contentEditFlow
+                .debounce(500)
+                .collect { (bulletId, content) ->
+                    patchBulletUseCase(bulletId, PatchBulletRequest.updateContent(content))
+                }
+        }
+
+        // Debounced note PATCH: fire 500ms after the last keystroke per bullet
+        viewModelScope.launch {
+            noteEditFlow
+                .debounce(500)
+                .collect { (bulletId, note) ->
+                    patchBulletUseCase(bulletId, PatchBulletRequest.updateNote(note))
+                }
         }
     }
 
@@ -124,8 +160,9 @@ class BulletTreeViewModel @Inject constructor(
     /**
      * Rebuilds the UI state from a fresh bullet list.
      * Runs [FlattenTreeUseCase] with the current zoom root and computes the breadcrumb trail.
+     * Preserves [focusedBulletId] to prevent focus loss during silent server reloads.
      */
-    private fun updateState(bullets: List<Bullet>) {
+    private fun updateState(bullets: List<Bullet>, focusedBulletId: String? = null, focusCursorEnd: Boolean = false) {
         val rootId = _zoomRootId.value
         val flatList = flattenTreeUseCase(bullets, rootId = rootId)
 
@@ -144,11 +181,12 @@ class BulletTreeViewModel @Inject constructor(
         }
 
         val currentState = _uiState.value
-        val focusedId = (currentState as? BulletTreeUiState.Success)?.focusedBulletId
+        val preservedFocusId = focusedBulletId ?: (currentState as? BulletTreeUiState.Success)?.focusedBulletId
         _uiState.value = BulletTreeUiState.Success(
             bullets = bullets,
             flatList = flatList,
-            focusedBulletId = focusedId
+            focusedBulletId = preservedFocusId,
+            focusCursorEnd = focusCursorEnd
         )
     }
 
@@ -177,75 +215,433 @@ class BulletTreeViewModel @Inject constructor(
         }
     }
 
+    /** Returns current bullets from Success state, or empty list if not in Success. */
+    private fun currentBullets(): List<Bullet> =
+        (_uiState.value as? BulletTreeUiState.Success)?.bullets ?: emptyList()
+
+    /** Returns current flatList from Success state, or empty list if not in Success. */
+    private fun currentFlatList() =
+        (_uiState.value as? BulletTreeUiState.Success)?.flatList ?: emptyList()
+
     // -----------------------------------------------------------------------
-    // Stubbed operation methods — implemented in Plan 02
+    // Structural operations
     // -----------------------------------------------------------------------
 
+    /**
+     * Creates a new bullet after [afterBulletId] with [parentId] as its parent.
+     *
+     * Optimistic: inserts a temporary bullet immediately so the UI updates at once.
+     * On server success: replaces the temp bullet with the server-returned bullet
+     * and focuses the new bullet's real ID.
+     * On failure: emits snackbar and reloads from server.
+     */
     fun createBullet(afterBulletId: String?, parentId: String?) {
-        // TODO: Plan 02 — enqueue createBulletUseCase call with optimistic insert
+        val docId = currentDocumentId ?: return
+        val bullets = currentBullets()
+
+        // Optimistic: insert temp bullet with a temp UUID
+        val tempId = "temp-${UUID.randomUUID()}"
+        val afterBullet = bullets.find { it.id == afterBulletId }
+        val tempPosition = (afterBullet?.position ?: 0.0) + 0.5
+        val tempBullet = Bullet(
+            id = tempId,
+            documentId = docId,
+            parentId = parentId,
+            content = "",
+            position = tempPosition,
+            isComplete = false,
+            isCollapsed = false,
+            note = null
+        )
+        val optimisticBullets = bullets + tempBullet
+        updateState(optimisticBullets, focusedBulletId = tempId)
+
+        enqueue {
+            val result = createBulletUseCase(
+                CreateBulletRequest(
+                    documentId = docId,
+                    parentId = parentId,
+                    afterId = afterBulletId,
+                    content = ""
+                )
+            )
+            result.fold(
+                onSuccess = { newBullet ->
+                    // Replace temp bullet with real server-returned bullet
+                    val currentBullets = currentBullets()
+                    val updatedBullets = currentBullets.map { b ->
+                        if (b.id == tempId) newBullet else b
+                    }
+                    updateState(updatedBullets, focusedBulletId = newBullet.id)
+                },
+                onFailure = {
+                    _snackbarMessage.emit("Failed to create bullet")
+                    reloadFromServer()
+                }
+            )
+        }
     }
 
+    /**
+     * Deletes [bulletId] from the server.
+     * On optimistic update, removes the bullet and re-flattens.
+     * On failure: emits snackbar and reloads.
+     */
     fun deleteBullet(bulletId: String) {
-        // TODO: Plan 02 — enqueue deleteBulletUseCase call with optimistic removal
+        val bullets = currentBullets()
+        val optimisticBullets = bullets.filter { it.id != bulletId }
+        updateState(optimisticBullets)
+
+        enqueue {
+            deleteBulletUseCase(bulletId).onFailure {
+                _snackbarMessage.emit("Failed to delete bullet")
+                reloadFromServer()
+            }
+        }
     }
 
+    /**
+     * Indents [bulletId] by making it a child of its previous sibling.
+     *
+     * Optimistic: re-parents locally and re-flattens.
+     * On server success: replaces with authoritative bullet from server.
+     * On failure: emits snackbar and reloads.
+     */
     fun indentBullet(bulletId: String) {
-        // TODO: Plan 02 — enqueue indentBulletUseCase call with optimistic re-parent
+        val bullets = currentBullets()
+
+        enqueue {
+            indentBulletUseCase(bulletId).fold(
+                onSuccess = { updatedBullet ->
+                    val updatedBullets = bullets.map { b ->
+                        if (b.id == bulletId) updatedBullet else b
+                    }
+                    updateState(updatedBullets)
+                },
+                onFailure = {
+                    _snackbarMessage.emit("Failed to indent bullet")
+                    reloadFromServer()
+                }
+            )
+        }
     }
 
+    /**
+     * Outdents [bulletId] by moving it to its grandparent's level.
+     *
+     * Optimistic: re-parents locally and re-flattens.
+     * On server success: replaces with authoritative bullet from server.
+     * On failure: emits snackbar and reloads.
+     */
     fun outdentBullet(bulletId: String) {
-        // TODO: Plan 02 — enqueue outdentBulletUseCase call with optimistic re-parent
+        val bullets = currentBullets()
+
+        enqueue {
+            outdentBulletUseCase(bulletId).fold(
+                onSuccess = { updatedBullet ->
+                    val updatedBullets = bullets.map { b ->
+                        if (b.id == bulletId) updatedBullet else b
+                    }
+                    updateState(updatedBullets)
+                },
+                onFailure = {
+                    _snackbarMessage.emit("Failed to outdent bullet")
+                    reloadFromServer()
+                }
+            )
+        }
     }
 
+    /**
+     * Moves [bulletId] up — to the position before its previous visible sibling,
+     * crossing parent boundaries per Dynalist-style spec.
+     *
+     * If the bullet is the first sibling, it moves up to the parent's previous sibling's
+     * last child position.
+     */
     fun moveUp(bulletId: String) {
-        // TODO: Plan 02 — enqueue moveBullet call to swap with previous sibling (cross-parent)
+        val flatList = currentFlatList()
+        val idx = flatList.indexOfFirst { it.bullet.id == bulletId }
+        if (idx <= 0) return // already first, nothing to do
+
+        val bullet = flatList[idx].bullet
+        val prevFlatBullet = flatList[idx - 1]
+
+        // Compute target: place current bullet before prevFlatBullet in the flat list
+        // afterId = the bullet BEFORE prevFlatBullet (if any and same parent), else null
+        val targetAfterIndex = idx - 2
+        val targetAfter = if (targetAfterIndex >= 0) {
+            val candidate = flatList[targetAfterIndex]
+            // Only use as afterId if it's a sibling of prevFlatBullet
+            if (candidate.bullet.parentId == prevFlatBullet.bullet.parentId) {
+                candidate.bullet.id
+            } else null
+        } else null
+
+        val newParentId = prevFlatBullet.bullet.parentId
+
+        enqueue {
+            moveBulletUseCase(
+                bulletId,
+                MoveBulletRequest(newParentId = newParentId, afterId = targetAfter)
+            ).fold(
+                onSuccess = { updatedBullet ->
+                    val bullets = currentBullets()
+                    val updatedBullets = bullets.map { b ->
+                        if (b.id == bulletId) updatedBullet else b
+                    }
+                    updateState(updatedBullets)
+                },
+                onFailure = {
+                    _snackbarMessage.emit("Failed to move bullet up")
+                    reloadFromServer()
+                }
+            )
+        }
     }
 
+    /**
+     * Moves [bulletId] down — to the position after its next visible sibling,
+     * crossing parent boundaries per Dynalist-style spec.
+     *
+     * If the bullet is the last sibling, it moves down to the parent's next sibling's
+     * first child position.
+     */
     fun moveDown(bulletId: String) {
-        // TODO: Plan 02 — enqueue moveBullet call to swap with next sibling (cross-parent)
+        val flatList = currentFlatList()
+        val idx = flatList.indexOfFirst { it.bullet.id == bulletId }
+        if (idx < 0 || idx >= flatList.size - 1) return // already last, nothing to do
+
+        val bullet = flatList[idx].bullet
+        val nextFlatBullet = flatList[idx + 1]
+
+        // Place current bullet after nextFlatBullet
+        val newParentId = nextFlatBullet.bullet.parentId
+        val afterId = nextFlatBullet.bullet.id
+
+        enqueue {
+            moveBulletUseCase(
+                bulletId,
+                MoveBulletRequest(newParentId = newParentId, afterId = afterId)
+            ).fold(
+                onSuccess = { updatedBullet ->
+                    val bullets = currentBullets()
+                    val updatedBullets = bullets.map { b ->
+                        if (b.id == bulletId) updatedBullet else b
+                    }
+                    updateState(updatedBullets)
+                },
+                onFailure = {
+                    _snackbarMessage.emit("Failed to move bullet down")
+                    reloadFromServer()
+                }
+            )
+        }
     }
 
+    /**
+     * Toggles the collapsed state of [bulletId].
+     *
+     * Optimistic: flips isCollapsed in the local bullet list and re-flattens immediately
+     * so children appear/disappear before the API call completes.
+     * PATCHes the new isCollapsed value to the server.
+     * On failure: emits snackbar and reloads.
+     */
     fun toggleCollapse(bulletId: String) {
-        // TODO: Plan 02 — enqueue patchBulletUseCase with isCollapsed toggle
+        val bullets = currentBullets()
+        val target = bullets.find { it.id == bulletId } ?: return
+        val newCollapsed = !target.isCollapsed
+
+        // Optimistic update
+        val optimisticBullets = bullets.map { b ->
+            if (b.id == bulletId) b.copy(isCollapsed = newCollapsed) else b
+        }
+        updateState(optimisticBullets)
+
+        enqueue {
+            patchBulletUseCase(bulletId, PatchBulletRequest.updateIsCollapsed(newCollapsed))
+                .onFailure {
+                    _snackbarMessage.emit("Failed to toggle collapse")
+                    reloadFromServer()
+                }
+        }
     }
 
+    /**
+     * Records [content] for [bulletId] in the local override map and emits to the debounce flow.
+     * The actual PATCH fires 500ms after the last call for a given bullet ID.
+     */
     fun updateContent(bulletId: String, content: String) {
-        // TODO: Plan 02 — debounced 500ms patchBulletUseCase with content
+        contentOverrides[bulletId] = content
+        viewModelScope.launch {
+            contentEditFlow.emit(Pair(bulletId, content))
+        }
     }
 
+    /**
+     * Records [note] for [bulletId] in the local override map and emits to the debounce flow.
+     * The actual PATCH fires 500ms after the last call for a given bullet ID.
+     */
     fun saveNote(bulletId: String, note: String) {
-        // TODO: Plan 02 — debounced 500ms patchBulletUseCase with note
+        noteOverrides[bulletId] = note
+        viewModelScope.launch {
+            noteEditFlow.emit(Pair(bulletId, note))
+        }
     }
 
+    /**
+     * Calls the server undo endpoint, updates canUndo/canRedo from the response,
+     * then reloads the full tree to reflect the reverted state.
+     */
     fun undo() {
-        // TODO: Plan 02 — enqueue undoUseCase, then reloadFromServer + loadUndoStatus
+        enqueue {
+            undoUseCase().fold(
+                onSuccess = { status ->
+                    _canUndo.value = status.canUndo
+                    _canRedo.value = status.canRedo
+                    reloadFromServer()
+                },
+                onFailure = {
+                    _snackbarMessage.emit("Undo failed")
+                }
+            )
+        }
     }
 
+    /**
+     * Calls the server redo endpoint, updates canUndo/canRedo from the response,
+     * then reloads the full tree to reflect the re-applied state.
+     */
     fun redo() {
-        // TODO: Plan 02 — enqueue redoUseCase, then reloadFromServer + loadUndoStatus
+        enqueue {
+            redoUseCase().fold(
+                onSuccess = { status ->
+                    _canUndo.value = status.canUndo
+                    _canRedo.value = status.canRedo
+                    reloadFromServer()
+                },
+                onFailure = {
+                    _snackbarMessage.emit("Redo failed")
+                }
+            )
+        }
     }
 
+    /**
+     * Updates [focusedBulletId] in the current Success state.
+     * No-op if state is not Success.
+     */
     fun setFocusedBullet(bulletId: String?) {
-        // TODO: Plan 02 — update focusedBulletId in Success state
+        val current = _uiState.value as? BulletTreeUiState.Success ?: return
+        _uiState.value = current.copy(focusedBulletId = bulletId, focusCursorEnd = false)
     }
 
+    /**
+     * Zooms into [bulletId]'s subtree. Pass null to zoom back to document root.
+     *
+     * Sets [_zoomRootId] and recomputes the breadcrumb path by walking up the parentId
+     * chain from [bulletId] to the document root.
+     */
     fun zoomTo(bulletId: String?) {
-        // TODO: Plan 02 — set _zoomRootId, call updateState with current bullets
+        _zoomRootId.value = bulletId
+        val bullets = currentBullets()
+        updateState(bullets)
     }
 
+    /**
+     * Handles Enter key pressed on an empty bullet.
+     *
+     * - If bullet has a parent: outdents it (same as pressing Shift+Tab on empty)
+     * - If root-level: clears focus (no further action)
+     */
     fun enterOnEmpty(bulletId: String) {
-        // TODO: Plan 02 — if root level: no-op (or unfocus); else outdent
+        val bullets = currentBullets()
+        val bullet = bullets.find { it.id == bulletId } ?: return
+        if (bullet.parentId != null) {
+            outdentBullet(bulletId)
+        } else {
+            setFocusedBullet(null)
+        }
     }
 
+    /**
+     * Handles Backspace key pressed on an empty bullet.
+     *
+     * Finds the previous visible bullet in the flat list. If there is none, does nothing
+     * (cannot delete the first root bullet). Otherwise:
+     * - Reparents any children of [bulletId] to [bulletId]'s own parent (same sibling group)
+     * - Removes [bulletId] from the local list
+     * - Sets focus to the previous bullet with [focusCursorEnd] = true
+     * - Enqueues DELETE /api/bullets/:id
+     */
     fun backspaceOnEmpty(bulletId: String) {
-        // TODO: Plan 02 — delete bullet, children reparent to previous sibling, focus previous
+        val flatList = currentFlatList()
+        val idx = flatList.indexOfFirst { it.bullet.id == bulletId }
+        if (idx <= 0) return // first bullet — nothing to backspace into
+
+        val prevBullet = flatList[idx - 1].bullet
+        val targetBullet = flatList[idx].bullet
+
+        val bullets = currentBullets()
+
+        // Reparent children of deleted bullet to deleted bullet's own parent
+        val deletedParentId = targetBullet.parentId
+        val optimisticBullets = bullets
+            .filter { it.id != bulletId }
+            .map { b ->
+                if (b.parentId == bulletId) b.copy(parentId = deletedParentId) else b
+            }
+
+        updateState(optimisticBullets, focusedBulletId = prevBullet.id, focusCursorEnd = true)
+
+        enqueue {
+            deleteBulletUseCase(bulletId).onFailure {
+                _snackbarMessage.emit("Failed to delete bullet")
+                reloadFromServer()
+            }
+        }
     }
 
+    /**
+     * Reorders the flat list optimistically for drag-and-drop preview.
+     * Does NOT fire any API call — call [commitBulletMove] when the drag ends.
+     */
     fun moveBulletLocally(fromIndex: Int, toIndex: Int) {
-        // TODO: Plan 02 — optimistic reorder in flatList for drag preview
+        val current = _uiState.value as? BulletTreeUiState.Success ?: return
+        if (fromIndex < 0 || fromIndex >= current.flatList.size) return
+        if (toIndex < 0 || toIndex >= current.flatList.size) return
+        val newFlatList = current.flatList.toMutableList().apply {
+            val item = removeAt(fromIndex)
+            add(toIndex, item)
+        }
+        _uiState.value = current.copy(flatList = newFlatList)
     }
 
+    /**
+     * Fires [MoveBulletUseCase] after a drag ends.
+     *
+     * On success: updates the server-authoritative bullet in the local list and re-flattens.
+     * On failure: emits snackbar and reloads full list from server.
+     */
     fun commitBulletMove(bulletId: String, newParentId: String?, afterId: String?) {
-        // TODO: Plan 02 — enqueue moveBulletUseCase after drag ends, revert on failure
+        val bullets = currentBullets()
+
+        enqueue {
+            moveBulletUseCase(
+                bulletId,
+                MoveBulletRequest(newParentId = newParentId, afterId = afterId)
+            ).fold(
+                onSuccess = { updatedBullet ->
+                    val updatedBullets = bullets.map { b ->
+                        if (b.id == bulletId) updatedBullet else b
+                    }
+                    updateState(updatedBullets)
+                },
+                onFailure = {
+                    _snackbarMessage.emit("Failed to move bullet")
+                    reloadFromServer()
+                }
+            )
+        }
     }
 }

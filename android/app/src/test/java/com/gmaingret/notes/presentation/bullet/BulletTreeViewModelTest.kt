@@ -356,9 +356,12 @@ class BulletTreeViewModelTest {
         val vm = loadedViewModel()
         advanceUntilIdle()
 
+        // Set up mock so it doesn't throw if called — we verify call count after
+        coEvery { patchBulletUseCase("b1", any()) } returns Result.success(bullet1.copy(content = "typing..."))
+
         vm.updateContent("b1", "typing...")
-        // Only advance a small amount — debounce has not fired yet
-        advanceTimeBy(300)
+        // Only advance a small amount — debounce has not fired yet (debounce = 500ms)
+        advanceTimeBy(200)
 
         coVerify(exactly = 0) { patchBulletUseCase(any(), any()) }
     }

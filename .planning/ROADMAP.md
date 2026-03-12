@@ -123,5 +123,5 @@ Plans:
 | 8. Swipe Polish and Quick-Open Palette | v1.1 | 5/5 | Complete | 2026-03-11 |
 | 9. Android Foundation and Auth | 5/5 | Complete   | 2026-03-12 | - |
 | 10. Document Management | 3/3 | Complete   | 2026-03-12 | - |
-| 11. Bullet Tree | 2/4 | In Progress|  | - |
+| 11. Bullet Tree | 3/4 | In Progress|  | - |
 | 12. Reactivity and Polish | v2.0 | 0/TBD | Not started | - |

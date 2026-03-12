@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Native Android Client
 status: ready_to_plan
-stopped_at: Completed 11-02-PLAN.md
-last_updated: "2026-03-12T13:54:00.702Z"
+stopped_at: Completed 11-03-PLAN.md
+last_updated: "2026-03-12T13:57:36.840Z"
 last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 ---
@@ -73,6 +73,7 @@ Progress: [░░░░░░░░░░] 0% (v2.0)
 | Phase 10 P03 | 12 | 3 tasks | 4 files |
 | Phase 11-bullet-tree P01 | 14 | 2 tasks | 28 files |
 | Phase 11-bullet-tree P02 | 9 | 1 tasks | 3 files |
+| Phase 11-bullet-tree P03 | 13 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,8 @@ Recent decisions affecting v2.0:
 - [Phase 11-02]: Content/note debounce uses MutableSharedFlow(extraBufferCapacity=64) + debounce(500ms) in init{} collect — simpler than per-bullet Job cancellation, handles rapid multi-bullet edits without coroutine leaks
 - [Phase 11-02]: createBullet inserts temp UUID bullet optimistically, replaced by server response on success — prevents flatList flicker while API is in flight
 - [Phase 11-02]: backspaceOnEmpty reparents deleted bullet's children to deleted bullet's own parentId — keeps tree consistent without extra API call
+- [Phase 11-03]: LinkAnnotation.Url + addLink require @OptIn(ExperimentalTextApi) in Compose BOM 2025.02 — applied to buildMarkdownAnnotatedString and link test method
+- [Phase 11-03]: BulletRow uses FlowRow for mixed text+chip segments; pure-text bullets use buildMarkdownAnnotatedString directly to avoid FlowRow overhead
 
 ### Pending Todos
 
@@ -130,6 +133,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T13:54:00.699Z
-Stopped at: Completed 11-02-PLAN.md
+Last session: 2026-03-12T13:57:36.837Z
+Stopped at: Completed 11-03-PLAN.md
 Resume file: None

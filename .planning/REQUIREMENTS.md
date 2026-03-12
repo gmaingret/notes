@@ -39,8 +39,8 @@
 
 ### Content Rendering
 
-- [ ] **CONT-01**: Bullet text renders markdown (bold, italic, strikethrough, links)
-- [ ] **CONT-02**: #tags, @mentions, !!dates render as clickable chips
+- [x] **CONT-01**: Bullet text renders markdown (bold, italic, strikethrough, links)
+- [x] **CONT-02**: #tags, @mentions, !!dates render as clickable chips
 - [ ] **CONT-03**: User can view and download file attachments on bullets
 - [ ] **CONT-04**: User can view bookmarked bullets in a dedicated screen
 
@@ -100,8 +100,8 @@
 | TREE-08 | Phase 11 | Complete |
 | TREE-09 | Phase 11 | Pending |
 | TREE-10 | Phase 11 | Complete |
-| CONT-01 | Phase 11 | Pending |
-| CONT-02 | Phase 11 | Pending |
+| CONT-01 | Phase 11 | Complete |
+| CONT-02 | Phase 11 | Complete |
 | TREE-11 | Phase 11 | Complete |
 | CONT-03 | Phase 12 | Pending |
 | CONT-04 | Phase 12 | Pending |

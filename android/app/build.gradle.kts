@@ -68,6 +68,15 @@ android {
     }
 }
 
+// Robolectric Compose UI tests require the debug test manifest (ui-test-manifest).
+// The release unit test variant doesn't have this manifest, so disable it.
+// Use `./gradlew testDebugUnitTest` to run tests (or `./gradlew test` which also runs debug).
+afterEvaluate {
+    tasks.named("testReleaseUnitTest") {
+        enabled = false
+    }
+}
+
 dependencies {
     // Core
     implementation(libs.androidx.core.ktx)

@@ -1,15 +1,5 @@
-import { useMemo, useState } from 'react';
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  closestCenter,
-} from '@dnd-kit/core';
-import type { DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useDocumentBullets, useMoveBullet, useCreateBullet } from '../../hooks/useBullets';
 import type { Bullet } from '../../hooks/useBullets';
 import { BulletNode } from './BulletNode';
@@ -44,24 +34,68 @@ export function flattenTree(
   ]);
 }
 
-function getProjectedDepth(
-  flatItems: FlatBullet[],
-  activeId: string,
-  overId: string,
-  dragOffset: number
-): number {
-  const activeIndex = flatItems.findIndex(f => f.id === activeId);
-  const overIndex = flatItems.findIndex(f => f.id === overId);
-  if (activeIndex === -1 || overIndex === -1) return 0;
+// ─── Custom touch drag & drop ──────────────────────────────────────────────────
 
-  const dragDepth = flatItems[activeIndex].depth;
-  const projectedDepth = dragDepth + Math.round(dragOffset / INDENTATION_WIDTH);
+type DragState = {
+  activeId: string;
+  originDepth: number;
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+};
 
-  const prevItem = flatItems[overIndex - 1];
+type DragProjection = {
+  insertionIndex: number;
+  projectedDepth: number;
+  projectedList: FlatBullet[];
+};
+
+/**
+ * Compute where a dragged bullet would land in the tree.
+ * The active bullet and its descendants are excluded from the projected list,
+ * preventing self-parenting and ensuring correct depth bounds.
+ */
+function computeDragProjection(
+  visibleItems: FlatBullet[],
+  drag: DragState,
+): DragProjection | null {
+  const activeIdx = visibleItems.findIndex(i => i.id === drag.activeId);
+  if (activeIdx === -1) return null;
+
+  // Exclude active item + its descendants
+  const activeDepth = visibleItems[activeIdx].depth;
+  const excluded = new Set<string>([drag.activeId]);
+  for (let i = activeIdx + 1; i < visibleItems.length; i++) {
+    if (visibleItems[i].depth <= activeDepth) break;
+    excluded.add(visibleItems[i].id);
+  }
+  const projectedList = visibleItems.filter(i => !excluded.has(i.id));
+
+  // Find insertion index from pointer Y position
+  let insertionIndex = projectedList.length;
+  for (let i = 0; i < projectedList.length; i++) {
+    const el = document.getElementById(`bullet-row-${projectedList[i].id}`);
+    if (!el) continue;
+    const rect = el.getBoundingClientRect();
+    if (drag.currentY < rect.top + rect.height / 2) {
+      insertionIndex = i;
+      break;
+    }
+  }
+
+  // Depth bounds based on neighbors at insertion point
+  const prevItem = insertionIndex > 0 ? projectedList[insertionIndex - 1] : null;
+  const nextItem = insertionIndex < projectedList.length ? projectedList[insertionIndex] : null;
   const maxDepth = prevItem ? prevItem.depth + 1 : 0;
-  const minDepth = flatItems[overIndex + 1]?.depth ?? 0;
+  const minDepth = nextItem ? nextItem.depth : 0;
 
-  return Math.min(Math.max(projectedDepth, minDepth), maxDepth);
+  // Project depth from horizontal drag offset
+  const deltaX = drag.currentX - drag.startX;
+  const rawDepth = drag.originDepth + Math.round(deltaX / INDENTATION_WIDTH);
+  const projectedDepth = Math.min(Math.max(rawDepth, minDepth), maxDepth);
+
+  return { insertionIndex, projectedDepth, projectedList };
 }
 
 export function BulletTree({
@@ -76,21 +110,9 @@ export function BulletTree({
   const createBullet = useCreateBullet();
   const { focusedBulletId } = useUiStore();
 
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [dragOffsetX, setDragOffsetX] = useState(0);
-  const [overId, setOverId] = useState<string | null>(null);
   const [hideCompleted, setHideCompleted] = useState(false);
-
-  // Tree-level context menu: handles right-clicks on empty document space (outside bullet rows)
   const [treeContextMenu, setTreeContextMenu] = useState<{ x: number; y: number; bulletId: string } | null>(null);
-
-  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    ...(isMobile
-      ? [useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })]
-      : [])
-  );
+  const [drag, setDrag] = useState<DragState | null>(null);
 
   const bulletMap = useMemo(() => buildBulletMap(flatBullets), [flatBullets]);
   const rootId = zoomedBulletId ?? null;
@@ -100,119 +122,120 @@ export function BulletTree({
     [flatItems, hideCompleted]
   );
 
-  function handleDragStart(event: DragStartEvent) {
-    setActiveId(event.active.id as string);
-    setDragOffsetX(0);
-    setOverId(null);
-  }
+  // ─── Drag projection (recomputed on every pointer move) ────────────────────
+  const dragProjection = useMemo(() => {
+    if (!drag) return null;
+    return computeDragProjection(visibleItems, drag);
+  }, [drag, visibleItems]);
 
-  function handleDragMove(event: DragMoveEvent) {
-    setDragOffsetX(event.delta.x);
-    if (event.over) {
-      setOverId(event.over.id as string);
-    }
-  }
+  // Map insertion index from projected list → visible list for drop indicator
+  const dropIndicatorIdx = useMemo(() => {
+    if (!dragProjection) return null;
+    const { insertionIndex, projectedList } = dragProjection;
+    if (insertionIndex >= projectedList.length) return visibleItems.length;
+    const targetId = projectedList[insertionIndex].id;
+    return visibleItems.findIndex(i => i.id === targetId);
+  }, [dragProjection, visibleItems]);
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
+  // ─── Drag callbacks ────────────────────────────────────────────────────────
+  const handleDragStart = useCallback((bulletId: string, x: number, y: number) => {
+    const item = visibleItems.find(i => i.id === bulletId);
+    if (!item) return;
+    setDrag({
+      activeId: bulletId,
+      originDepth: item.depth,
+      startX: x,
+      startY: y,
+      currentX: x,
+      currentY: y,
+    });
+  }, [visibleItems]);
 
-    if (!over || !active) {
-      setActiveId(null);
-      setDragOffsetX(0);
-      setOverId(null);
+  const handleDragMove = useCallback((x: number, y: number) => {
+    setDrag(prev => prev ? { ...prev, currentX: x, currentY: y } : null);
+  }, []);
+
+  // Use refs so handleDragEnd closure stays stable
+  const dragRef = useRef(drag);
+  dragRef.current = drag;
+  const projectionRef = useRef(dragProjection);
+  projectionRef.current = dragProjection;
+
+  const handleDragEnd = useCallback(() => {
+    const d = dragRef.current;
+    const p = projectionRef.current;
+    if (!d || !p) {
+      setDrag(null);
       return;
     }
 
-    const currentActiveId = active.id as string;
-    const currentOverId = over.id as string;
+    const { insertionIndex, projectedDepth, projectedList } = p;
 
-    const activeBullet = bulletMap[currentActiveId];
-    if (!activeBullet) {
-      setActiveId(null);
-      setDragOffsetX(0);
-      setOverId(null);
-      return;
-    }
-
-    const overIndex = visibleItems.findIndex(f => f.id === currentOverId);
-    const projectedDepth = getProjectedDepth(visibleItems, currentActiveId, currentOverId, dragOffsetX);
-
-    // Determine newParentId: find the nearest item at depth === projectedDepth - 1
-    // Search from overIndex inclusive (the hovered item can itself be the parent)
-    // Skip the active bullet to avoid self-parenting cycles
+    // Find newParentId: nearest item above insertion point at depth - 1
     let newParentId: string | null = null;
     if (projectedDepth > 0) {
-      for (let i = overIndex; i >= 0; i--) {
-        if (visibleItems[i].id === currentActiveId) continue;
-        if (visibleItems[i].depth === projectedDepth - 1) {
-          newParentId = visibleItems[i].id;
+      for (let i = insertionIndex - 1; i >= 0; i--) {
+        if (projectedList[i].depth === projectedDepth - 1) {
+          newParentId = projectedList[i].id;
           break;
         }
       }
     }
 
-    // Determine afterId: the nearest preceding item that shares newParentId (i.e. a true sibling).
-    // Walking backward from overIndex ensures we skip items that belong to a different subtree
-    // (e.g. the parent node itself or children of another parent), which would otherwise cause
-    // the server to append the dragged item at the end of the parent's children.
+    // Find afterId: nearest preceding sibling under same parent
     let afterId: string | null = null;
-    for (let i = overIndex - 1; i >= 0; i--) {
-      const candidate = visibleItems[i];
-      if (candidate.id === currentActiveId) continue;
-      if (candidate.parentId === newParentId) {
-        afterId = candidate.id;
+    for (let i = insertionIndex - 1; i >= 0; i--) {
+      if (projectedList[i].parentId === newParentId) {
+        afterId = projectedList[i].id;
         break;
       }
     }
 
-    // Only mutate if something actually changed
-    if (
-      activeBullet.parentId !== newParentId ||
-      currentActiveId !== currentOverId
-    ) {
+    const activeBullet = bulletMap[d.activeId];
+    if (activeBullet) {
       moveBullet.mutate({
-        id: currentActiveId,
+        id: d.activeId,
         documentId,
         newParentId,
         afterId,
       });
     }
 
-    setActiveId(null);
-    setDragOffsetX(0);
-    setOverId(null);
-  }
+    setDrag(null);
+  }, [bulletMap, moveBullet, documentId]);
 
-  function handleDragCancel() {
-    setActiveId(null);
-    setDragOffsetX(0);
-    setOverId(null);
-  }
+  const handleDragCancel = useCallback(() => setDrag(null), []);
 
-  // Compute drop indicator index: insert position within visibleItems
-  const dropIndicatorIndex = useMemo(() => {
-    if (!activeId || !overId) return null;
-    const overIndex = visibleItems.findIndex(f => f.id === overId);
-    if (overIndex === -1) return null;
-    return overIndex;
-  }, [activeId, overId, visibleItems]);
+  // ─── Auto-scroll during drag ──────────────────────────────────────────────
+  const dragYRef = useRef(0);
+  useEffect(() => {
+    if (drag) dragYRef.current = drag.currentY;
+  }, [drag]);
 
-  const projectedDropDepth = useMemo(() => {
-    if (!activeId || !overId) return 0;
-    return getProjectedDepth(visibleItems, activeId, overId, dragOffsetX);
-  }, [activeId, overId, visibleItems, dragOffsetX]);
-
-  const activeBulletForOverlay = activeId ? (bulletMap[activeId] ?? null) : null;
+  const isDragging = drag !== null;
+  useEffect(() => {
+    if (!isDragging) return;
+    let raf: number;
+    const SCROLL_ZONE = 50;
+    const SCROLL_SPEED = 8;
+    function tick() {
+      const main = document.querySelector<HTMLElement>('main');
+      if (!main) { raf = requestAnimationFrame(tick); return; }
+      const rect = main.getBoundingClientRect();
+      const y = dragYRef.current;
+      if (y < rect.top + SCROLL_ZONE) {
+        main.scrollTop -= SCROLL_SPEED;
+      } else if (y > rect.bottom - SCROLL_ZONE) {
+        main.scrollTop += SCROLL_SPEED;
+      }
+      raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [isDragging]);
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragMove={handleDragMove}
-      onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
-    >
+    <>
       <DocumentToolbar
         documentId={documentId}
         hideCompleted={hideCompleted}
@@ -221,86 +244,98 @@ export function BulletTree({
       {focusedBulletId && (
         <FocusToolbar bulletId={focusedBulletId} documentId={documentId} />
       )}
-      <SortableContext
-        items={visibleItems.map(f => f.id)}
-        strategy={verticalListSortingStrategy}
+      <div
+        style={{ position: 'relative' }}
+        onContextMenu={(e) => {
+          const targetBulletId = focusedBulletId ?? visibleItems[0]?.id ?? null;
+          if (!targetBulletId) return;
+          e.preventDefault();
+          setTreeContextMenu({ x: e.clientX, y: e.clientY, bulletId: targetBulletId });
+        }}
       >
+        {treeContextMenu && bulletMap[treeContextMenu.bulletId] && (
+          <ContextMenu
+            bullet={{ ...bulletMap[treeContextMenu.bulletId], depth: 0 }}
+            bulletMap={bulletMap}
+            position={{ x: treeContextMenu.x, y: treeContextMenu.y }}
+            onClose={() => setTreeContextMenu(null)}
+          />
+        )}
+        {visibleItems.length === 0 && !isLoading && (
+          <div
+            onClick={() => createBullet.mutate(
+              { documentId, parentId: zoomedBulletId ?? null, afterId: null, content: '' },
+              {
+                onSuccess: (data) => {
+                  setTimeout(() => {
+                    const el = document.getElementById(`bullet-${data.id}`) as HTMLDivElement | null;
+                    if (el) el.focus();
+                  }, 50);
+                },
+              }
+            )}
+            className="bullet-tree-placeholder"
+            style={{
+              padding: '0.2rem 0',
+              cursor: 'text',
+              userSelect: 'none',
+              fontSize: '0.9375rem',
+              lineHeight: 1.6,
+            }}
+          >
+            {zoomedBulletId ? 'Tap to add bullet point' : 'Click to add your first bullet...'}
+          </div>
+        )}
+        {visibleItems.map((b, idx) => (
+          <div key={b.id} id={`bullet-row-${b.id}`}>
+            {dropIndicatorIdx === idx && drag && b.id !== drag.activeId && (
+              <DropIndicator depth={dragProjection!.projectedDepth} />
+            )}
+            <BulletNode
+              bullet={b}
+              bulletMap={bulletMap}
+              depth={b.depth}
+              isDragging={drag?.activeId === b.id}
+              onDragStart={handleDragStart}
+              onDragMove={handleDragMove}
+              onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
+            />
+          </div>
+        ))}
+        {dropIndicatorIdx === visibleItems.length && drag && (
+          <DropIndicator depth={dragProjection!.projectedDepth} />
+        )}
+        {focusedBulletId && <div style={{ height: 72 }} />}
+      </div>
+
+      {/* Drag overlay — floating bullet preview following the finger */}
+      {drag && bulletMap[drag.activeId] && createPortal(
         <div
-          style={{ position: 'relative' }}
-          onContextMenu={(e) => {
-            // Only fires when right-click did NOT land on a BulletNode
-            // (BulletNode's handler calls stopPropagation).
-            // Show the context menu for the currently focused bullet, if any.
-            const targetBulletId = focusedBulletId ?? visibleItems[0]?.id ?? null;
-            if (!targetBulletId) return;
-            e.preventDefault();
-            setTreeContextMenu({ x: e.clientX, y: e.clientY, bulletId: targetBulletId });
+          style={{
+            position: 'fixed',
+            left: drag.currentX + 10,
+            top: drag.currentY - 20,
+            opacity: 0.8,
+            pointerEvents: 'none',
+            background: 'var(--color-bg-base)',
+            padding: '4px 12px',
+            borderRadius: 6,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            fontSize: '0.9375rem',
+            zIndex: 9999,
+            maxWidth: 240,
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            textOverflow: 'ellipsis',
           }}
         >
-          {treeContextMenu && bulletMap[treeContextMenu.bulletId] && (
-            <ContextMenu
-              bullet={{ ...bulletMap[treeContextMenu.bulletId], depth: 0 }}
-              bulletMap={bulletMap}
-              position={{ x: treeContextMenu.x, y: treeContextMenu.y }}
-              onClose={() => setTreeContextMenu(null)}
-            />
-          )}
-          {visibleItems.length === 0 && !isLoading && (
-            <div
-              onClick={() => createBullet.mutate(
-                { documentId, parentId: zoomedBulletId ?? null, afterId: null, content: '' },
-                {
-                  onSuccess: (data) => {
-                    setTimeout(() => {
-                      const el = document.getElementById(`bullet-${data.id}`) as HTMLDivElement | null;
-                      if (el) el.focus();
-                    }, 50);
-                  },
-                }
-              )}
-              className="bullet-tree-placeholder"
-              style={{
-                padding: '0.2rem 0',
-                cursor: 'text',
-                userSelect: 'none',
-                fontSize: '0.9375rem',
-                lineHeight: 1.6,
-              }}
-            >
-              {zoomedBulletId ? 'Tap to add bullet point' : 'Click to add your first bullet...'}
-            </div>
-          )}
-          {visibleItems.map((b, idx) => (
-            <div key={b.id}>
-              {dropIndicatorIndex === idx && activeId && b.id !== activeId && (
-                <DropIndicator depth={projectedDropDepth} />
-              )}
-              <BulletNode
-                bullet={b}
-                bulletMap={bulletMap}
-                depth={b.depth}
-              />
-            </div>
-          ))}
-          {/* Drop indicator at end of list */}
-          {dropIndicatorIndex === visibleItems.length && activeId && (
-            <DropIndicator depth={projectedDropDepth} />
-          )}
-          {/* Spacer so FocusToolbar (fixed, ~60px) never covers the last bullet */}
-          {focusedBulletId && <div style={{ height: 72 }} />}
-        </div>
-      </SortableContext>
-      <DragOverlay>
-        {activeBulletForOverlay ? (
-          <BulletNode
-            bullet={{ ...activeBulletForOverlay, depth: 0 }}
-            bulletMap={bulletMap}
-            depth={0}
-            isDragOverlay
-          />
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+          <span style={{ marginRight: 6 }}>•</span>
+          {bulletMap[drag.activeId].content || '(empty)'}
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -310,7 +345,7 @@ function DropIndicator({ depth }: { depth: number }) {
       style={{
         height: 2,
         backgroundColor: 'var(--color-accent-blue)',
-        marginLeft: depth * INDENTATION_WIDTH + 32, // 32 = chevron (16) + dot (16)
+        marginLeft: depth * INDENTATION_WIDTH + 32,
         borderRadius: 1,
         pointerEvents: 'none',
       }}

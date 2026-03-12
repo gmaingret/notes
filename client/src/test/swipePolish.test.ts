@@ -31,9 +31,10 @@ describe('Phase 8 — Swipe animations: snap-back and exit', () => {
   });
 });
 
-describe('Phase 8 — Swipe: dnd-kit sensor delay unchanged', () => {
-  // GEST-05: already implemented in Phase 5 — assert it stays
-  it('BulletNode uses TouchSensor with delay 250ms', () => {
-    expect(bulletNode).toContain('delay: 250');
+describe('Phase 8 — Swipe: touch drag activation', () => {
+  // GEST-05: long-press on bullet dot activates drag (500ms)
+  it('BulletNode uses long-press timer for touch drag', () => {
+    expect(bulletNode).toContain('onDragStart');
+    expect(bulletNode).toMatch(/setTimeout/);
   });
 });

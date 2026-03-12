@@ -1,6 +1,8 @@
 package com.gmaingret.notes.presentation.bullet
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -72,6 +74,7 @@ class BulletMarkdownRendererTest {
         assertEquals(TextDecoration.LineThrough, result.spanStyles[0].item.textDecoration)
     }
 
+    @OptIn(ExperimentalTextApi::class)
     @Test
     fun `link produces blue underlined span with annotation`() {
         val result = buildMarkdownAnnotatedString("[label](https://example.com)")
@@ -80,10 +83,12 @@ class BulletMarkdownRendererTest {
         val span = result.spanStyles[0].item
         assertEquals(TextDecoration.Underline, span.textDecoration)
         assertEquals(Color.Blue, span.color)
-        // Check URL annotation exists
-        val annotations = result.getUrlAnnotations(0, result.text.length)
-        assertEquals(1, annotations.size)
-        assertEquals("https://example.com", annotations[0].item.url)
+        // Check link annotation exists via linkAnnotations (Compose 1.7+ API)
+        val linkAnnotations = result.getLinkAnnotations(0, result.text.length)
+        assertEquals(1, linkAnnotations.size)
+        val linkItem = linkAnnotations[0].item
+        assertTrue("Link should be a URL annotation", linkItem is LinkAnnotation.Url)
+        assertEquals("https://example.com", (linkItem as LinkAnnotation.Url).url)
     }
 
     @Test

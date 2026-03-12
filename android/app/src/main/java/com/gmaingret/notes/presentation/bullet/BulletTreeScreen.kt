@@ -72,6 +72,9 @@ fun BulletTreeScreen(
     documentId: String,
     documentTitle: String,
     modifier: Modifier = Modifier,
+    pendingScrollToBulletId: String? = null,
+    onClearPendingScroll: () -> Unit = {},
+    onChipClick: ((String) -> Unit)? = null,
     viewModel: BulletTreeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -145,6 +148,17 @@ fun BulletTreeScreen(
                         var dragHorizontalOffset by remember { mutableFloatStateOf(0f) }
                         var draggedBulletId by remember { mutableStateOf<String?>(null) }
 
+                        // Scroll to bullet when pendingScrollToBulletId changes
+                        LaunchedEffect(pendingScrollToBulletId) {
+                            if (pendingScrollToBulletId != null) {
+                                val targetIndex = flatList.indexOfFirst { it.bullet.id == pendingScrollToBulletId }
+                                if (targetIndex >= 0) {
+                                    lazyListState.animateScrollToItem(targetIndex)
+                                }
+                                onClearPendingScroll()
+                            }
+                        }
+
                         val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
                             viewModel.moveBulletLocally(from.index, to.index)
                         }
@@ -211,6 +225,7 @@ fun BulletTreeScreen(
                                             onNoteChange = { note ->
                                                 viewModel.saveNote(flatBullet.bullet.id, note)
                                             },
+                                            onChipClick = if (flatBullet.bullet.id != focusedBulletId) onChipClick else null,
                                             modifier = Modifier
                                                 .animateItem()
                                                 .draggableHandle(

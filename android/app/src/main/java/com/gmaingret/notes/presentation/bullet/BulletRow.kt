@@ -92,6 +92,7 @@ fun BulletRow(
     onBulletIconTap: () -> Unit,
     onToggleNote: () -> Unit,
     onNoteChange: (String) -> Unit,
+    onChipClick: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val bullet = flatBullet.bullet
@@ -338,7 +339,7 @@ fun BulletRow(
                                             )
                                         }
                                         is ContentSegment.ChipSegment -> {
-                                            InlineChip(segment)
+                                            InlineChip(segment, onChipClick = onChipClick)
                                         }
                                     }
                                 }
@@ -391,9 +392,15 @@ fun BulletRow(
 /**
  * Small inline chip composable for #tag, @mention, !!date segments.
  * Rendered as a rounded box with type-specific background color.
+ *
+ * When [onChipClick] is non-null, the chip is clickable and invokes the callback
+ * with the chip text (e.g. "#tag") — used to pre-fill the search bar.
  */
 @Composable
-private fun InlineChip(chip: ContentSegment.ChipSegment) {
+private fun InlineChip(
+    chip: ContentSegment.ChipSegment,
+    onChipClick: ((String) -> Unit)? = null
+) {
     val backgroundColor = when (chip.type) {
         ChipType.TAG -> Color(0xFF1565C0).copy(alpha = 0.15f)        // blue
         ChipType.MENTION -> Color(0xFF2E7D32).copy(alpha = 0.15f)    // green
@@ -415,6 +422,10 @@ private fun InlineChip(chip: ContentSegment.ChipSegment) {
                         cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())
                     )
                 }
+            )
+            .then(
+                if (onChipClick != null) Modifier.clickable { onChipClick(chip.text) }
+                else Modifier
             )
             .padding(horizontal = 4.dp, vertical = 1.dp)
     ) {

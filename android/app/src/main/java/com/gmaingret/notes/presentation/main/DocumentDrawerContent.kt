@@ -18,8 +18,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,7 +49,8 @@ fun DocumentDrawerContent(
     onCancelRename: () -> Unit,
     onMoveLocally: (Int, Int) -> Unit,
     onCommitReorder: (String) -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onBookmarksClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
 
@@ -55,6 +60,16 @@ fun DocumentDrawerContent(
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 0.dp)
                 .padding(top = 24.dp, bottom = 8.dp)
+        )
+        HorizontalDivider()
+
+        // Bookmarks entry — above document list
+        NavigationDrawerItem(
+            label = { Text("Bookmarks") },
+            icon = { Icon(Icons.Default.Star, contentDescription = "Bookmarks") },
+            selected = false,
+            onClick = onBookmarksClick,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
         HorizontalDivider()
 

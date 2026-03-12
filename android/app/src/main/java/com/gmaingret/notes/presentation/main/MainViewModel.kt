@@ -260,6 +260,45 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    // -----------------------------------------------------------------------
+    // Navigation helpers (Plan 03 — search + bookmarks)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Switches main content area to the Bookmarks screen.
+     * Clears any pending scroll (coming from a previous search result).
+     */
+    fun showBookmarks() {
+        val current = _uiState.value as? MainUiState.Success ?: return
+        _uiState.value = current.copy(showBookmarks = true, pendingScrollToBulletId = null)
+    }
+
+    /**
+     * Navigates to a specific bullet in a document (from search or bookmark tap).
+     * Opens the document, hides bookmarks, and sets pendingScrollToBulletId so
+     * BulletTreeScreen can animate-scroll to the bullet.
+     */
+    fun navigateToBullet(documentId: String, bulletId: String) {
+        val current = _uiState.value as? MainUiState.Success ?: return
+        _uiState.value = current.copy(
+            openDocumentId = documentId,
+            showBookmarks = false,
+            pendingScrollToBulletId = bulletId
+        )
+        viewModelScope.launch {
+            openDocumentUseCase(documentId)
+        }
+    }
+
+    /**
+     * Called by BulletTreeScreen after it has scrolled to the pending bullet.
+     * Clears the pending scroll ID to prevent re-triggering.
+     */
+    fun clearPendingScroll() {
+        val current = _uiState.value as? MainUiState.Success ?: return
+        _uiState.value = current.copy(pendingScrollToBulletId = null)
+    }
+
     /**
      * Refreshes the document list (e.g. when the drawer opens).
      * Preserves the currently open document ID; if it's no longer in the list,

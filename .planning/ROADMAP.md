@@ -39,7 +39,7 @@ Full details: [`.planning/milestones/v1.1-ROADMAP.md`](milestones/v1.1-ROADMAP.m
 
 - [x] **Phase 9: Android Foundation and Auth** — Project scaffold with Clean Architecture, Hilt DI, OkHttp auth infrastructure, login and register screens (completed 2026-03-12)
 - [x] **Phase 10: Document Management** — ModalNavigationDrawer with full document CRUD, drag reorder, last-opened persistence (completed 2026-03-12)
-- [ ] **Phase 11: Bullet Tree** — Flat LazyColumn outliner with all core editing interactions, markdown rendering, and chip syntax
+- [x] **Phase 11: Bullet Tree** — Flat LazyColumn outliner with all core editing interactions, markdown rendering, and chip syntax (completed 2026-03-12)
 - [ ] **Phase 12: Reactivity and Polish** — Swipe gestures, search, undo/redo, pull-to-refresh, animations, attachments, bookmarks
 
 ## Phase Details
@@ -89,7 +89,12 @@ Plans:
   4. User can tap any bullet's icon to zoom into it as the root, with a breadcrumb trail showing the path back
   5. Bullet text displays markdown formatting (bold, italic, strikethrough, links) and #tags/@mentions/!!dates appear as tappable chips
   6. User can view and add comments on a bullet
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 11-01-PLAN.md — Data layer, domain models, FlattenTreeUseCase, ViewModel scaffold
+- [ ] 11-02-PLAN.md — ViewModel operations + unit tests
+- [ ] 11-03-PLAN.md — BulletRow, toolbar, BulletTreeScreen, markdown/chip renderer, MainScreen wiring
+- [ ] 11-04-PLAN.md — Drag-reorder, zoom/breadcrumb, notes field, visual checkpoint
 
 ### Phase 12: Reactivity and Polish
 **Goal**: The app feels fast and native — gestures work, search finds content, undo works, and all screens handle loading and error states correctly
@@ -118,5 +123,5 @@ Plans:
 | 8. Swipe Polish and Quick-Open Palette | v1.1 | 5/5 | Complete | 2026-03-11 |
 | 9. Android Foundation and Auth | 5/5 | Complete   | 2026-03-12 | - |
 | 10. Document Management | 3/3 | Complete   | 2026-03-12 | - |
-| 11. Bullet Tree | v2.0 | 0/TBD | Not started | - |
+| 11. Bullet Tree | 4/4 | Complete    | 2026-03-12 | - |
 | 12. Reactivity and Polish | v2.0 | 0/TBD | Not started | - |

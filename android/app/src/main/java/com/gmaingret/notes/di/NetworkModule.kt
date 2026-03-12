@@ -1,6 +1,7 @@
 package com.gmaingret.notes.di
 
 import com.gmaingret.notes.data.api.AuthApi
+import com.gmaingret.notes.data.api.BulletApi
 import com.gmaingret.notes.data.api.DocumentApi
 import com.gmaingret.notes.data.api.AuthInterceptor
 import com.gmaingret.notes.data.api.TokenAuthenticator
@@ -11,6 +12,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
+import com.google.gson.GsonBuilder
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
@@ -50,7 +52,7 @@ object NetworkModule {
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit = Retrofit.Builder()
         .baseUrl("https://notes.gregorymaingret.fr/")
         .client(okHttpClient)
-        .addConverterFactory(GsonConverterFactory.create())
+        .addConverterFactory(GsonConverterFactory.create(GsonBuilder().serializeNulls().create()))
         .build()
 
     @Provides
@@ -62,4 +64,9 @@ object NetworkModule {
     @Singleton
     fun provideDocumentApi(retrofit: Retrofit): DocumentApi =
         retrofit.create(DocumentApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideBulletApi(retrofit: Retrofit): BulletApi =
+        retrofit.create(BulletApi::class.java)
 }

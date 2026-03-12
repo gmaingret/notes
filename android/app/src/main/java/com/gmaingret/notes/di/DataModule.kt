@@ -1,8 +1,10 @@
 package com.gmaingret.notes.di
 
 import com.gmaingret.notes.data.repository.AuthRepositoryImpl
+import com.gmaingret.notes.data.repository.BulletRepositoryImpl
 import com.gmaingret.notes.data.repository.DocumentRepositoryImpl
 import com.gmaingret.notes.domain.repository.AuthRepository
+import com.gmaingret.notes.domain.repository.BulletRepository
 import com.gmaingret.notes.domain.repository.DocumentRepository
 import dagger.Binds
 import dagger.Module
@@ -29,4 +31,8 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindDocumentRepository(impl: DocumentRepositoryImpl): DocumentRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBulletRepository(impl: BulletRepositoryImpl): BulletRepository
 }

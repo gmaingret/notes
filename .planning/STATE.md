@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Native Android Client
 status: ready_to_plan
-stopped_at: Completed 10-03-PLAN.md
-last_updated: "2026-03-12T11:43:28.197Z"
+stopped_at: Completed 11-04-PLAN.md
+last_updated: "2026-03-12T14:09:24.076Z"
 last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
 progress:
   total_phases: 4
-  completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
+  completed_phases: 3
+  total_plans: 12
+  completed_plans: 12
 ---
 
 ---
@@ -71,6 +71,10 @@ Progress: [░░░░░░░░░░] 0% (v2.0)
 | Phase 10-document-management P01 | 9 | 2 tasks | 10 files |
 | Phase 10 P02 | 7 | 2 tasks | 15 files |
 | Phase 10 P03 | 12 | 3 tasks | 4 files |
+| Phase 11-bullet-tree P01 | 14 | 2 tasks | 28 files |
+| Phase 11-bullet-tree P02 | 9 | 1 tasks | 3 files |
+| Phase 11-bullet-tree P03 | 13 | 2 tasks | 6 files |
+| Phase 11-bullet-tree P04 | 5 | 1 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -109,6 +113,17 @@ Recent decisions affecting v2.0:
 - [Phase 10]: Delete confirmation AlertDialog rendered at MainScreen level (outside ModalDrawerSheet) — ensures correct Z-order over Scaffold content
 - [Phase 10]: [Phase 10-03]: startRename(docId) added to MainViewModel — method was in Plan 02 interface spec but was missing from implementation
 - [Phase 10]: [Phase 10-03]: onFocusChanged hasFocused guard prevents inline TextField cancel firing before initial focus
+- [Phase 11-01]: FlattenTreeUseCase gets @Inject constructor for Hilt — javax.inject is pure Java, no Android deps, still directly instantiable in unit tests
+- [Phase 11-01]: PatchBulletRequest companion factory functions enforce server single-field-per-request contract at call site
+- [Phase 11-01]: BulletTreeViewModel.updateState preserves focusedBulletId across state rebuilds to prevent focus loss during silent server reloads
+- [Phase 11-02]: Content/note debounce uses MutableSharedFlow(extraBufferCapacity=64) + debounce(500ms) in init{} collect — simpler than per-bullet Job cancellation, handles rapid multi-bullet edits without coroutine leaks
+- [Phase 11-02]: createBullet inserts temp UUID bullet optimistically, replaced by server response on success — prevents flatList flicker while API is in flight
+- [Phase 11-02]: backspaceOnEmpty reparents deleted bullet's children to deleted bullet's own parentId — keeps tree consistent without extra API call
+- [Phase 11-03]: LinkAnnotation.Url + addLink require @OptIn(ExperimentalTextApi) in Compose BOM 2025.02 — applied to buildMarkdownAnnotatedString and link test method
+- [Phase 11-03]: BulletRow uses FlowRow for mixed text+chip segments; pure-text bullets use buildMarkdownAnnotatedString directly to avoid FlowRow overhead
+- [Phase 11-04]: Cycle prevention uses flat-list position scan (not recursive tree walk) — avoids extra method since FlattenTreeUseCase produces DFS order
+- [Phase 11-04]: Note expansion state lives in BulletTreeScreen as local Set<String> — pure ephemeral UI state, no need to survive config change
+- [Phase 11-04]: showSnackbar() added to BulletTreeViewModel as public method launching in viewModelScope — allows UI to trigger snackbar without coroutine context
 
 ### Pending Todos
 
@@ -122,6 +137,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T11:43:28.193Z
-Stopped at: Completed 10-03-PLAN.md
+Last session: 2026-03-12T14:04:58.585Z
+Stopped at: Completed 11-04-PLAN.md
 Resume file: None

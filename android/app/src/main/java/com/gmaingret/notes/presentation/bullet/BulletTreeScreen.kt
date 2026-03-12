@@ -23,11 +23,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -38,6 +46,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.platform.LocalDensity
@@ -67,6 +77,7 @@ import kotlin.math.roundToInt
  *   toolbar comment button toggles the focused bullet's note
  * - Collapse/expand animations handled by LazyColumn animateItem() modifier
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BulletTreeScreen(
     documentId: String,
@@ -185,6 +196,78 @@ fun BulletTreeScreen(
                                                 .coerceIn(-flatBullet.depth, 1)
                                         } else 0
 
+                                        val isFocusedBullet = flatBullet.bullet.id == focusedBulletId
+                                        var hapticFired by remember { mutableStateOf(false) }
+
+                                        val dismissState = rememberSwipeToDismissBoxState(
+                                            confirmValueChange = { value ->
+                                                when (value) {
+                                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                                        viewModel.toggleComplete(flatBullet.bullet.id)
+                                                        false // row stays
+                                                    }
+                                                    SwipeToDismissBoxValue.EndToStart -> {
+                                                        viewModel.deleteBullet(flatBullet.bullet.id)
+                                                        true // row slides off
+                                                    }
+                                                    SwipeToDismissBoxValue.Settled -> false
+                                                }
+                                            }
+                                        )
+
+                                        val swipeProgress = dismissState.progress
+                                        LaunchedEffect(swipeProgress) {
+                                            if (swipeProgress >= 1.0f && !hapticFired) {
+                                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                                hapticFired = true
+                                            } else if (swipeProgress < 1.0f) {
+                                                hapticFired = false
+                                            }
+                                        }
+
+                                        SwipeToDismissBox(
+                                            state = dismissState,
+                                            enableDismissFromStartToEnd = !isFocusedBullet && !isDragging,
+                                            enableDismissFromEndToStart = !isFocusedBullet && !isDragging,
+                                            backgroundContent = {
+                                                val direction = dismissState.dismissDirection
+                                                val progress = dismissState.progress.coerceIn(0f, 1f)
+                                                val backgroundColor = when (direction) {
+                                                    SwipeToDismissBoxValue.StartToEnd ->
+                                                        lerp(Color.Transparent, Color(0xFF22C55E), progress)
+                                                    SwipeToDismissBoxValue.EndToStart ->
+                                                        lerp(Color.Transparent, Color(0xFFEF4444), progress)
+                                                    else -> Color.Transparent
+                                                }
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .background(backgroundColor),
+                                                    contentAlignment = when (direction) {
+                                                        SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                                        SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                                        else -> Alignment.Center
+                                                    }
+                                                ) {
+                                                    val iconTint = Color.White.copy(alpha = progress)
+                                                    when (direction) {
+                                                        SwipeToDismissBoxValue.StartToEnd -> Icon(
+                                                            imageVector = Icons.Filled.Check,
+                                                            contentDescription = "Complete",
+                                                            tint = iconTint,
+                                                            modifier = Modifier.padding(start = 16.dp)
+                                                        )
+                                                        SwipeToDismissBoxValue.EndToStart -> Icon(
+                                                            imageVector = Icons.Filled.Delete,
+                                                            contentDescription = "Delete",
+                                                            tint = iconTint,
+                                                            modifier = Modifier.padding(end = 16.dp)
+                                                        )
+                                                        else -> {}
+                                                    }
+                                                }
+                                            }
+                                        ) {
                                         BulletRow(
                                             flatBullet = flatBullet,
                                             isFocused = flatBullet.bullet.id == focusedBulletId,
@@ -358,6 +441,7 @@ fun BulletTreeScreen(
                                                     }
                                                 )
                                         )
+                                        } // end SwipeToDismissBox content
                                     }
                                 }
                             }

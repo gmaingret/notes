@@ -48,8 +48,8 @@
 
 - [ ] **POLL-01**: Loading and error states on all screens
 - [ ] **POLL-02**: Pull-to-refresh on document and bullet views
-- [ ] **POLL-03**: Optimistic updates with rollback on failure
-- [ ] **POLL-04**: Swipe right to complete bullet, swipe left to delete
+- [x] **POLL-03**: Optimistic updates with rollback on failure
+- [x] **POLL-04**: Swipe right to complete bullet, swipe left to delete
 - [x] **POLL-05**: Search across documents and bullets with debounce
 - [ ] **POLL-06**: Undo/redo (server-side, 50 levels)
 - [ ] **POLL-07**: Material 3 dark theme
@@ -107,8 +107,8 @@
 | CONT-04 | Phase 12 | Complete |
 | POLL-01 | Phase 12 | Pending |
 | POLL-02 | Phase 12 | Pending |
-| POLL-03 | Phase 12 | Pending |
-| POLL-04 | Phase 12 | Pending |
+| POLL-03 | Phase 12 | Complete |
+| POLL-04 | Phase 12 | Complete |
 | POLL-05 | Phase 12 | Complete |
 | POLL-06 | Phase 12 | Pending |
 | POLL-07 | Phase 12 | Pending |

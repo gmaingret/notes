@@ -38,7 +38,7 @@ Full details: [`.planning/milestones/v1.1-ROADMAP.md`](milestones/v1.1-ROADMAP.m
 **Milestone Goal:** Native Android client in Kotlin/Jetpack Compose + Material Design 3 that talks to the existing backend API — no new backend features, focus on reactivity and polish.
 
 - [x] **Phase 9: Android Foundation and Auth** — Project scaffold with Clean Architecture, Hilt DI, OkHttp auth infrastructure, login and register screens (completed 2026-03-12)
-- [ ] **Phase 10: Document Management** — ModalNavigationDrawer with full document CRUD, drag reorder, last-opened persistence
+- [x] **Phase 10: Document Management** — ModalNavigationDrawer with full document CRUD, drag reorder, last-opened persistence (completed 2026-03-12)
 - [ ] **Phase 11: Bullet Tree** — Flat LazyColumn outliner with all core editing interactions, markdown rendering, and chip syntax
 - [ ] **Phase 12: Reactivity and Polish** — Swipe gestures, search, undo/redo, pull-to-refresh, animations, attachments, bookmarks
 
@@ -72,7 +72,11 @@ Plans:
   3. User can drag documents in the drawer to reorder them
   4. Tapping a document opens its content in the main area
   5. On cold start, the app re-opens the last document the user was viewing
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 10-01-PLAN.md — Domain model, API, DTOs, repository, DI, lastDocId persistence
+- [ ] 10-02-PLAN.md — Use cases, MainViewModel with document state, unit tests
+- [ ] 10-03-PLAN.md — Drawer UI, document rows, drag-reorder, MainScreen wiring, checkpoint
 
 ### Phase 11: Bullet Tree
 **Goal**: Users can create, edit, and organize an infinitely nested bullet outline with full keyboard loop and rich text rendering
@@ -113,6 +117,6 @@ Plans:
 | 7.1. UI Polish Tweaks | v1.1 | 4/4 | Complete | 2026-03-10 |
 | 8. Swipe Polish and Quick-Open Palette | v1.1 | 5/5 | Complete | 2026-03-11 |
 | 9. Android Foundation and Auth | 5/5 | Complete   | 2026-03-12 | - |
-| 10. Document Management | v2.0 | 0/TBD | Not started | - |
+| 10. Document Management | 3/3 | Complete   | 2026-03-12 | - |
 | 11. Bullet Tree | v2.0 | 0/TBD | Not started | - |
 | 12. Reactivity and Polish | v2.0 | 0/TBD | Not started | - |

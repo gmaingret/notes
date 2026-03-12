@@ -24,6 +24,7 @@ robolectric = "4.16"
 junit = "4.13.2"
 androidxTestCore = "1.6.1"
 androidxTestRunner = "1.6.2"
+reorderable = "3.0.0"
 
 [libraries]
 # Core
@@ -89,6 +90,7 @@ mockk-android = { group = "io.mockk", name = "mockk-android", version.ref = "moc
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
+reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

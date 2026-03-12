@@ -1,6 +1,7 @@
 package com.gmaingret.notes.di
 
 import com.gmaingret.notes.data.api.AuthApi
+import com.gmaingret.notes.data.api.DocumentApi
 import com.gmaingret.notes.data.api.AuthInterceptor
 import com.gmaingret.notes.data.api.TokenAuthenticator
 import com.gmaingret.notes.data.local.DataStoreCookieJar
@@ -56,4 +57,9 @@ object NetworkModule {
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi =
         retrofit.create(AuthApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideDocumentApi(retrofit: Retrofit): DocumentApi =
+        retrofit.create(DocumentApi::class.java)
 }

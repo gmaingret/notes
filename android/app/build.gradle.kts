@@ -124,6 +124,9 @@ dependencies {
     // Serialization
     implementation(libs.kotlinx.serialization.json)
 
+    // Reorderable (drag-to-reorder for Compose lazy lists)
+    implementation(libs.reorderable)
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 

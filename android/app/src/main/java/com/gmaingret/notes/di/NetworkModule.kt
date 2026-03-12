@@ -1,9 +1,12 @@
 package com.gmaingret.notes.di
 
+import com.gmaingret.notes.data.api.AttachmentApi
 import com.gmaingret.notes.data.api.AuthApi
 import com.gmaingret.notes.data.api.BulletApi
+import com.gmaingret.notes.data.api.BookmarkApi
 import com.gmaingret.notes.data.api.DocumentApi
 import com.gmaingret.notes.data.api.AuthInterceptor
+import com.gmaingret.notes.data.api.SearchApi
 import com.gmaingret.notes.data.api.TokenAuthenticator
 import com.gmaingret.notes.data.local.DataStoreCookieJar
 import dagger.Module
@@ -69,4 +72,19 @@ object NetworkModule {
     @Singleton
     fun provideBulletApi(retrofit: Retrofit): BulletApi =
         retrofit.create(BulletApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSearchApi(retrofit: Retrofit): SearchApi =
+        retrofit.create(SearchApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideBookmarkApi(retrofit: Retrofit): BookmarkApi =
+        retrofit.create(BookmarkApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAttachmentApi(retrofit: Retrofit): AttachmentApi =
+        retrofit.create(AttachmentApi::class.java)
 }

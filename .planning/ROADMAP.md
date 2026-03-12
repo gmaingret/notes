@@ -130,4 +130,4 @@ Plans:
 | 9. Android Foundation and Auth | 5/5 | Complete   | 2026-03-12 | - |
 | 10. Document Management | 3/3 | Complete   | 2026-03-12 | - |
 | 11. Bullet Tree | 4/4 | Complete    | 2026-03-12 | - |
-| 12. Reactivity and Polish | v2.0 | 0/5 | Not started | - |
+| 12. Reactivity and Polish | 1/5 | In Progress|  | - |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Native Android Client
 status: ready_to_plan
-stopped_at: Phase 12 context gathered
-last_updated: "2026-03-12T19:20:01.937Z"
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-03-12T20:00:11.372Z"
 last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 17
+  completed_plans: 13
 ---
 
 ---
@@ -90,6 +90,7 @@ Progress: [░░░░░░░░░░] 0% (v2.0)
 | Phase 11-bullet-tree P02 | 9 | 1 tasks | 3 files |
 | Phase 11-bullet-tree P03 | 13 | 2 tasks | 6 files |
 | Phase 11-bullet-tree P04 | 5 | 1 tasks | 5 files |
+| Phase 12-reactivity-and-polish P01 | 453 | 2 tasks | 25 files |
 
 ## Accumulated Context
 
@@ -139,6 +140,8 @@ Recent decisions affecting v2.0:
 - [Phase 11-04]: Cycle prevention uses flat-list position scan (not recursive tree walk) — avoids extra method since FlattenTreeUseCase produces DFS order
 - [Phase 11-04]: Note expansion state lives in BulletTreeScreen as local Set<String> — pure ephemeral UI state, no need to survive config change
 - [Phase 11-04]: showSnackbar() added to BulletTreeViewModel as public method launching in viewModelScope — allows UI to trigger snackbar without coroutine context
+- [Phase 12]: Coil 3.1.0 used (not 3.4.0) — 3.4.0 requires Kotlin 2.3+, incompatible with project Kotlin 2.1.20
+- [Phase 12]: Coil SingletonImageLoader.Factory on NotesApplication reuses auth OkHttpClient for protected attachment URLs
 
 ### Pending Todos
 
@@ -152,6 +155,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T19:20:01.934Z
-Stopped at: Phase 12 context gathered
-Resume file: .planning/phases/12-reactivity-and-polish/12-CONTEXT.md
+Last session: 2026-03-12T20:00:11.369Z
+Stopped at: Completed 12-01-PLAN.md
+Resume file: None

@@ -41,8 +41,8 @@
 
 - [x] **CONT-01**: Bullet text renders markdown (bold, italic, strikethrough, links)
 - [x] **CONT-02**: #tags, @mentions, !!dates render as clickable chips
-- [ ] **CONT-03**: User can view and download file attachments on bullets
-- [ ] **CONT-04**: User can view bookmarked bullets in a dedicated screen
+- [x] **CONT-03**: User can view and download file attachments on bullets
+- [x] **CONT-04**: User can view bookmarked bullets in a dedicated screen
 
 ### Reactivity & Polish
 
@@ -50,7 +50,7 @@
 - [ ] **POLL-02**: Pull-to-refresh on document and bullet views
 - [ ] **POLL-03**: Optimistic updates with rollback on failure
 - [ ] **POLL-04**: Swipe right to complete bullet, swipe left to delete
-- [ ] **POLL-05**: Search across documents and bullets with debounce
+- [x] **POLL-05**: Search across documents and bullets with debounce
 - [ ] **POLL-06**: Undo/redo (server-side, 50 levels)
 - [ ] **POLL-07**: Material 3 dark theme
 - [ ] **POLL-08**: Material 3 animations (AnimatedVisibility, animateItemPlacement, Crossfade)
@@ -103,13 +103,13 @@
 | CONT-01 | Phase 11 | Complete |
 | CONT-02 | Phase 11 | Complete |
 | TREE-11 | Phase 11 | Complete |
-| CONT-03 | Phase 12 | Pending |
-| CONT-04 | Phase 12 | Pending |
+| CONT-03 | Phase 12 | Complete |
+| CONT-04 | Phase 12 | Complete |
 | POLL-01 | Phase 12 | Pending |
 | POLL-02 | Phase 12 | Pending |
 | POLL-03 | Phase 12 | Pending |
 | POLL-04 | Phase 12 | Pending |
-| POLL-05 | Phase 12 | Pending |
+| POLL-05 | Phase 12 | Complete |
 | POLL-06 | Phase 12 | Pending |
 | POLL-07 | Phase 12 | Pending |
 | POLL-08 | Phase 12 | Pending |

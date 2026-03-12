@@ -6,9 +6,12 @@ import com.gmaingret.notes.data.model.CreateBulletRequest
 import com.gmaingret.notes.data.model.MoveBulletRequest
 import com.gmaingret.notes.data.model.PatchBulletRequest
 import com.gmaingret.notes.domain.model.Bullet
+import com.gmaingret.notes.domain.usecase.AddBookmarkUseCase
 import com.gmaingret.notes.domain.usecase.CreateBulletUseCase
 import com.gmaingret.notes.domain.usecase.DeleteBulletUseCase
 import com.gmaingret.notes.domain.usecase.FlattenTreeUseCase
+import com.gmaingret.notes.domain.usecase.GetAttachmentsUseCase
+import com.gmaingret.notes.domain.usecase.GetBookmarksUseCase
 import com.gmaingret.notes.domain.usecase.GetBulletsUseCase
 import com.gmaingret.notes.domain.usecase.GetUndoStatusUseCase
 import com.gmaingret.notes.domain.usecase.IndentBulletUseCase
@@ -16,6 +19,7 @@ import com.gmaingret.notes.domain.usecase.MoveBulletUseCase
 import com.gmaingret.notes.domain.usecase.OutdentBulletUseCase
 import com.gmaingret.notes.domain.usecase.PatchBulletUseCase
 import com.gmaingret.notes.domain.usecase.RedoUseCase
+import com.gmaingret.notes.domain.usecase.RemoveBookmarkUseCase
 import com.gmaingret.notes.domain.usecase.UndoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -53,7 +57,11 @@ class BulletTreeViewModel @Inject constructor(
     private val undoUseCase: UndoUseCase,
     private val redoUseCase: RedoUseCase,
     private val getUndoStatusUseCase: GetUndoStatusUseCase,
-    private val flattenTreeUseCase: FlattenTreeUseCase
+    private val flattenTreeUseCase: FlattenTreeUseCase,
+    private val getBookmarksUseCase: GetBookmarksUseCase,
+    private val addBookmarkUseCase: AddBookmarkUseCase,
+    private val removeBookmarkUseCase: RemoveBookmarkUseCase,
+    private val getAttachmentsUseCase: GetAttachmentsUseCase
 ) : ViewModel() {
 
     // -----------------------------------------------------------------------
@@ -673,6 +681,43 @@ class BulletTreeViewModel @Inject constructor(
                 },
                 onFailure = {
                     _snackbarMessage.emit("Failed to move bullet")
+                    reloadFromServer()
+                }
+            )
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // toggleComplete (Plan 02 — swipe-to-complete)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Optimistically toggles the isComplete flag on a bullet, then persists via PATCH.
+     * On failure, reverts and emits a snackbar message.
+     */
+    fun toggleComplete(bulletId: String) {
+        enqueue {
+            val current = _uiState.value as? BulletTreeUiState.Success ?: return@enqueue
+            val bullet = current.bullets.find { it.id == bulletId } ?: return@enqueue
+            val newComplete = !bullet.isComplete
+
+            // Optimistic update
+            val optimisticBullets = current.bullets.map { b ->
+                if (b.id == bulletId) b.copy(isComplete = newComplete) else b
+            }
+            updateState(optimisticBullets)
+
+            // Persist via PATCH
+            patchBulletUseCase(bulletId, PatchBulletRequest.updateIsComplete(newComplete)).fold(
+                onSuccess = { updatedBullet ->
+                    val latestCurrent = _uiState.value as? BulletTreeUiState.Success ?: return@fold
+                    val updatedBullets = latestCurrent.bullets.map { b ->
+                        if (b.id == bulletId) updatedBullet else b
+                    }
+                    updateState(updatedBullets)
+                },
+                onFailure = {
+                    _snackbarMessage.emit("Failed to update completion state")
                     reloadFromServer()
                 }
             )

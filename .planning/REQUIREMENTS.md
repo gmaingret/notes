@@ -17,10 +17,10 @@
 ### Document Management
 
 - [x] **DOCM-01**: User can view document list in ModalNavigationDrawer
-- [ ] **DOCM-02**: User can create a new document
-- [ ] **DOCM-03**: User can rename a document
-- [ ] **DOCM-04**: User can delete a document
-- [ ] **DOCM-05**: User can drag-reorder documents in the drawer
+- [x] **DOCM-02**: User can create a new document
+- [x] **DOCM-03**: User can rename a document
+- [x] **DOCM-04**: User can delete a document
+- [x] **DOCM-05**: User can drag-reorder documents in the drawer
 - [x] **DOCM-06**: App remembers and re-opens last viewed document
 
 ### Bullet Tree
@@ -85,10 +85,10 @@
 | AUTH-05 | Phase 9 | Complete |
 | AUTH-06 | Phase 9 | Complete |
 | DOCM-01 | Phase 10 | Complete |
-| DOCM-02 | Phase 10 | Pending |
-| DOCM-03 | Phase 10 | Pending |
-| DOCM-04 | Phase 10 | Pending |
-| DOCM-05 | Phase 10 | Pending |
+| DOCM-02 | Phase 10 | Complete |
+| DOCM-03 | Phase 10 | Complete |
+| DOCM-04 | Phase 10 | Complete |
+| DOCM-05 | Phase 10 | Complete |
 | DOCM-06 | Phase 10 | Complete |
 | TREE-01 | Phase 11 | Pending |
 | TREE-02 | Phase 11 | Pending |

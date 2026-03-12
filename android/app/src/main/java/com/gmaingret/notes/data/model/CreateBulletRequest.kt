@@ -1,7 +1,5 @@
 package com.gmaingret.notes.data.model
 
-import com.google.gson.annotations.SerializedName
-
 /**
  * Request body for POST /api/bullets.
  *
@@ -10,8 +8,8 @@ import com.google.gson.annotations.SerializedName
  * [content] is optional — defaults to empty string on the server if omitted.
  */
 data class CreateBulletRequest(
-    @SerializedName("document_id") val documentId: String,
-    @SerializedName("parent_id") val parentId: String?,
-    @SerializedName("after_id") val afterId: String?,
+    val documentId: String,
+    val parentId: String?,
+    val afterId: String?,
     val content: String?
 )

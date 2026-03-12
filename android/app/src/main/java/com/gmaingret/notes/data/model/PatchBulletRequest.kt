@@ -1,7 +1,5 @@
 package com.gmaingret.notes.data.model
 
-import com.google.gson.annotations.SerializedName
-
 /**
  * Request body for PATCH /api/bullets/{id}.
  *
@@ -13,8 +11,8 @@ import com.google.gson.annotations.SerializedName
  */
 data class PatchBulletRequest(
     val content: String? = null,
-    @SerializedName("is_complete") val isComplete: Boolean? = null,
-    @SerializedName("is_collapsed") val isCollapsed: Boolean? = null,
+    val isComplete: Boolean? = null,
+    val isCollapsed: Boolean? = null,
     val note: String? = null
 ) {
     companion object {

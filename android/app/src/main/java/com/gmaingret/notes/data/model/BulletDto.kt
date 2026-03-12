@@ -1,6 +1,5 @@
 package com.gmaingret.notes.data.model
 
-import com.google.gson.annotations.SerializedName
 import com.gmaingret.notes.domain.model.Bullet
 
 /**
@@ -11,14 +10,17 @@ import com.gmaingret.notes.domain.model.Bullet
  */
 data class BulletDto(
     val id: String,
-    @SerializedName("document_id") val documentId: String,
-    @SerializedName("parent_id") val parentId: String?,
+    val documentId: String,
+    val parentId: String?,
     val content: String,
     val position: Double,
-    @SerializedName("is_complete") val isComplete: Boolean,
-    @SerializedName("is_collapsed") val isCollapsed: Boolean,
+    val isComplete: Boolean,
+    val isCollapsed: Boolean,
     val note: String?,
-    @SerializedName("deleted_at") val deletedAt: String?
+    val deletedAt: String?,
+    val createdAt: String?,
+    val updatedAt: String?,
+    val userId: String?
 ) {
     fun toDomain(): Bullet = Bullet(
         id = id,

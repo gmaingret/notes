@@ -84,8 +84,14 @@ class BulletTreeViewModel @Inject constructor(
 
     private var currentDocumentId: String? = null
 
-    /** Local overrides for content while the user is typing (before debounce fires). */
-    private val contentOverrides = mutableMapOf<String, String>()
+    /** Local overrides for content while the user is typing (before debounce fires).
+     *  Exposed as StateFlow so the UI can read the latest typed text even before the
+     *  debounced PATCH fires and the server state is updated. */
+    private val _contentOverrides = MutableStateFlow<Map<String, String>>(emptyMap())
+    val contentOverrides: StateFlow<Map<String, String>> = _contentOverrides.asStateFlow()
+
+    // Backing mutable map — mutations are reflected into _contentOverrides after each change
+    private val contentOverridesMap = mutableMapOf<String, String>()
 
     /** Local overrides for note while the user is typing (before debounce fires). */
     private val noteOverrides = mutableMapOf<String, String>()
@@ -108,12 +114,28 @@ class BulletTreeViewModel @Inject constructor(
             for (op in operationQueue) { op() }
         }
 
-        // Debounced content PATCH: fire 500ms after the last keystroke per bullet
+        // Debounced content PATCH: fire 500ms after the last keystroke per bullet.
+        // On success, update the bullet's content in the local state so display mode
+        // shows the correct text after the override is removed. Without this update,
+        // display mode would fall back to the pre-PATCH bullet.content (stale server value).
         viewModelScope.launch {
             contentEditFlow
                 .debounce(500)
                 .collect { (bulletId, content) ->
                     patchBulletUseCase(bulletId, PatchBulletRequest.updateContent(content))
+                        .onSuccess {
+                            // Update the bullet's content in local state so bullet.content
+                            // reflects the new value before the override is removed.
+                            val current = _uiState.value as? BulletTreeUiState.Success
+                            if (current != null) {
+                                val updatedBullets = current.bullets.map { b ->
+                                    if (b.id == bulletId) b.copy(content = content) else b
+                                }
+                                updateState(updatedBullets)
+                            }
+                            contentOverridesMap.remove(bulletId)
+                            _contentOverrides.value = contentOverridesMap.toMap()
+                        }
                 }
         }
 
@@ -470,9 +492,11 @@ class BulletTreeViewModel @Inject constructor(
     /**
      * Records [content] for [bulletId] in the local override map and emits to the debounce flow.
      * The actual PATCH fires 500ms after the last call for a given bullet ID.
+     * The override is cleared once the debounced PATCH fires so the UI reverts to server state.
      */
     fun updateContent(bulletId: String, content: String) {
-        contentOverrides[bulletId] = content
+        contentOverridesMap[bulletId] = content
+        _contentOverrides.value = contentOverridesMap.toMap()
         viewModelScope.launch {
             contentEditFlow.emit(Pair(bulletId, content))
         }

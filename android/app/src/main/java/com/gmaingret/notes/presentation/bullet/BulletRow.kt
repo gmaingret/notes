@@ -35,6 +35,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
@@ -65,7 +66,9 @@ private val GUIDE_LINE_OFFSET_DP = 8.dp
  * - Bottom: [NoteField] (animated, shown when [isNoteExpanded] is true)
  *
  * When [isDragging] is true, a graphicsLayer applies 1.02x scale + shadowElevation = 8f
- * to give the "lifted card" drag visual.
+ * to give the "lifted card" drag visual.  [dragHorizontalOffsetPx] is applied as
+ * translationX so the item visually follows horizontal finger movement, giving the user
+ * feedback on the target indent level.
  *
  * A small note indicator icon (StickyNote2) is shown when the bullet has a non-empty note
  * and the note field is not expanded. Tapping it calls [onToggleNote].
@@ -78,6 +81,7 @@ fun BulletRow(
     contentOverride: String?,
     focusCursorEnd: Boolean,
     isDragging: Boolean,
+    dragHorizontalOffsetPx: Float,
     isNoteExpanded: Boolean,
     onFocusRequest: () -> Unit,
     onContentChange: (String) -> Unit,
@@ -105,6 +109,11 @@ fun BulletRow(
         mutableStateOf(TextFieldValue(contentOverride ?: bullet.content))
     }
 
+    // Guard: tracks the last text for which onEnterWithContent was invoked.
+    // Prevents double-firing when Compose/IME re-delivers the same onValueChange
+    // after textFieldValue is updated programmatically inside the callback.
+    var enterHandledForText by remember(bullet.id) { mutableStateOf<String?>(null) }
+
     // Keep in sync when content changes from outside (e.g., backspace merge)
     LaunchedEffect(contentOverride) {
         if (contentOverride != null && contentOverride != localText) {
@@ -114,14 +123,19 @@ fun BulletRow(
         }
     }
 
-    // Request focus and bring into view when isFocused becomes true
+    // Request focus and bring into view when isFocused becomes true.
+    // Always place cursor at the end of the text on focus so the user can
+    // continue typing naturally regardless of tap position.
+    // Also reset the enterHandledForText guard so a re-focused bullet can
+    // accept Enter presses again (guard persists across recompositions but
+    // must be cleared each time focus is granted, otherwise an empty-Enter
+    // that sets the guard to "" would permanently block subsequent Enters).
     LaunchedEffect(isFocused) {
         if (isFocused) {
+            enterHandledForText = null
             focusRequester.requestFocus()
-            if (focusCursorEnd) {
-                val text = textFieldValue.text
-                textFieldValue = textFieldValue.copy(selection = TextRange(text.length))
-            }
+            val text = textFieldValue.text
+            textFieldValue = textFieldValue.copy(selection = TextRange(text.length))
             delay(50)
             bringIntoViewRequester.bringIntoView()
         }
@@ -144,6 +158,7 @@ fun BulletRow(
                     scaleX = 1.02f
                     scaleY = 1.02f
                     shadowElevation = 8f
+                    translationX = dragHorizontalOffsetPx
                 }
             }
     ) {
@@ -211,18 +226,38 @@ fun BulletRow(
                             if (newlineIndex >= 0) {
                                 val textBeforeNewline = newText.substring(0, newlineIndex)
                                 if (textBeforeNewline.isEmpty() && localText.isEmpty()) {
-                                    onEnterOnEmpty()
+                                    // Guard: only fire onEnterOnEmpty once per empty-state Enter
+                                    if (enterHandledForText != "") {
+                                        enterHandledForText = ""
+                                        onEnterOnEmpty()
+                                    }
                                 } else {
-                                    localText = textBeforeNewline
-                                    textFieldValue = TextFieldValue(
-                                        textBeforeNewline,
-                                        selection = TextRange(textBeforeNewline.length)
-                                    )
-                                    onContentChange(textBeforeNewline)
-                                    onEnterWithContent()
+                                    // Guard: only fire onEnterWithContent once per unique text value.
+                                    // The Compose + Android IME can re-deliver the same onValueChange
+                                    // after textFieldValue is updated programmatically, causing
+                                    // onEnterWithContent to fire twice and create two bullets.
+                                    if (enterHandledForText != textBeforeNewline) {
+                                        enterHandledForText = textBeforeNewline
+                                        localText = textBeforeNewline
+                                        textFieldValue = TextFieldValue(
+                                            textBeforeNewline,
+                                            selection = TextRange(textBeforeNewline.length)
+                                        )
+                                        // Only sync content if it changed (avoids a redundant
+                                        // contentOverrides recomposition when user presses Enter
+                                        // without having typed new text since last sync)
+                                        if (textBeforeNewline != (contentOverride ?: bullet.content)) {
+                                            onContentChange(textBeforeNewline)
+                                        }
+                                        onEnterWithContent()
+                                    }
                                 }
                                 // Do not update textFieldValue with newline
                             } else {
+                                // Regular typing — clear enter guard so next Enter can fire
+                                if (newText != enterHandledForText) {
+                                    enterHandledForText = null
+                                }
                                 localText = newText
                                 textFieldValue = newValue
                                 onContentChange(newText)
@@ -239,23 +274,23 @@ fun BulletRow(
                                             true
                                         } else false
                                     }
-                                    Key.Enter -> {
-                                        if (localText.isEmpty()) {
-                                            onEnterOnEmpty()
-                                        } else {
-                                            onEnterWithContent()
-                                        }
-                                        true
-                                    }
+                                    // Note: Enter is handled via onValueChange newline detection.
+                                    // Do NOT handle Key.Enter here — it would cause double bullet
+                                    // creation because onValueChange also fires with '\n'.
                                     else -> false
                                 }
                             },
                         textStyle = MaterialTheme.typography.bodyMedium.copy(
                             color = MaterialTheme.colorScheme.onSurface
-                        )
+                        ),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary)
                     )
                 } else {
-                    // Display mode
+                    // Display mode: use contentOverride (latest typed text) if available,
+                    // otherwise fall back to bullet.content (server value).
+                    // This prevents text from disappearing when focus moves away before the
+                    // debounced PATCH has synced the server value back to the local state.
+                    val displayContent = contentOverride ?: bullet.content
                     if (bullet.isComplete) {
                         // Completed: strikethrough at 50% opacity
                         Text(
@@ -266,14 +301,14 @@ fun BulletRow(
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                     )
                                 ) {
-                                    append(bullet.content)
+                                    append(displayContent)
                                 }
                             },
                             style = MaterialTheme.typography.bodyMedium
                         )
                     } else {
                         // Render content segments (chips + markdown)
-                        val segments = parseContentSegments(bullet.content)
+                        val segments = parseContentSegments(displayContent)
                         if (segments.isEmpty()) {
                             // Empty bullet — show placeholder
                             Text(
@@ -284,7 +319,7 @@ fun BulletRow(
                         } else if (segments.all { it is ContentSegment.TextSegment }) {
                             // All text — use markdown AnnotatedString renderer
                             Text(
-                                text = buildMarkdownAnnotatedString(bullet.content),
+                                text = buildMarkdownAnnotatedString(displayContent),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )

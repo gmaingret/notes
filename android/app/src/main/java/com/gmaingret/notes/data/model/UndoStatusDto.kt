@@ -1,6 +1,5 @@
 package com.gmaingret.notes.data.model
 
-import com.google.gson.annotations.SerializedName
 import com.gmaingret.notes.domain.model.UndoStatus
 
 /**
@@ -9,8 +8,8 @@ import com.gmaingret.notes.domain.model.UndoStatus
  * Returned by POST /api/undo, POST /api/redo, and GET /api/undo/status.
  */
 data class UndoStatusDto(
-    @SerializedName("can_undo") val canUndo: Boolean,
-    @SerializedName("can_redo") val canRedo: Boolean
+    val canUndo: Boolean,
+    val canRedo: Boolean
 ) {
     fun toDomain(): UndoStatus = UndoStatus(
         canUndo = canUndo,

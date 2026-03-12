@@ -1,7 +1,5 @@
 package com.gmaingret.notes.data.model
 
-import com.google.gson.annotations.SerializedName
-
 /**
  * Request body for POST /api/bullets/{id}/undo-checkpoint.
  *
@@ -11,5 +9,5 @@ import com.google.gson.annotations.SerializedName
  */
 data class UndoCheckpointRequest(
     val content: String,
-    @SerializedName("previous_content") val previousContent: String?
+    val previousContent: String?
 )

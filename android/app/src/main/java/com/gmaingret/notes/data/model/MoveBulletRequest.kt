@@ -1,7 +1,5 @@
 package com.gmaingret.notes.data.model
 
-import com.google.gson.annotations.SerializedName
-
 /**
  * Request body for POST /api/bullets/{id}/move.
  *
@@ -10,6 +8,6 @@ import com.google.gson.annotations.SerializedName
  * (null = place as first child of newParentId).
  */
 data class MoveBulletRequest(
-    @SerializedName("new_parent_id") val newParentId: String?,
-    @SerializedName("after_id") val afterId: String?
+    val newParentId: String?,
+    val afterId: String?
 )

@@ -10,7 +10,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,11 +38,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import sh.calvin.reorderable.DragGestureDetector
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.math.roundToInt
@@ -78,6 +79,7 @@ fun BulletTreeScreen(
     val breadcrumbPath by viewModel.breadcrumbPath.collectAsState()
     val canUndo by viewModel.canUndo.collectAsState()
     val canRedo by viewModel.canRedo.collectAsState()
+    val contentOverrides by viewModel.contentOverrides.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -147,13 +149,12 @@ fun BulletTreeScreen(
                             viewModel.moveBulletLocally(from.index, to.index)
                         }
 
-                        Column(modifier = Modifier.fillMaxSize()) {
+                        Column(modifier = Modifier.fillMaxSize().imePadding()) {
                             LazyColumn(
                                 state = lazyListState,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f)
-                                    .imePadding()
                             ) {
                                 items(
                                     items = flatList,
@@ -170,9 +171,10 @@ fun BulletTreeScreen(
                                         BulletRow(
                                             flatBullet = flatBullet,
                                             isFocused = flatBullet.bullet.id == focusedBulletId,
-                                            contentOverride = null,
+                                            contentOverride = contentOverrides[flatBullet.bullet.id],
                                             focusCursorEnd = state.focusCursorEnd,
                                             isDragging = isDragging,
+                                            dragHorizontalOffsetPx = if (isDragging) dragHorizontalOffset else 0f,
                                             isNoteExpanded = flatBullet.bullet.id in expandedNoteIds,
                                             onFocusRequest = {
                                                 viewModel.setFocusedBullet(flatBullet.bullet.id)
@@ -211,7 +213,7 @@ fun BulletTreeScreen(
                                             },
                                             modifier = Modifier
                                                 .animateItem()
-                                                .longPressDraggableHandle(
+                                                .draggableHandle(
                                                     onDragStarted = {
                                                         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                                                         draggedBulletId = flatBullet.bullet.id
@@ -219,15 +221,30 @@ fun BulletTreeScreen(
                                                     },
                                                     onDragStopped = {
                                                         val bullet = flatBullet.bullet
-                                                        val currentIndex = flatList.indexOfFirst { it.bullet.id == bullet.id }
-                                                        val targetDepth = (flatBullet.depth + targetDepthDelta).coerceAtLeast(0)
+                                                        // Read the CURRENT flatList from ViewModel state at drop time.
+                                                        // The captured `flatList` is stale after moveBulletLocally() has
+                                                        // already reordered it — using it would compute afterId/newParentId
+                                                        // from the original positions, causing snap-back on release.
+                                                        val liveFlatList = (viewModel.uiState.value as? BulletTreeUiState.Success)?.flatList
+                                                            ?: flatList
+                                                        val currentIndex = liveFlatList.indexOfFirst { it.bullet.id == bullet.id }
+
+                                                        // IMPORTANT: targetDepthDelta is a local val computed from isDragging,
+                                                        // which is already false when onDragStopped fires. Recompute here
+                                                        // directly from dragHorizontalOffset (which IS state and holds the
+                                                        // accumulated horizontal displacement at drop time).
+                                                        val indentPx = with(density) { 24.dp.toPx() }
+                                                        val currentDepth = if (currentIndex >= 0) liveFlatList[currentIndex].depth else flatBullet.depth
+                                                        val droppedDepthDelta = (dragHorizontalOffset / indentPx).roundToInt()
+                                                            .coerceIn(-currentDepth, 1)
+                                                        val targetDepth = (currentDepth + droppedDepthDelta).coerceAtLeast(0)
 
                                                         // Find newParentId: walk up from drop position to find bullet at targetDepth-1
                                                         var newParentId: String? = null
                                                         if (targetDepth > 0 && currentIndex > 0) {
                                                             for (i in (currentIndex - 1) downTo 0) {
-                                                                if (flatList[i].depth == targetDepth - 1) {
-                                                                    newParentId = flatList[i].bullet.id
+                                                                if (liveFlatList[i].depth == targetDepth - 1) {
+                                                                    newParentId = liveFlatList[i].bullet.id
                                                                     break
                                                                 }
                                                             }
@@ -238,10 +255,10 @@ fun BulletTreeScreen(
                                                             // Descendants are bullets between dragged index and the next at same-or-lower depth
                                                             val descendantIds = mutableSetOf<String>()
                                                             if (currentIndex >= 0) {
-                                                                val draggedDepth = flatBullet.depth
-                                                                for (i in (currentIndex + 1) until flatList.size) {
-                                                                    if (flatList[i].depth > draggedDepth) {
-                                                                        descendantIds.add(flatList[i].bullet.id)
+                                                                val draggedDepth = currentDepth
+                                                                for (i in (currentIndex + 1) until liveFlatList.size) {
+                                                                    if (liveFlatList[i].depth > draggedDepth) {
+                                                                        descendantIds.add(liveFlatList[i].bullet.id)
                                                                     } else {
                                                                         break
                                                                     }
@@ -251,15 +268,13 @@ fun BulletTreeScreen(
                                                         } else false
 
                                                         if (isDescendant) {
-                                                            // Reset: show snackbar via ViewModel — launch in view scope not available here,
-                                                            // so we use the snackbar channel approach
                                                             viewModel.showSnackbar("Cannot move bullet under its own child")
                                                         } else {
                                                             // Find afterId: previous sibling at same depth under same parent
                                                             var afterId: String? = null
                                                             if (currentIndex > 0) {
                                                                 for (i in (currentIndex - 1) downTo 0) {
-                                                                    val candidate = flatList[i]
+                                                                    val candidate = liveFlatList[i]
                                                                     if (candidate.bullet.parentId == newParentId && candidate.depth == targetDepth) {
                                                                         afterId = candidate.bullet.id
                                                                         break
@@ -277,15 +292,35 @@ fun BulletTreeScreen(
 
                                                         draggedBulletId = null
                                                         dragHorizontalOffset = 0f
-                                                    }
-                                                )
-                                                .pointerInput(flatBullet.bullet.id) {
-                                                    detectDragGestures { _, dragAmount ->
-                                                        if (draggedBulletId == flatBullet.bullet.id) {
-                                                            dragHorizontalOffset += dragAmount.x
+                                                    },
+                                                    // Use a custom DragGestureDetector wrapping LongPress so that
+                                                    // we receive each drag delta to accumulate horizontal offset.
+                                                    // The plain longPressDraggableHandle modifier consumes all
+                                                    // pointer events, making a separate pointerInput for horizontal
+                                                    // tracking impossible. Wrapping via DragGestureDetector lets us
+                                                    // intercept onDrag(change, dragAmount) before the library handles it.
+                                                    dragGestureDetector = object : DragGestureDetector {
+                                                        override suspend fun PointerInputScope.detect(
+                                                            onDragStart: (androidx.compose.ui.geometry.Offset) -> Unit,
+                                                            onDragEnd: () -> Unit,
+                                                            onDragCancel: () -> Unit,
+                                                            onDrag: (PointerInputChange, androidx.compose.ui.geometry.Offset) -> Unit
+                                                        ) {
+                                                            with(DragGestureDetector.LongPress) {
+                                                                detect(
+                                                                    onDragStart = onDragStart,
+                                                                    onDragEnd = onDragEnd,
+                                                                    onDragCancel = onDragCancel,
+                                                                    onDrag = { change, dragAmount ->
+                                                                        // Accumulate horizontal offset before forwarding
+                                                                        dragHorizontalOffset += dragAmount.x
+                                                                        onDrag(change, dragAmount)
+                                                                    }
+                                                                )
+                                                            }
                                                         }
                                                     }
-                                                }
+                                                )
                                         )
                                     }
                                 }

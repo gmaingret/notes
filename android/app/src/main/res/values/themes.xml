@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Base application theme -->
+    <style name="Theme.Notes" parent="android:Theme.Material.NoActionBar">
+        <!-- Edge-to-edge: system bars transparent, content draws behind them -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Splash screen theme (shown while app initializes) -->
+    <style name="Theme.Notes.Splash" parent="Theme.SplashScreen">
+        <!-- Splash background matches brand color -->
+        <item name="windowSplashScreenBackground">@color/seed_blue</item>
+        <!-- Animated icon (foreground of adaptive icon) -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <!-- Theme to apply after splash is dismissed -->
+        <item name="postSplashScreenTheme">@style/Theme.Notes</item>
+    </style>
+
+</resources>

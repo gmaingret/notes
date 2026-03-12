@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Native Android Client
 status: ready_to_plan
-stopped_at: Phase 11 context gathered
-last_updated: "2026-03-12T12:55:14.078Z"
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-03-12T13:41:36.486Z"
 last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 12
+  completed_plans: 9
 ---
 
 ---
@@ -71,6 +71,7 @@ Progress: [░░░░░░░░░░] 0% (v2.0)
 | Phase 10-document-management P01 | 9 | 2 tasks | 10 files |
 | Phase 10 P02 | 7 | 2 tasks | 15 files |
 | Phase 10 P03 | 12 | 3 tasks | 4 files |
+| Phase 11-bullet-tree P01 | 14 | 2 tasks | 28 files |
 
 ## Accumulated Context
 
@@ -109,6 +110,9 @@ Recent decisions affecting v2.0:
 - [Phase 10]: Delete confirmation AlertDialog rendered at MainScreen level (outside ModalDrawerSheet) — ensures correct Z-order over Scaffold content
 - [Phase 10]: [Phase 10-03]: startRename(docId) added to MainViewModel — method was in Plan 02 interface spec but was missing from implementation
 - [Phase 10]: [Phase 10-03]: onFocusChanged hasFocused guard prevents inline TextField cancel firing before initial focus
+- [Phase 11-01]: FlattenTreeUseCase gets @Inject constructor for Hilt — javax.inject is pure Java, no Android deps, still directly instantiable in unit tests
+- [Phase 11-01]: PatchBulletRequest companion factory functions enforce server single-field-per-request contract at call site
+- [Phase 11-01]: BulletTreeViewModel.updateState preserves focusedBulletId across state rebuilds to prevent focus loss during silent server reloads
 
 ### Pending Todos
 
@@ -122,6 +126,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T12:55:14.075Z
-Stopped at: Phase 11 context gathered
-Resume file: .planning/phases/11-bullet-tree/11-CONTEXT.md
+Last session: 2026-03-12T13:41:36.483Z
+Stopped at: Completed 11-01-PLAN.md
+Resume file: None

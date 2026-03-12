@@ -25,13 +25,13 @@
 
 ### Bullet Tree
 
-- [ ] **TREE-01**: User can view nested bullets in flat LazyColumn with depth-based indent
+- [x] **TREE-01**: User can view nested bullets in flat LazyColumn with depth-based indent
 - [ ] **TREE-02**: User can create new bullets (Enter creates sibling; second Enter on empty bullet outdents instead of creating another)
 - [ ] **TREE-03**: User can edit bullet content with debounced save
 - [ ] **TREE-04**: User can delete bullets (Backspace on empty / toolbar)
 - [ ] **TREE-05**: User can indent/outdent bullets (toolbar buttons)
 - [ ] **TREE-06**: User can collapse/expand bullets with children (animated)
-- [ ] **TREE-07**: User can mark bullets complete (strikethrough + opacity)
+- [x] **TREE-07**: User can mark bullets complete (strikethrough + opacity)
 - [ ] **TREE-08**: User can zoom into any bullet with breadcrumb navigation
 - [ ] **TREE-09**: User can drag-reorder bullets with projection algorithm
 - [ ] **TREE-10**: User can add/edit notes field per bullet
@@ -90,13 +90,13 @@
 | DOCM-04 | Phase 10 | Complete |
 | DOCM-05 | Phase 10 | Complete |
 | DOCM-06 | Phase 10 | Complete |
-| TREE-01 | Phase 11 | Pending |
+| TREE-01 | Phase 11 | Complete |
 | TREE-02 | Phase 11 | Pending |
 | TREE-03 | Phase 11 | Pending |
 | TREE-04 | Phase 11 | Pending |
 | TREE-05 | Phase 11 | Pending |
 | TREE-06 | Phase 11 | Pending |
-| TREE-07 | Phase 11 | Pending |
+| TREE-07 | Phase 11 | Complete |
 | TREE-08 | Phase 11 | Pending |
 | TREE-09 | Phase 11 | Pending |
 | TREE-10 | Phase 11 | Pending |

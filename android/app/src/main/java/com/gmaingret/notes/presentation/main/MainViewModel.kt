@@ -164,6 +164,14 @@ class MainViewModel @Inject constructor(
     }
 
     /**
+     * Starts inline editing for the given document (sets inlineEditingDocId).
+     */
+    fun startRename(docId: String) {
+        val current = _uiState.value as? MainUiState.Success ?: return
+        _uiState.value = current.copy(inlineEditingDocId = docId)
+    }
+
+    /**
      * Cancels the inline rename. The document being edited stays in the list
      * (user can rename later).
      */

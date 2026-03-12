@@ -72,7 +72,11 @@ Plans:
   3. User can drag documents in the drawer to reorder them
   4. Tapping a document opens its content in the main area
   5. On cold start, the app re-opens the last document the user was viewing
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 10-01-PLAN.md — Domain model, API, DTOs, repository, DI, lastDocId persistence
+- [ ] 10-02-PLAN.md — Use cases, MainViewModel with document state, unit tests
+- [ ] 10-03-PLAN.md — Drawer UI, document rows, drag-reorder, MainScreen wiring, checkpoint
 
 ### Phase 11: Bullet Tree
 **Goal**: Users can create, edit, and organize an infinitely nested bullet outline with full keyboard loop and rich text rendering

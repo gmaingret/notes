@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.gmaingret.notes.domain.model.Document
+import com.gmaingret.notes.presentation.bullet.BulletTreeScreen
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -202,25 +203,11 @@ fun MainScreen(
                     }
                     is MainUiState.Success -> {
                         if (state.openDocumentId != null) {
-                            val openDoc = state.documents.find { it.id == state.openDocumentId }
-                            if (openDoc != null) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(16.dp)
-                                ) {
-                                    Text(
-                                        text = openDoc.title,
-                                        style = MaterialTheme.typography.headlineMedium
-                                    )
-                                    Text(
-                                        text = "Content area — Phase 11 will add the bullet tree editor here",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(top = 8.dp)
-                                    )
-                                }
-                            }
+                            BulletTreeScreen(
+                                documentId = state.openDocumentId,
+                                documentTitle = state.documents.find { it.id == state.openDocumentId }?.title ?: "Notes",
+                                modifier = Modifier.fillMaxSize()
+                            )
                         } else {
                             Text("Select a document")
                         }

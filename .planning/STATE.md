@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Native Android Client
 status: ready_to_plan
-stopped_at: Phase 9 context gathered
-last_updated: "2026-03-12T08:09:58.445Z"
+stopped_at: Completed 09-02-PLAN.md — POST /api/auth/google/token deployed
+last_updated: "2026-03-12T08:59:10.050Z"
 last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 5
+  completed_plans: 1
 ---
 
 ---
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0% (v2.0)
 | 12. Reactivity and Polish | TBD | Not started |
 
 *Updated after each plan completion*
+| Phase 09 P02 | 12 | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting v2.0:
 - v2.0 arch: FlattenTreeUseCase must be a pure Kotlin recursive DFS — unit-testable without device
 - v2.0 arch: BulletTreeViewModel optimistic updates designed in Phase 11 from the start — not retrofitted
 - v2.0 scope: No Room database (no offline mode), no Firebase, no Play Services
+- [Phase 09]: google-auth-library OAuth2Client.verifyIdToken() used for native Android Google SSO server-side verification
+- [Phase 09]: POST /api/auth/google/token response shape matches email/password login exactly — Android reuses same token handler
 
 ### Pending Todos
 
@@ -92,6 +95,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T08:09:58.428Z
-Stopped at: Phase 9 context gathered
-Resume file: .planning/phases/09-android-foundation-and-auth/09-CONTEXT.md
+Last session: 2026-03-12T08:59:10.047Z
+Stopped at: Completed 09-02-PLAN.md — POST /api/auth/google/token deployed
+Resume file: None

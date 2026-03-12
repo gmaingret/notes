@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Native Android Client
 status: ready_to_plan
-stopped_at: Completed 10-02-PLAN.md
-last_updated: "2026-03-12T11:34:03.979Z"
+stopped_at: Completed 10-03-PLAN.md
+last_updated: "2026-03-12T11:43:28.197Z"
 last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 ---
@@ -70,6 +70,7 @@ Progress: [░░░░░░░░░░] 0% (v2.0)
 | Phase 09 P05 | 11 | 3 tasks | 10 files |
 | Phase 10-document-management P01 | 9 | 2 tasks | 10 files |
 | Phase 10 P02 | 7 | 2 tasks | 15 files |
+| Phase 10 P03 | 12 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,9 @@ Recent decisions affecting v2.0:
 - [Phase 10-02]: OpenDocumentUseCase.invoke() is Unit-returning — fire-and-forget; saveLastDocId always runs regardless of API result
 - [Phase 10-02]: SharedFlow snackbar test: launch collect job before triggering failure, cancel after advanceUntilIdle — avoids UncompletedCoroutinesError
 - [Phase 10-02]: commitReorder revert reloads full list from API rather than caching a snapshot — simpler and always server-consistent
+- [Phase 10]: Delete confirmation AlertDialog rendered at MainScreen level (outside ModalDrawerSheet) — ensures correct Z-order over Scaffold content
+- [Phase 10]: [Phase 10-03]: startRename(docId) added to MainViewModel — method was in Plan 02 interface spec but was missing from implementation
+- [Phase 10]: [Phase 10-03]: onFocusChanged hasFocused guard prevents inline TextField cancel firing before initial focus
 
 ### Pending Todos
 
@@ -118,6 +122,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T11:34:03.977Z
-Stopped at: Completed 10-02-PLAN.md
+Last session: 2026-03-12T11:43:28.193Z
+Stopped at: Completed 10-03-PLAN.md
 Resume file: None

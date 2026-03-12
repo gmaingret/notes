@@ -1,6 +1,7 @@
 package com.gmaingret.notes.presentation.main
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -318,31 +319,43 @@ fun MainScreen(
                         }
                     }
                     is MainUiState.Success -> {
-                        if (state.showBookmarks) {
-                            // Bookmarks screen
-                            BookmarksScreen(
-                                uiState = bookmarksUiState,
-                                onBookmarkClick = { bookmark ->
-                                    viewModel.navigateToBullet(bookmark.documentId, bookmark.bulletId)
-                                },
-                                onRetry = { bookmarksViewModel.loadBookmarks() },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else if (state.openDocumentId != null) {
-                            BulletTreeScreen(
-                                documentId = state.openDocumentId,
-                                documentTitle = state.documents.find { it.id == state.openDocumentId }?.title ?: "Notes",
-                                pendingScrollToBulletId = state.pendingScrollToBulletId,
-                                onClearPendingScroll = { viewModel.clearPendingScroll() },
-                                onChipClick = { chipText ->
-                                    isSearchActive = true
-                                    searchQuery = chipText
-                                    searchViewModel.onQueryChange(chipText)
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            Text("Select a document")
+                        // Crossfade between bookmarks and bullet tree for smooth screen transitions
+                        val contentKey = when {
+                            state.showBookmarks -> "bookmarks"
+                            state.openDocumentId != null -> "doc:${state.openDocumentId}"
+                            else -> "empty"
+                        }
+                        Crossfade(targetState = contentKey, label = "content-crossfade") { key ->
+                            when {
+                                key == "bookmarks" -> {
+                                    BookmarksScreen(
+                                        uiState = bookmarksUiState,
+                                        onBookmarkClick = { bookmark ->
+                                            viewModel.navigateToBullet(bookmark.documentId, bookmark.bulletId)
+                                        },
+                                        onRetry = { bookmarksViewModel.loadBookmarks() },
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                                key.startsWith("doc:") -> {
+                                    val docId = state.openDocumentId ?: return@Crossfade
+                                    BulletTreeScreen(
+                                        documentId = docId,
+                                        documentTitle = state.documents.find { it.id == docId }?.title ?: "Notes",
+                                        pendingScrollToBulletId = state.pendingScrollToBulletId,
+                                        onClearPendingScroll = { viewModel.clearPendingScroll() },
+                                        onChipClick = { chipText ->
+                                            isSearchActive = true
+                                            searchQuery = chipText
+                                            searchViewModel.onQueryChange(chipText)
+                                        },
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                                else -> {
+                                    Text("Select a document")
+                                }
+                            }
                         }
                     }
                 }

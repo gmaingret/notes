@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Native Android Client
 status: ready_to_plan
-stopped_at: Completed 09-03-PLAN.md
-last_updated: "2026-03-12T09:25:39.561Z"
+stopped_at: Completed 09-04-PLAN.md
+last_updated: "2026-03-12T09:40:18.092Z"
 last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 ---
@@ -66,6 +66,7 @@ Progress: [░░░░░░░░░░] 0% (v2.0)
 | Phase 09 P02 | 12 | 1 tasks | 3 files |
 | Phase 09-android-foundation-and-auth P01 | 18 | 3 tasks | 28 files |
 | Phase 09 P03 | 6 | 3 tasks | 13 files |
+| Phase 09-android-foundation-and-auth P04 | 9 | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,8 @@ Recent decisions affecting v2.0:
 - [Phase 09-03]: AndroidKeysetManager used for Tink keyset management (keyset in SharedPreferences, master key in Android Keystore)
 - [Phase 09-03]: DataStoreCookieJar keys cookies as 'host|name' for efficient per-host filtering on loadForRequest
 - [Phase 09-03]: CheckAuthUseCase calls refresh() (not getAccessToken) to validate server-side refreshToken cookie validity on cold start
+- [Phase 09-04]: AuthRoute is data class (not object) to carry showNetworkError boolean from splash flow to AuthScreen
+- [Phase 09-04]: HttpException 409 field=email -> emailError; 401 -> passwordError 'Wrong email or password'; IOException -> snackbar
 
 ### Pending Todos
 
@@ -103,6 +106,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T09:25:39.558Z
-Stopped at: Completed 09-03-PLAN.md
+Last session: 2026-03-12T09:40:18.090Z
+Stopped at: Completed 09-04-PLAN.md
 Resume file: None

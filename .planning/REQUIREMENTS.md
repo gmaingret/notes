@@ -7,12 +7,12 @@
 
 ### Authentication & Network
 
-- [ ] **AUTH-01**: User can register with email and password
-- [ ] **AUTH-02**: User can log in with email and password
+- [x] **AUTH-01**: User can register with email and password
+- [x] **AUTH-02**: User can log in with email and password
 - [x] **AUTH-03**: User can log in with Google SSO (Credential Manager API)
 - [x] **AUTH-04**: JWT bearer token injected on all API requests via OkHttp Interceptor
 - [x] **AUTH-05**: Token refresh via httpOnly cookie with Mutex-synchronized Authenticator
-- [ ] **AUTH-06**: Silent re-login on cold start via persisted refresh cookie
+- [x] **AUTH-06**: Silent re-login on cold start via persisted refresh cookie
 
 ### Document Management
 
@@ -78,12 +78,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 9 | Pending |
-| AUTH-02 | Phase 9 | Pending |
+| AUTH-01 | Phase 9 | Complete |
+| AUTH-02 | Phase 9 | Complete |
 | AUTH-03 | Phase 9 | Complete |
 | AUTH-04 | Phase 9 | Complete |
 | AUTH-05 | Phase 9 | Complete |
-| AUTH-06 | Phase 9 | Pending |
+| AUTH-06 | Phase 9 | Complete |
 | DOCM-01 | Phase 10 | Pending |
 | DOCM-02 | Phase 10 | Pending |
 | DOCM-03 | Phase 10 | Pending |

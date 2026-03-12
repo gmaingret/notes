@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Native Android Client
 status: ready_to_plan
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-03-12T09:15:48.785Z"
+stopped_at: Completed 09-03-PLAN.md
+last_updated: "2026-03-12T09:25:39.561Z"
 last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 5
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 ---
@@ -65,6 +65,7 @@ Progress: [░░░░░░░░░░] 0% (v2.0)
 *Updated after each plan completion*
 | Phase 09 P02 | 12 | 1 tasks | 3 files |
 | Phase 09-android-foundation-and-auth P01 | 18 | 3 tasks | 28 files |
+| Phase 09 P03 | 6 | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,9 @@ Recent decisions affecting v2.0:
 - [Phase 09-android-foundation-and-auth]: Hilt downgraded to 2.56.1 (2.59.x requires AGP 9.0+; 2.56.1 last AGP-8.x-compatible version)
 - [Phase 09-android-foundation-and-auth]: AGP bumped to 8.9.1 + compileSdk 36 (required by Navigation3 1.0.1 transitive deps)
 - [Phase 09-android-foundation-and-auth]: XML theme uses android:Theme.Material.NoActionBar base; Material3 applied at runtime via NotesTheme composable (com.google.android.material not a dependency)
+- [Phase 09-03]: AndroidKeysetManager used for Tink keyset management (keyset in SharedPreferences, master key in Android Keystore)
+- [Phase 09-03]: DataStoreCookieJar keys cookies as 'host|name' for efficient per-host filtering on loadForRequest
+- [Phase 09-03]: CheckAuthUseCase calls refresh() (not getAccessToken) to validate server-side refreshToken cookie validity on cold start
 
 ### Pending Todos
 
@@ -99,6 +103,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T09:15:48.782Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-03-12T09:25:39.558Z
+Stopped at: Completed 09-03-PLAN.md
 Resume file: None

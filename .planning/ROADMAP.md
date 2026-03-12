@@ -112,7 +112,7 @@ Plans:
 | 7. Icons, Fonts, and PWA | v1.1 | 5/5 | Complete | 2026-03-10 |
 | 7.1. UI Polish Tweaks | v1.1 | 4/4 | Complete | 2026-03-10 |
 | 8. Swipe Polish and Quick-Open Palette | v1.1 | 5/5 | Complete | 2026-03-11 |
-| 9. Android Foundation and Auth | 2/5 | In Progress|  | - |
+| 9. Android Foundation and Auth | 3/5 | In Progress|  | - |
 | 10. Document Management | v2.0 | 0/TBD | Not started | - |
 | 11. Bullet Tree | v2.0 | 0/TBD | Not started | - |
 | 12. Reactivity and Polish | v2.0 | 0/TBD | Not started | - |

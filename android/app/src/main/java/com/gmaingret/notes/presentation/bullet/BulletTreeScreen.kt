@@ -83,6 +83,9 @@ fun BulletTreeScreen(
     val canUndo by viewModel.canUndo.collectAsState()
     val canRedo by viewModel.canRedo.collectAsState()
     val contentOverrides by viewModel.contentOverrides.collectAsState()
+    val bookmarkedBulletIds by viewModel.bookmarkedBulletIds.collectAsState()
+    val attachments by viewModel.attachments.collectAsState()
+    val expandedAttachments by viewModel.expandedAttachments.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -190,6 +193,9 @@ fun BulletTreeScreen(
                                             isDragging = isDragging,
                                             dragHorizontalOffsetPx = if (isDragging) dragHorizontalOffset else 0f,
                                             isNoteExpanded = flatBullet.bullet.id in expandedNoteIds,
+                                            isBookmarked = flatBullet.bullet.id in bookmarkedBulletIds,
+                                            isAttachmentsExpanded = flatBullet.bullet.id in expandedAttachments,
+                                            attachments = attachments[flatBullet.bullet.id] ?: emptyList(),
                                             onFocusRequest = {
                                                 viewModel.setFocusedBullet(flatBullet.bullet.id)
                                             },
@@ -224,6 +230,21 @@ fun BulletTreeScreen(
                                             },
                                             onNoteChange = { note ->
                                                 viewModel.saveNote(flatBullet.bullet.id, note)
+                                            },
+                                            onToggleComplete = {
+                                                viewModel.toggleComplete(flatBullet.bullet.id)
+                                            },
+                                            onToggleBookmark = {
+                                                viewModel.toggleBookmark(flatBullet.bullet.id)
+                                            },
+                                            onToggleAttachments = {
+                                                viewModel.toggleAttachmentExpansion(flatBullet.bullet.id)
+                                            },
+                                            onDeleteFromMenu = {
+                                                viewModel.deleteBullet(flatBullet.bullet.id)
+                                            },
+                                            onDownloadAttachment = { attachment ->
+                                                viewModel.downloadAttachment(attachment)
                                             },
                                             onChipClick = if (flatBullet.bullet.id != focusedBulletId) onChipClick else null,
                                             modifier = Modifier

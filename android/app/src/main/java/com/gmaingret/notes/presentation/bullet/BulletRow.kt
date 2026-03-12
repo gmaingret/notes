@@ -1,8 +1,10 @@
 package com.gmaingret.notes.presentation.bullet
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,8 +19,12 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowRight
+import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StickyNote2
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -47,6 +53,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.gmaingret.notes.domain.model.Attachment
 import com.gmaingret.notes.domain.model.FlatBullet
 import kotlinx.coroutines.delay
 
@@ -62,16 +69,23 @@ private val GUIDE_LINE_OFFSET_DP = 8.dp
  * - **Unfocused**: Markdown-rendered text + inline chips, or strikethrough for completed bullets
  *
  * Layout (Column):
- * - Top Row: depth-indented bullet icon + content area + collapse arrow
- * - Bottom: [NoteField] (animated, shown when [isNoteExpanded] is true)
+ * - Top Row: depth-indented bullet icon + indicators + content area + collapse arrow
+ * - Below row: [NoteField] (animated, shown when [isNoteExpanded] is true)
+ * - Below note: [AttachmentList] (animated, shown when [isAttachmentsExpanded] is true and non-empty)
  *
- * When [isDragging] is true, a graphicsLayer applies 1.02x scale + shadowElevation = 8f
- * to give the "lifted card" drag visual.  [dragHorizontalOffsetPx] is applied as
- * translationX so the item visually follows horizontal finger movement, giving the user
- * feedback on the target indent level.
+ * Swipe gestures (complete/delete) are handled at BulletTreeScreen level via SwipeToDismissBox.
  *
- * A small note indicator icon (StickyNote2) is shown when the bullet has a non-empty note
- * and the note field is not expanded. Tapping it calls [onToggleNote].
+ * Long-press on unfocused content area opens a context menu with:
+ * - Bookmark / Remove bookmark
+ * - Attachments (toggle inline attachment list)
+ * - Delete
+ *
+ * Indicators shown inline next to bullet dot:
+ * - Star icon when [isBookmarked] is true
+ * - Paperclip icon when [attachments] is non-empty (lazy-loaded on first expansion)
+ *
+ * [onChipClick] wires chip taps from [InlineChip] — Plan 03 passes a search trigger.
+ * When the bullet is focused (editing), chip clicks are disabled (null passed to InlineChip).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -83,6 +97,9 @@ fun BulletRow(
     isDragging: Boolean,
     dragHorizontalOffsetPx: Float,
     isNoteExpanded: Boolean,
+    isBookmarked: Boolean,
+    isAttachmentsExpanded: Boolean,
+    attachments: List<Attachment>,
     onFocusRequest: () -> Unit,
     onContentChange: (String) -> Unit,
     onEnterWithContent: () -> Unit,
@@ -92,6 +109,11 @@ fun BulletRow(
     onBulletIconTap: () -> Unit,
     onToggleNote: () -> Unit,
     onNoteChange: (String) -> Unit,
+    onToggleComplete: () -> Unit,
+    onToggleBookmark: () -> Unit,
+    onToggleAttachments: () -> Unit,
+    onDeleteFromMenu: () -> Unit,
+    onDownloadAttachment: (Attachment) -> Unit,
     onChipClick: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -115,6 +137,9 @@ fun BulletRow(
     // after textFieldValue is updated programmatically inside the callback.
     var enterHandledForText by remember(bullet.id) { mutableStateOf<String?>(null) }
 
+    // Context menu state
+    var showContextMenu by remember { mutableStateOf(false) }
+
     // Keep in sync when content changes from outside (e.g., backspace merge)
     LaunchedEffect(contentOverride) {
         if (contentOverride != null && contentOverride != localText) {
@@ -127,10 +152,6 @@ fun BulletRow(
     // Request focus and bring into view when isFocused becomes true.
     // Always place cursor at the end of the text on focus so the user can
     // continue typing naturally regardless of tap position.
-    // Also reset the enterHandledForText guard so a re-focused bullet can
-    // accept Enter presses again (guard persists across recompositions but
-    // must be cleared each time focus is granted, otherwise an empty-Enter
-    // that sets the guard to "" would permanently block subsequent Enters).
     LaunchedEffect(isFocused) {
         if (isFocused) {
             enterHandledForText = null
@@ -150,6 +171,9 @@ fun BulletRow(
     // Note indicator: shown when note exists and note field is NOT expanded
     val hasNote = !bullet.note.isNullOrEmpty()
     val showNoteIndicator = hasNote && !isNoteExpanded
+
+    // Paperclip indicator: shown after attachments loaded and non-empty
+    val showAttachmentIndicator = attachments.isNotEmpty()
 
     Column(
         modifier = modifier
@@ -184,20 +208,24 @@ fun BulletRow(
         ) {
             // Bullet icon
             Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .clickable { onBulletIconTap() },
+                modifier = Modifier.size(24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 if (bullet.isComplete) {
                     Icon(
                         imageVector = Icons.Filled.CheckBox,
                         contentDescription = "Completed",
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clickable { onBulletIconTap() },
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 } else {
-                    androidx.compose.foundation.Canvas(modifier = Modifier.size(24.dp)) {
+                    androidx.compose.foundation.Canvas(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clickable { onBulletIconTap() }
+                    ) {
                         drawCircle(
                             color = Color(0xFF808080).copy(alpha = 0.6f),
                             radius = 4.dp.toPx(),
@@ -207,14 +235,41 @@ fun BulletRow(
                 }
             }
 
+            // Bookmark indicator: star icon when bookmarked
+            if (isBookmarked) {
+                Icon(
+                    imageVector = Icons.Filled.Star,
+                    contentDescription = "Bookmarked",
+                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                )
+            }
+
+            // Paperclip indicator: shown after attachments loaded and non-empty
+            if (showAttachmentIndicator) {
+                Icon(
+                    imageVector = Icons.Filled.Attachment,
+                    contentDescription = "Has attachments",
+                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
+
             Spacer(modifier = Modifier.width(4.dp))
 
-            // Content area
+            // Content area — combinedClickable for tap (focus) + long-press (context menu)
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .then(
-                        if (!isFocused) Modifier.clickable { onFocusRequest() } else Modifier
+                        if (!isFocused) {
+                            Modifier.combinedClickable(
+                                onClick = { onFocusRequest() },
+                                onLongClick = { showContextMenu = true }
+                            )
+                        } else {
+                            Modifier
+                        }
                     )
             ) {
                 if (isFocused) {
@@ -234,9 +289,6 @@ fun BulletRow(
                                     }
                                 } else {
                                     // Guard: only fire onEnterWithContent once per unique text value.
-                                    // The Compose + Android IME can re-deliver the same onValueChange
-                                    // after textFieldValue is updated programmatically, causing
-                                    // onEnterWithContent to fire twice and create two bullets.
                                     if (enterHandledForText != textBeforeNewline) {
                                         enterHandledForText = textBeforeNewline
                                         localText = textBeforeNewline
@@ -244,9 +296,6 @@ fun BulletRow(
                                             textBeforeNewline,
                                             selection = TextRange(textBeforeNewline.length)
                                         )
-                                        // Only sync content if it changed (avoids a redundant
-                                        // contentOverrides recomposition when user presses Enter
-                                        // without having typed new text since last sync)
                                         if (textBeforeNewline != (contentOverride ?: bullet.content)) {
                                             onContentChange(textBeforeNewline)
                                         }
@@ -276,8 +325,6 @@ fun BulletRow(
                                         } else false
                                     }
                                     // Note: Enter is handled via onValueChange newline detection.
-                                    // Do NOT handle Key.Enter here — it would cause double bullet
-                                    // creation because onValueChange also fires with '\n'.
                                     else -> false
                                 }
                             },
@@ -289,8 +336,6 @@ fun BulletRow(
                 } else {
                     // Display mode: use contentOverride (latest typed text) if available,
                     // otherwise fall back to bullet.content (server value).
-                    // This prevents text from disappearing when focus moves away before the
-                    // debounced PATCH has synced the server value back to the local state.
                     val displayContent = contentOverride ?: bullet.content
                     if (bullet.isComplete) {
                         // Completed: strikethrough at 50% opacity
@@ -339,13 +384,36 @@ fun BulletRow(
                                             )
                                         }
                                         is ContentSegment.ChipSegment -> {
-                                            InlineChip(segment, onChipClick = onChipClick)
+                                            // Pass onChipClick only when not focused (editing)
+                                            InlineChip(
+                                                chip = segment,
+                                                onChipClick = onChipClick
+                                            )
                                         }
                                     }
                                 }
                             }
                         }
                     }
+                }
+
+                // Context menu — anchored to the content Box
+                DropdownMenu(
+                    expanded = showContextMenu,
+                    onDismissRequest = { showContextMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(if (isBookmarked) "Remove bookmark" else "Bookmark") },
+                        onClick = { onToggleBookmark(); showContextMenu = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Attachments") },
+                        onClick = { onToggleAttachments(); showContextMenu = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete") },
+                        onClick = { onDeleteFromMenu(); showContextMenu = false }
+                    )
                 }
             }
 
@@ -386,6 +454,15 @@ fun BulletRow(
             onNoteChange = onNoteChange,
             modifier = Modifier.padding(start = indentPx)
         )
+
+        // Inline attachment list — animated, shown when expanded and attachments exist
+        AnimatedVisibility(visible = isAttachmentsExpanded && attachments.isNotEmpty()) {
+            AttachmentList(
+                attachments = attachments,
+                onDownload = onDownloadAttachment,
+                modifier = Modifier.padding(start = indentPx)
+            )
+        }
     }
 }
 
@@ -393,11 +470,11 @@ fun BulletRow(
  * Small inline chip composable for #tag, @mention, !!date segments.
  * Rendered as a rounded box with type-specific background color.
  *
- * When [onChipClick] is non-null, the chip is clickable and invokes the callback
- * with the chip text (e.g. "#tag") — used to pre-fill the search bar.
+ * [onChipClick] is called with the chip text (including prefix) when tapped.
+ * Pass null to disable click (e.g., when the bullet is focused for editing).
  */
 @Composable
-private fun InlineChip(
+internal fun InlineChip(
     chip: ContentSegment.ChipSegment,
     onChipClick: ((String) -> Unit)? = null
 ) {
@@ -423,11 +500,14 @@ private fun InlineChip(
                     )
                 }
             )
-            .then(
-                if (onChipClick != null) Modifier.clickable { onChipClick(chip.text) }
-                else Modifier
-            )
             .padding(horizontal = 4.dp, vertical = 1.dp)
+            .then(
+                if (onChipClick != null) {
+                    Modifier.clickable { onChipClick(chip.text) }
+                } else {
+                    Modifier
+                }
+            )
     ) {
         Text(
             text = chip.text,

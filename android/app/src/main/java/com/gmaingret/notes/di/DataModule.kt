@@ -1,7 +1,9 @@
 package com.gmaingret.notes.di
 
 import com.gmaingret.notes.data.repository.AuthRepositoryImpl
+import com.gmaingret.notes.data.repository.DocumentRepositoryImpl
 import com.gmaingret.notes.domain.repository.AuthRepository
+import com.gmaingret.notes.domain.repository.DocumentRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -23,4 +25,8 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindDocumentRepository(impl: DocumentRepositoryImpl): DocumentRepository
 }

@@ -32,6 +32,7 @@ class TokenStore @Inject constructor(
     companion object {
         private val KEY_ACCESS_TOKEN = stringPreferencesKey("access_token")
         private val KEY_USER_EMAIL = stringPreferencesKey("user_email")
+        private val KEY_LAST_DOC_ID = stringPreferencesKey("last_doc_id")
 
         private const val AD_ACCESS_TOKEN = "access_token"
         private const val AD_USER_EMAIL = "user_email"
@@ -77,6 +78,28 @@ class TokenStore @Inject constructor(
             prefs[KEY_USER_EMAIL] = encrypted
         }
     }
+
+    // ---------------------------------------------------------------------------
+    // Last Opened Document ID
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Persists the ID of the last document opened by the user.
+     *
+     * Plain (unencrypted) DataStore write — doc ID is a non-sensitive UUID.
+     * Cleared automatically by [clearAll] on logout.
+     */
+    suspend fun saveLastDocId(docId: String) {
+        context.authTokenDataStore.edit { prefs -> prefs[KEY_LAST_DOC_ID] = docId }
+    }
+
+    /**
+     * Returns the ID of the last document opened, or null if none was recorded.
+     *
+     * Plain (unencrypted) DataStore read — doc ID is a non-sensitive UUID.
+     */
+    suspend fun getLastDocId(): String? =
+        context.authTokenDataStore.data.firstOrNull()?.get(KEY_LAST_DOC_ID)
 
     // ---------------------------------------------------------------------------
     // Clear

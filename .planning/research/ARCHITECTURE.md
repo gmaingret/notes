@@ -1,492 +1,740 @@
 # Architecture Research
 
-**Domain:** v1.1 Mobile & UI Polish — Integration with existing React/Vite outliner
-**Researched:** 2026-03-10
-**Confidence:** HIGH (integration points read directly from source) / MEDIUM (PWA plugin approach)
-
----
+**Domain:** Native Android client for an existing Express REST API outliner app
+**Researched:** 2026-03-12
+**Confidence:** HIGH — based on direct inspection of all server route files, middleware, and web client patterns
 
 ## Standard Architecture
 
-### System Overview — Current State
+### System Overview
 
 ```
-index.html
-  └── main.tsx
-        └── App.tsx  (router, RequireAuth, GlobalKeyboard)
-              ├── LoginPage
-              └── AppPage  ←── LAYOUT ROOT — flexbox row, 100vh
-                    ├── Sidebar (fixed 240px width, inline styles)
-                    │     ├── DocumentList
-                    │     ├── TagBrowser
-                    │     └── BookmarkBrowser
-                    └── <main> (flex: 1, overflow: auto, inline styles)
-                          └── DocumentView
-                                └── BulletTree (DndContext + SortableContext)
-                                      ├── BulletNode[]
-                                      │     └── BulletContent (contenteditable)
-                                      ├── FocusToolbar (fixed, above keyboard)
-                                      ├── DocumentToolbar
-                                      └── ContextMenu
+┌─────────────────────────────────────────────────────────────────────┐
+│                      EXISTING BACKEND (unchanged)                    │
+│  Express + Drizzle ORM + PostgreSQL                                  │
+│  https://notes.gregorymaingret.fr                                    │
+│                                                                      │
+│  /api/auth/register|login|refresh|logout                            │
+│  /api/documents  /api/bullets  /api/search                          │
+│  /api/bookmarks  /api/attachments  /api/tags                        │
+│  /api/undo       /api/redo       /api/undo/status                   │
+└───────────────────────────────┬─────────────────────────────────────┘
+                                │ HTTPS / REST
+                                │ Authorization: Bearer <jwt>
+                                │ Cookie: refreshToken (httpOnly)
+                     ┌──────────▼──────────┐
+                     │   OkHttp + Retrofit  │
+                     │  AuthInterceptor     │
+                     │  TokenAuthenticator  │
+                     │  JavaNetCookieJar    │
+                     └──────────┬──────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                      ANDROID CLIENT — /android                        │
+│                                                                      │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │                   PRESENTATION LAYER                         │    │
+│  │  ┌────────────┐ ┌──────────────┐ ┌────────────────────────┐ │    │
+│  │  │  AuthVM    │ │ DocumentsVM  │ │    BulletTreeVM         │ │    │
+│  │  │ StateFlow  │ │  StateFlow   │ │  StateFlow<TreeUiState> │ │    │
+│  │  └─────┬──────┘ └──────┬───────┘ └──────────┬─────────────┘ │    │
+│  │        │               │                     │               │    │
+│  │  ┌─────▼──────┐ ┌──────▼───────┐ ┌──────────▼─────────────┐ │    │
+│  │  │LoginScreen │ │DrawerScreen  │ │   BulletTreeScreen       │ │    │
+│  │  │RegisterScr │ │(doc list)    │ │   (LazyColumn rows)      │ │    │
+│  │  └────────────┘ └──────────────┘ └────────────────────────┘ │    │
+│  ├─────────────────────────────────────────────────────────────┤    │
+│  │                     DOMAIN LAYER                             │    │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │    │
+│  │  │  AuthRepo    │  │  DocumentRepo│  │  BulletRepo      │  │    │
+│  │  │  (interface) │  │  (interface) │  │  (interface)     │  │    │
+│  │  └──────────────┘  └──────────────┘  └──────────────────┘  │    │
+│  │  ┌──────────────────────────┐  ┌──────────────────────────┐ │    │
+│  │  │  FlattenTreeUseCase      │  │  ComputeDragProjection   │ │    │
+│  │  │  (port of web flattenTree│  │  UseCase (port of web    │ │    │
+│  │  │  — pure Kotlin function) │  │  computeDragProjection)  │ │    │
+│  │  └──────────────────────────┘  └──────────────────────────┘ │    │
+│  ├─────────────────────────────────────────────────────────────┤    │
+│  │                      DATA LAYER                              │    │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │    │
+│  │  │AuthRepoImpl  │  │DocumentRepo  │  │  BulletRepoImpl  │  │    │
+│  │  │EncryptedPrefs│  │  Impl        │  │  (Retrofit calls)│  │    │
+│  │  └──────────────┘  └──────────────┘  └──────────────────┘  │    │
+│  │  ┌─────────────────────────────────────────────────────┐    │    │
+│  │  │         NotesApiService (Retrofit interface)         │    │    │
+│  │  │         ~30 endpoints mirroring Express routes       │    │    │
+│  │  └─────────────────────────────────────────────────────┘    │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────────────┘
 ```
-
-Global state: `uiStore.ts` (Zustand + persist)
-- `sidebarOpen: boolean` — already exists, persisted
-- `sidebarTab`, `canvasView`, `searchOpen`, `focusedBulletId`, `lastOpenedDocId`
-
-CSS: `index.css` — minimal (~13 lines), inline styles dominate everywhere.
-PWA: none — `public/` contains only `vite.svg`. `index.html` has no manifest link.
 
 ### Component Responsibilities
 
-| Component | Responsibility | Current State |
-|-----------|----------------|---------------|
-| `AppPage` | Layout root — flex row, routes, auto-navigate | Inline styles, no mobile breakpoint |
-| `Sidebar` | Nav panel — docs/tags/bookmarks tabs | Hard-coded 240px, overlay div present but only shown via CSS media query |
-| `uiStore` | Global UI state | `sidebarOpen` already exists; toggles work but sidebar never hides visually |
-| `useGlobalKeyboard` | Keyboard shortcuts | Ctrl+E sidebar toggle already wired |
-| `SearchModal` | Full-text search overlay | Fully working — backdrop + modal at `top: 20%`, triggered by `searchOpen` |
-| `FocusToolbar` | Mobile action bar above soft keyboard | Fixed-positioned using `visualViewport`, lives inside BulletTree |
-| `gestures.ts` | Swipe + long-press pure functions | Closure-based, no React, unit-tested |
-| `index.css` | Global reset + one hover rule + one mobile media query | Minimal; all theming is inline |
+| Component | Responsibility | Typical Implementation |
+|-----------|----------------|------------------------|
+| `NotesApiService` | Retrofit interface mirroring all Express routes | `@GET`, `@POST`, `@PATCH`, `@DELETE` with suspend functions |
+| `AuthInterceptor` | Attach `Authorization: Bearer <token>` to every request | OkHttp `Interceptor`, reads token from `TokenStore` |
+| `TokenAuthenticator` | On 401, call `/api/auth/refresh`, retry with new token | OkHttp `Authenticator`, `@Synchronized` to prevent races |
+| `JavaNetCookieJar` | Persist and re-send `refreshToken` httpOnly cookie | `java.net.CookieManager` with `CookiePolicy.ACCEPT_ALL` |
+| `TokenStore` | Hold access token in memory + `EncryptedSharedPreferences` | Hilt singleton, survives process death |
+| `AuthRepoImpl` | Login, register, logout, silent refresh on cold start | Calls `NotesApiService`, writes to `TokenStore` |
+| `BulletRepoImpl` | All bullet CRUD, indent/outdent, move, undo checkpoint | Calls `NotesApiService`, returns domain models |
+| `BulletTreeViewModel` | Flattened tree state, drag projection, keyboard actions | `StateFlow<TreeUiState>` with embedded `List<FlatBullet>` |
+| `FlattenTreeUseCase` | Port of web `flattenTree` — recursive DFS respecting collapse | Pure Kotlin function, no Android imports |
+| `ComputeDragProjectionUseCase` | Port of web drag projection — layout coords + horizontal delta | Pure Kotlin function, no Android imports |
 
----
-
-## Integration Points for v1.1 Features
-
-### Feature 1: Responsive Mobile Layout + Hamburger Sidebar
-
-**What needs to change:**
-
-`AppPage.tsx` — the flex layout uses `style={{ display: 'flex' }}` directly. The sidebar must be conditionally positioned (off-canvas on mobile) based on `sidebarOpen` and a `isMobile` breakpoint. Two approaches:
-
-- **Approach A (CSS classes, recommended):** Move layout to `index.css` with a `.app-layout` class. CSS handles the breakpoint; `sidebarOpen` becomes a `data-sidebar-open` attribute that CSS reads. No JS media query needed in the render path.
-- **Approach B (JS matchMedia):** Add a `useIsMobile()` hook that reads `window.matchMedia('(max-width: 768px)')`. Pass `isMobile` to layout. More explicit but harder to test visually.
-
-Recommendation: Approach A. It keeps the JS state (`sidebarOpen`) as the single source of truth while CSS handles breakpoint-specific positioning (translate off-screen vs visible).
-
-`Sidebar.tsx` — the overlay `<div>` already exists and is shown via the `.mobile-overlay` CSS class. It correctly calls `setSidebarOpen(false)` on click. What is missing: the `<aside>` itself must slide off-screen on mobile when `sidebarOpen` is false. Currently `sidebarOpen` is read from `uiStore` but never actually hides the sidebar element.
-
-**New component:** `HamburgerButton` — a small button rendered in the `<main>` header area (or in a new `TopBar` component) that calls `setSidebarOpen(true)`. On desktop it can be hidden via CSS. Alternatively, add the hamburger to the existing `DocumentToolbar`.
-
-**Modification summary:**
-
-| File | Change |
-|------|--------|
-| `AppPage.tsx` | Replace inline flex div with CSS class; conditionally apply `data-sidebar-open` |
-| `Sidebar.tsx` | Add CSS class to `<aside>` for mobile translate; no logic change needed |
-| `index.css` | Add `.app-layout`, `.app-sidebar`, `.app-content` with `@media (max-width: 768px)` rules |
-| `uiStore.ts` | No change needed — `sidebarOpen` is already there |
-| `useGlobalKeyboard` | No change — Ctrl+E already toggles `sidebarOpen` |
-
-**New component needed:** `HamburgerButton` (or inline in `DocumentToolbar`/`DocumentView`).
-
----
-
-### Feature 2: CSS Dark Mode Tokens
-
-**What needs to change:**
-
-The codebase uses inline styles almost exclusively (e.g., `color: '#111'`, `background: '#fafafa'`, `borderRight: '1px solid #e0e0e0'`). Switching these to CSS custom properties requires either:
-
-- **Option A (CSS vars on `:root` + `@media prefers-color-scheme`):** Define all color tokens as CSS variables on `:root`, override them in a `@media (prefers-color-scheme: dark)` block. Components must switch from inline hex values to `var(--color-*)` references. This is the only approach that works without touching every component's logic.
-- **Option B (data-theme attribute):** Same as A but toggled via `document.documentElement.setAttribute('data-theme', 'dark')`. Allows a manual toggle in addition to system preference.
-
-Recommendation: Option A first (system-preference only), add Option B toggle later if desired. The manual toggle would need a `theme` field in `uiStore` + a toggle button in the sidebar header.
-
-**Scope of change:** Every component that uses inline color/background/border values must be updated to reference CSS variables. This is the largest surface-area change in v1.1 — it touches nearly every component file.
-
-**Build order implication:** CSS tokens must be established in `index.css` first, before any component switches to `var()` references. This is a blocking dependency.
-
-**Modification summary:**
-
-| File | Change |
-|------|--------|
-| `index.css` | Add `--color-*` token definitions for light + dark under `@media prefers-color-scheme: dark` |
-| All component files | Replace inline hex colors with `var(--color-*)` — no logic change, purely presentational |
-| `uiStore.ts` | Optional: add `theme: 'system' | 'light' | 'dark'` if manual toggle is wanted |
-
----
-
-### Feature 3: Icon Library (Lucide) + Font Pairing
-
-**What needs to change:**
-
-Current icons are unicode characters and emoji (e.g., `⋯`, `+`, `&#8677;`, `&#128206;`). Lucide React provides tree-shakeable SVG icons. Install `lucide-react` and replace icon characters component by component.
-
-FocusToolbar has the highest icon density (11 buttons). DocumentToolbar and Sidebar header have a few more.
-
-**Fonts:** `index.html` needs `<link>` tags for Google Fonts (Inter + JetBrains Mono) or self-hosted variants. `index.css` body font-family must change. Monospace font applies to `BulletContent`'s contenteditable if code blocks are used (currently markdown renders inline, not code-block heavy — apply selectively).
-
-**Modification summary:**
-
-| File | Change |
-|------|--------|
-| `index.html` | Add font preconnect + link tags |
-| `index.css` | Update `body { font-family }`, add monospace token |
-| `package.json` | Add `lucide-react` dependency |
-| `FocusToolbar.tsx` | Replace all unicode button content with Lucide icon components |
-| `Sidebar.tsx` | Replace `⋯` and `+` characters |
-| `DocumentToolbar.tsx` | Replace any unicode icons |
-| `BulletNode.tsx` | Replace collapse arrow / bullet dot unicode |
-
----
-
-### Feature 4: PWA Manifest
-
-**What needs to change:**
-
-`public/manifest.json` — new file. Standard Web App Manifest with `name`, `short_name`, `icons`, `start_url`, `display: standalone`, `theme_color`, `background_color`.
-
-`index.html` — add `<link rel="manifest" href="/manifest.json">` and `<meta name="theme-color">` in `<head>`.
-
-`public/` — add icon assets (192x192, 512x512 PNG). The vite build copies `public/` contents to dist root unchanged, so no vite config change is needed.
-
-**Vite PWA plugin (optional but recommended):** `vite-plugin-pwa` auto-generates the manifest, injects the link tag, and optionally generates a service worker for offline caching. For this milestone, offline mode is out of scope, but the plugin in "injectManifest" mode with an empty precache list is cleaner than manual manifest management. Without the plugin, a static `manifest.json` in `public/` is sufficient.
-
-Recommendation: static `manifest.json` in `public/` with no service worker. Keep it simple; the plugin adds complexity only justified when offline support is needed.
-
-**Modification summary:**
-
-| File | Change |
-|------|--------|
-| `public/manifest.json` | New file |
-| `public/icon-192.png` | New file |
-| `public/icon-512.png` | New file |
-| `index.html` | Add manifest link + theme-color meta |
-| `vite.config.ts` | No change needed (static public files work by default) |
-
----
-
-### Feature 5: Quick-Open Palette (Ctrl+K)
-
-**What already exists:**
-
-`SearchModal.tsx` is a working full-text search modal triggered by `searchOpen` in `uiStore`. It uses `useSearch` (API call to `/api/search`). The modal renders a backdrop + centered box with debounced input and a `FilteredBulletList` result list.
-
-The quick-open palette (Ctrl+K) is conceptually similar but with different scope: fuzzy document title matching + optionally bullet search. Two implementation paths:
-
-- **Path A (new component `QuickOpenPalette`):** Separate from `SearchModal`. Uses `useDocuments()` (already cached) for document fuzzy match client-side, falls back to `useSearch` for bullet content. Triggered by a separate `quickOpenOpen` flag in `uiStore`.
-- **Path B (extend SearchModal):** Add a mode prop. When triggered by Ctrl+K, show document results first. When triggered by Ctrl+F, show full-text bullet results.
-
-Recommendation: Path A. `SearchModal` is Ctrl+F full-text search and should stay as-is. Quick-open (Ctrl+K) has different UX expectations: instant results from cached document list, keyboard navigation with arrow keys, and navigating to a document (not just scrolling to a bullet). Conflating them complicates both.
-
-**What QuickOpenPalette needs:**
-
-- Fuzzy document match: filter `useDocuments()` result client-side — no new API endpoint needed for documents. `documents` are already fetched and cached in every session.
-- Bullet fuzzy match: reuse `/api/search` via `useSearch` — same endpoint SearchModal uses.
-- Keyboard navigation: arrow keys move selection, Enter opens, Escape closes.
-- Trigger: Ctrl+K registered in `useGlobalKeyboard`.
-
-**State change in uiStore:**
-
-Add `quickOpenOpen: boolean` + `setQuickOpenOpen`. It does NOT need to be persisted (transient UI state).
-
-**Where rendered:** In `App.tsx` alongside where `SearchModal` is rendered (inside `RequireAuth` but outside the page tree — or in `AppPage.tsx` if co-located with `SearchModal`). Check where `SearchModal` is currently mounted.
-
-**Modification summary:**
-
-| File | Change |
-|------|--------|
-| `uiStore.ts` | Add `quickOpenOpen: boolean`, `setQuickOpenOpen` (not persisted) |
-| `useUndo.ts` (useGlobalKeyboard) | Add Ctrl+K handler calling `setQuickOpenOpen(true)` |
-| `components/QuickOpenPalette.tsx` | New component |
-| `AppPage.tsx` or `App.tsx` | Mount `<QuickOpenPalette>` when `quickOpenOpen` is true |
-
----
-
-### Feature 6: Ctrl+E Desktop Sidebar Toggle
-
-**Status: Already implemented.**
-
-`useGlobalKeyboard` in `useUndo.ts` already handles `Ctrl+E → setSidebarOpen(!sidebarOpen)`. The store action exists. The only missing piece is that the sidebar does not visually respond to `sidebarOpen` changes — that gap is closed by Feature 1 (layout work).
-
-No new code needed for this feature specifically.
-
----
-
-## Recommended Project Structure Changes
-
-Current `src/` layout is flat and component-tree-based. No restructure needed for v1.1. Add:
+## Recommended Project Structure
 
 ```
-client/
-├── public/
-│   ├── manifest.json          # NEW — PWA manifest
-│   ├── icon-192.png           # NEW — PWA icon
-│   └── icon-512.png           # NEW — PWA icon
-└── src/
-    ├── index.css              # MODIFY — add CSS tokens, layout classes, dark mode
-    ├── store/
-    │   └── uiStore.ts         # MODIFY — add quickOpenOpen
-    ├── hooks/
-    │   └── useUndo.ts         # MODIFY — add Ctrl+K to useGlobalKeyboard
-    ├── components/
-    │   ├── Sidebar/
-    │   │   └── Sidebar.tsx    # MODIFY — CSS class on <aside>, icon replacements
-    │   ├── DocumentView/
-    │   │   ├── FocusToolbar.tsx     # MODIFY — Lucide icons
-    │   │   ├── DocumentToolbar.tsx  # MODIFY — Lucide icons
-    │   │   └── BulletNode.tsx       # MODIFY — Lucide icons, CSS vars
-    │   └── QuickOpenPalette.tsx     # NEW
-    ├── pages/
-    │   └── AppPage.tsx        # MODIFY — CSS layout classes, mount QuickOpenPalette
-    └── main.tsx / index.html  # MODIFY — font links, manifest link
+android/
+├── app/
+│   ├── src/main/
+│   │   ├── AndroidManifest.xml
+│   │   └── java/fr/gregorymaingret/notes/
+│   │       ├── data/
+│   │       │   ├── api/
+│   │       │   │   ├── NotesApiService.kt      # Retrofit interface — all endpoints
+│   │       │   │   ├── dto/
+│   │       │   │   │   ├── AuthDto.kt          # LoginRequest, RegisterRequest, AuthResponse
+│   │       │   │   │   ├── DocumentDto.kt      # DocumentDto, CreateDocumentRequest, etc.
+│   │       │   │   │   └── BulletDto.kt        # BulletDto, PatchBulletRequest, MoveBulletRequest
+│   │       │   │   └── NetworkModule.kt        # Hilt: OkHttp + Retrofit + CookieJar providers
+│   │       │   ├── auth/
+│   │       │   │   ├── AuthInterceptor.kt      # Injects Bearer token header
+│   │       │   │   ├── TokenAuthenticator.kt   # 401 -> refresh -> retry
+│   │       │   │   └── TokenStore.kt           # EncryptedSharedPreferences wrapper
+│   │       │   └── repository/
+│   │       │       ├── AuthRepositoryImpl.kt
+│   │       │       ├── DocumentRepositoryImpl.kt
+│   │       │       ├── BulletRepositoryImpl.kt
+│   │       │       ├── SearchRepositoryImpl.kt
+│   │       │       └── UndoRepositoryImpl.kt
+│   │       ├── domain/
+│   │       │   ├── model/
+│   │       │   │   ├── Document.kt             # Domain model — no Retrofit/JSON annotations
+│   │       │   │   ├── Bullet.kt               # Mirrors server schema fields
+│   │       │   │   └── FlatBullet.kt           # Bullet + depth for LazyColumn rendering
+│   │       │   ├── repository/
+│   │       │   │   ├── AuthRepository.kt       # Interfaces only — no impl
+│   │       │   │   ├── DocumentRepository.kt
+│   │       │   │   ├── BulletRepository.kt
+│   │       │   │   ├── SearchRepository.kt
+│   │       │   │   └── UndoRepository.kt
+│   │       │   └── usecase/
+│   │       │       ├── FlattenTreeUseCase.kt   # buildBulletMap + flattenTree (port from web)
+│   │       │       └── ComputeDragProjectionUseCase.kt
+│   │       ├── presentation/
+│   │       │   ├── auth/
+│   │       │   │   ├── AuthViewModel.kt
+│   │       │   │   ├── LoginScreen.kt
+│   │       │   │   └── RegisterScreen.kt
+│   │       │   ├── documents/
+│   │       │   │   ├── DocumentsViewModel.kt
+│   │       │   │   └── DocumentsDrawer.kt      # ModalNavigationDrawer content
+│   │       │   ├── bullets/
+│   │       │   │   ├── BulletTreeViewModel.kt
+│   │       │   │   ├── BulletTreeScreen.kt     # LazyColumn of FlatBullet rows
+│   │       │   │   └── BulletRow.kt            # Single row composable
+│   │       │   └── search/
+│   │       │       ├── SearchViewModel.kt
+│   │       │       └── SearchScreen.kt         # Bottom sheet or full screen
+│   │       ├── ui/
+│   │       │   └── theme/
+│   │       │       ├── Color.kt
+│   │       │       ├── Theme.kt                # Material 3 lightColorScheme/darkColorScheme
+│   │       │       └── Type.kt
+│   │       ├── navigation/
+│   │       │   └── AppNavGraph.kt              # Single file for all Navigation Compose routes
+│   │       └── di/
+│   │           ├── AppModule.kt                # Singleton bindings (TokenStore, etc.)
+│   │           └── RepositoryModule.kt         # @Binds interfaces to implementations
+│   └── build.gradle.kts
+├── build.gradle.kts
+└── settings.gradle.kts
 ```
 
----
+### Structure Rationale
+
+- **data/api/dto/**: DTOs live in the data layer, not domain. They carry JSON annotations and are API-shaped. Domain models are kept separate so the API can change without touching domain logic.
+- **data/auth/**: The three auth infrastructure classes form a tight cluster that references each other (`TokenAuthenticator` reads from `TokenStore`, `AuthInterceptor` reads from `TokenStore`). Grouping prevents circular import hunting.
+- **domain/usecase/**: `FlattenTreeUseCase` and `ComputeDragProjectionUseCase` are pure functions ported from the web client. They must live in domain (no Android imports) to be unit-testable without a device.
+- **presentation/**: One sub-package per screen. ViewModels and composables co-located — they are always changed together.
+- **navigation/**: One file. Navigation Compose graphs should not be scattered across feature packages because routes reference each other and the graph must be centrally composable.
 
 ## Architectural Patterns
 
-### Pattern 1: CSS Custom Properties for Theming
+### Pattern 1: OkHttp Interceptor + Authenticator (not a single interceptor)
 
-**What:** Define all color/surface tokens as `--color-*` CSS variables on `:root`. Override in `@media (prefers-color-scheme: dark)`. Components reference `var(--color-bg-primary)` etc. rather than hex literals.
+**What:** Two separate OkHttp hooks handle auth. `AuthInterceptor` attaches the Bearer token to outgoing requests. `TokenAuthenticator` handles 401 responses by calling `/api/auth/refresh` and retrying.
 
-**When to use:** Always for any value that changes between light and dark. Do not use for layout values (padding, width) — those don't theme.
+**When to use:** Whenever the API uses short-lived JWT access tokens with a separate refresh mechanism. The split is mandatory — a single interceptor that both attaches and refreshes creates infinite retry loops when the refresh itself returns 401.
 
-**Trade-offs:** All inline styles touching color must be converted (large surface area). But CSS variables work without any JS, are inherited, and can be overridden per-subtree if needed later.
+**Trade-offs:** Slightly more code than one interceptor. The `@Synchronized` on `TokenAuthenticator.authenticate()` is essential to prevent concurrent refresh races when multiple in-flight requests all 401 simultaneously.
 
-```css
-/* index.css */
-:root {
-  --color-bg-primary: #ffffff;
-  --color-bg-sidebar: #fafafa;
-  --color-border: #e0e0e0;
-  --color-text-primary: #111111;
-  --color-text-secondary: #666666;
+**Example:**
+```kotlin
+// AuthInterceptor.kt
+class AuthInterceptor @Inject constructor(
+    private val tokenStore: TokenStore
+) : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val token = tokenStore.accessToken
+        val request = if (token != null) {
+            chain.request().newBuilder()
+                .header("Authorization", "Bearer $token")
+                .build()
+        } else chain.request()
+        return chain.proceed(request)
+    }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg-primary: #1a1a1a;
-    --color-bg-sidebar: #141414;
-    --color-border: #333333;
-    --color-text-primary: #f0f0f0;
-    --color-text-secondary: #999999;
-  }
+// TokenAuthenticator.kt
+class TokenAuthenticator @Inject constructor(
+    private val tokenStore: TokenStore,
+    private val apiService: Lazy<NotesApiService> // Lazy to break DI cycle
+) : Authenticator {
+    @Synchronized
+    override fun authenticate(route: Route?, response: Response): Request? {
+        // If token already refreshed by another concurrent thread, just retry
+        val currentToken = tokenStore.accessToken
+        val requestToken = response.request.header("Authorization")?.removePrefix("Bearer ")
+        if (currentToken != null && currentToken != requestToken) {
+            return response.request.newBuilder()
+                .header("Authorization", "Bearer $currentToken")
+                .build()
+        }
+        // Refresh — cookie sent automatically by CookieJar
+        return try {
+            val refreshed = runBlocking { apiService.get().refresh() }
+            tokenStore.accessToken = refreshed.accessToken
+            response.request.newBuilder()
+                .header("Authorization", "Bearer ${refreshed.accessToken}")
+                .build()
+        } catch (e: Exception) {
+            tokenStore.clear() // Force re-login
+            null
+        }
+    }
 }
 ```
 
-### Pattern 2: Off-Canvas Sidebar via CSS Transform
+### Pattern 2: JavaNetCookieJar for httpOnly Refresh Cookie
 
-**What:** Sidebar is always in the DOM. On mobile when `sidebarOpen` is false, it is translated off-screen with `transform: translateX(-100%)`. When open, `transform: none`. CSS `transition` provides the slide animation. `sidebarOpen` in `uiStore` drives a `data-sidebar-open` attribute on the layout root.
+**What:** The server sets a `refreshToken` httpOnly cookie on login/register/refresh responses (`Set-Cookie: refreshToken=...; HttpOnly; Path=/api/auth`). OkHttp must persist and re-send this cookie automatically. `JavaNetCookieJar` with a standard `CookieManager` handles this with zero custom code.
 
-**When to use:** When sidebar content must persist across open/close (avoids React unmount/remount). Consistent with how the existing mobile-overlay div already works.
+**When to use:** Any backend using httpOnly cookies for token delivery. The cookie is server-controlled — never read or write it manually from Android code.
 
-**Trade-offs:** Sidebar is always rendered even when hidden (minor memory cost). But it avoids re-mounting Sidebar which would re-trigger queries.
+**Trade-offs:** Standard `CookieManager` holds cookies in memory only. The cookie is lost on process death. On cold start the app must attempt a silent `/api/auth/refresh`; if the cookie is gone (process killed since last login), the call returns 401 and the user is sent to the Login screen. This matches the web client's `useEffect` silent refresh on mount — same failure mode.
 
-```css
-/* Mobile: sidebar slides in from left */
-@media (max-width: 768px) {
-  .app-sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    z-index: 10;
-    transform: translateX(-100%);
-    transition: transform 0.2s ease;
-  }
-  .app-layout[data-sidebar-open="true"] .app-sidebar {
-    transform: translateX(0);
-  }
+**Example:**
+```kotlin
+// NetworkModule.kt (Hilt @Module)
+@Provides @Singleton
+fun provideCookieJar(): CookieJar {
+    val cookieManager = CookieManager(null, CookiePolicy.ACCEPT_ALL)
+    CookieHandler.setDefault(cookieManager)
+    return JavaNetCookieJar(cookieManager)
+}
+
+@Provides @Singleton
+fun provideOkHttpClient(
+    authInterceptor: AuthInterceptor,
+    tokenAuthenticator: TokenAuthenticator,
+    cookieJar: CookieJar
+): OkHttpClient = OkHttpClient.Builder()
+    .addInterceptor(authInterceptor)
+    .authenticator(tokenAuthenticator)
+    .cookieJar(cookieJar)
+    .connectTimeout(30, TimeUnit.SECONDS)
+    .readTimeout(30, TimeUnit.SECONDS)
+    .build()
+```
+
+### Pattern 3: StateFlow<UiState> + collectAsStateWithLifecycle
+
+**What:** ViewModels expose a sealed `UiState` class via `StateFlow`. Composables collect with `collectAsStateWithLifecycle()` (from `androidx.lifecycle:lifecycle-runtime-compose`), not `collectAsState()`. The lifecycle-aware variant stops collection when the app is backgrounded, preventing unnecessary work.
+
+**When to use:** All screens. This is the canonical Jetpack Compose + Kotlin Coroutines pattern.
+
+**Trade-offs:** More boilerplate than `mutableStateOf` inside composables, but correctly isolates UI logic from business logic and survives configuration changes (ViewModel outlives the Composable).
+
+**Example:**
+```kotlin
+// BulletTreeViewModel.kt
+sealed class TreeUiState {
+    object Loading : TreeUiState()
+    data class Success(
+        val visibleItems: List<FlatBullet>,
+        val documentTitle: String,
+        val canUndo: Boolean,
+        val canRedo: Boolean
+    ) : TreeUiState()
+    data class Error(val message: String) : TreeUiState()
+}
+
+@HiltViewModel
+class BulletTreeViewModel @Inject constructor(
+    private val bulletRepo: BulletRepository,
+    private val flattenTree: FlattenTreeUseCase,
+    private val undoRepo: UndoRepository,
+) : ViewModel() {
+    private val _uiState = MutableStateFlow<TreeUiState>(TreeUiState.Loading)
+    val uiState: StateFlow<TreeUiState> = _uiState.asStateFlow()
+}
+
+// BulletTreeScreen.kt
+@Composable
+fun BulletTreeScreen(viewModel: BulletTreeViewModel = hiltViewModel()) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    when (state) {
+        is TreeUiState.Loading -> CircularProgressIndicator()
+        is TreeUiState.Success -> BulletList((state as TreeUiState.Success).visibleItems)
+        is TreeUiState.Error -> ErrorView((state as TreeUiState.Error).message)
+    }
 }
 ```
 
-### Pattern 3: Client-Side Fuzzy Filter for QuickOpenPalette
+### Pattern 4: Optimistic Updates with Rollback
 
-**What:** Document list is already fetched and cached via `useDocuments()`. Filter it client-side with a simple `toLowerCase().includes()` or a lightweight fuzzy algorithm. No network request for document matching.
+**What:** Before making an API call, immediately update the local `StateFlow` with the expected result. If the API call fails, restore the snapshot of the previous state and emit a one-shot error event.
 
-**When to use:** Any list that is already in the React Query cache and small enough to filter in memory (document list is typically < 100 items).
+**When to use:** All bullet mutations — content edits, complete toggle, delete, indent/outdent, collapse toggle. Prevents perceptible lag on every user action.
 
-**Trade-offs:** Keeps quick-open instant. Bullet search still hits the API (reuse `useSearch`). The palette shows docs first, bullets below — two result sections in one modal.
+**Trade-offs:** A snapshot of the previous state must be held locally during the async operation. Rollback logic adds ~5 lines per mutation. Without this, every tap takes 200-400ms to feel responsive over mobile networks.
 
----
+**Example:**
+```kotlin
+fun toggleComplete(bulletId: String) {
+    val current = _uiState.value as? TreeUiState.Success ?: return
+    val snapshot = current // snapshot for rollback
+
+    // Optimistic: flip isComplete in the flat list immediately
+    val optimistic = current.visibleItems.map {
+        if (it.id == bulletId) it.copy(isComplete = !it.isComplete) else it
+    }
+    _uiState.value = current.copy(visibleItems = optimistic)
+
+    viewModelScope.launch {
+        try {
+            val updated = bulletRepo.patchBullet(bulletId, isComplete = !originalIsComplete)
+            // Confirm: update just the one item with server response
+            val confirmed = (_uiState.value as? TreeUiState.Success)?.visibleItems?.map {
+                if (it.id == bulletId) it.copy(isComplete = updated.isComplete) else it
+            } ?: return@launch
+            _uiState.value = (_uiState.value as TreeUiState.Success).copy(visibleItems = confirmed)
+        } catch (e: Exception) {
+            _uiState.value = snapshot // rollback
+            _events.send(UiEvent.ShowError("Failed to update"))
+        }
+    }
+}
+```
+
+### Pattern 5: Retrofit Service Interface Mirroring Express Routes
+
+**What:** `NotesApiService` is a single Retrofit interface with one suspend function per Express endpoint. Method naming follows the route semantics. DTOs match the server's request/response JSON shapes exactly.
+
+**When to use:** Single interface for the entire backend is appropriate for this size API (~30 endpoints across 8 route files). Split into multiple interfaces only if the codebase grows significantly.
+
+**Example:**
+```kotlin
+interface NotesApiService {
+    // Auth
+    @POST("api/auth/register")
+    suspend fun register(@Body body: RegisterRequest): AuthResponse
+
+    @POST("api/auth/login")
+    suspend fun login(@Body body: LoginRequest): AuthResponse
+
+    @POST("api/auth/refresh")  // CookieJar sends refreshToken cookie automatically
+    suspend fun refresh(): RefreshResponse
+
+    @POST("api/auth/logout")
+    suspend fun logout()
+
+    // Documents
+    @GET("api/documents")
+    suspend fun listDocuments(): List<DocumentDto>
+
+    @POST("api/documents")
+    suspend fun createDocument(@Body body: CreateDocumentRequest): DocumentDto
+
+    @PATCH("api/documents/{id}")
+    suspend fun renameDocument(@Path("id") id: String, @Body body: RenameDocumentRequest): DocumentDto
+
+    @PATCH("api/documents/{id}/position")
+    suspend fun reorderDocument(@Path("id") id: String, @Body body: ReorderRequest): DocumentDto
+
+    @POST("api/documents/{id}/open")
+    suspend fun markDocumentOpened(@Path("id") id: String)
+
+    @DELETE("api/documents/{id}")
+    suspend fun deleteDocument(@Path("id") id: String)
+
+    // Bullets
+    @GET("api/bullets/documents/{docId}/bullets")
+    suspend fun getBullets(@Path("docId") docId: String): List<BulletDto>
+
+    @POST("api/bullets")
+    suspend fun createBullet(@Body body: CreateBulletRequest): BulletDto
+
+    @PATCH("api/bullets/{id}")
+    suspend fun patchBullet(@Path("id") id: String, @Body body: PatchBulletRequest): BulletDto
+
+    @DELETE("api/bullets/{id}")
+    suspend fun deleteBullet(@Path("id") id: String)
+
+    @DELETE("api/bullets/documents/{docId}/completed")
+    suspend fun deleteCompleted(@Path("docId") docId: String)
+
+    @POST("api/bullets/{id}/indent")
+    suspend fun indentBullet(@Path("id") id: String): BulletDto
+
+    @POST("api/bullets/{id}/outdent")
+    suspend fun outdentBullet(@Path("id") id: String): BulletDto
+
+    @POST("api/bullets/{id}/move")
+    suspend fun moveBullet(@Path("id") id: String, @Body body: MoveBulletRequest): BulletDto
+
+    @POST("api/bullets/{id}/undo-checkpoint")
+    suspend fun undoCheckpoint(@Path("id") id: String, @Body body: UndoCheckpointRequest)
+
+    // Search
+    @GET("api/search")
+    suspend fun search(@Query("q") query: String): List<BulletDto>
+
+    // Undo/Redo
+    @POST("api/undo")
+    suspend fun undo(): UndoResult
+
+    @POST("api/redo")
+    suspend fun redo(): UndoResult
+
+    @GET("api/undo/status")
+    suspend fun undoStatus(): UndoStatus
+
+    // Bookmarks
+    @GET("api/bookmarks")
+    suspend fun getBookmarks(): List<BookmarkDto>
+
+    @POST("api/bookmarks")
+    suspend fun addBookmark(@Body body: AddBookmarkRequest): BookmarkDto
+
+    @DELETE("api/bookmarks/{bulletId}")
+    suspend fun removeBookmark(@Path("bulletId") bulletId: String)
+
+    // Tags
+    @GET("api/tags")
+    suspend fun getTags(): List<TagDto>
+
+    @GET("api/tags/{type}/{value}/bullets")
+    suspend fun getBulletsForTag(
+        @Path("type") type: String,
+        @Path("value") value: String
+    ): List<BulletDto>
+
+    // Attachments
+    @GET("api/attachments/bullets/{bulletId}")
+    suspend fun getAttachments(@Path("bulletId") bulletId: String): List<AttachmentDto>
+
+    @POST("api/attachments/bullets/{bulletId}")
+    @Multipart
+    suspend fun uploadAttachment(
+        @Path("bulletId") bulletId: String,
+        @Part file: MultipartBody.Part
+    ): AttachmentDto
+
+    @DELETE("api/attachments/{id}")
+    suspend fun deleteAttachment(@Path("id") id: String)
+
+    @Streaming
+    @GET("api/attachments/{id}/file")
+    suspend fun downloadAttachment(@Path("id") id: String): ResponseBody
+}
+```
 
 ## Data Flow
 
-### Sidebar Toggle Flow
+### Request Flow — Standard API Call
 
 ```
-User taps hamburger                User presses Ctrl+E
-        ↓                                  ↓
-HamburgerButton.onClick      useGlobalKeyboard onKeyDown
-        ↓                                  ↓
-     setSidebarOpen(true)        setSidebarOpen(!sidebarOpen)
-              ↓
-         uiStore (Zustand)
-              ↓ (persisted to localStorage via partialize)
-     AppPage re-renders
-              ↓
-     data-sidebar-open attr on .app-layout div
-              ↓
-     CSS transform applies to .app-sidebar
-              ↓ (mobile only — overlay is also shown)
-     .mobile-overlay visible → tap closes sidebar
+User taps "Complete bullet"
+        |
+BulletRow.kt (Composable) — calls viewModel.toggleComplete(bulletId)
+        |
+BulletTreeViewModel
+  (1) Snapshot current TreeUiState.Success
+  (2) Apply optimistic update to StateFlow immediately
+  (3) viewModelScope.launch { ... }
+        |
+BulletRepositoryImpl.patchBullet(id, isComplete=true)
+        |
+NotesApiService.patchBullet() — Retrofit suspend call
+        |
+OkHttp pipeline:
+  AuthInterceptor adds "Authorization: Bearer <token>"
+  CookieJar sends refreshToken cookie if present
+  HTTPS POST to https://notes.gregorymaingret.fr/api/bullets/:id
+        |
+  If 401: TokenAuthenticator -> POST /api/auth/refresh -> retry
+        |
+BulletDto response -> mapped to domain Bullet -> BulletRepoImpl returns
+        |
+ViewModel confirms StateFlow with server response
+        |
+BulletTreeScreen recomposes (no visible change — optimistic was correct)
 ```
 
-### Quick-Open Palette Flow
+### Auth Cold Start Flow
 
 ```
-User presses Ctrl+K
-        ↓
-useGlobalKeyboard → setQuickOpenOpen(true)
-        ↓
-QuickOpenPalette mounts
-        ↓
-User types
-        ↓
-Filter useDocuments() cache client-side  → instant results
-  AND  useSearch(query) if query >= 2 chars → API results
-        ↓
-User arrows to result, presses Enter
-        ↓
-navigate(`/doc/${docId}`)
-setQuickOpenOpen(false)
+App launches (MainActivity onCreate)
+        |
+AuthViewModel.trySilentLogin() called from LaunchedEffect
+        |
+AuthRepositoryImpl calls NotesApiService.refresh()
+  CookieJar sends refreshToken cookie (in-memory, present if not killed since login)
+        |
+  200: store new accessToken in TokenStore -> navigate to Main screen
+  401: cookie gone (process death) -> navigate to Login screen
 ```
 
-### Dark Mode Flow
+### Token Refresh Race Prevention
 
 ```
-System changes color preference
-        ↓
-@media (prefers-color-scheme: dark) activates
-        ↓
-CSS custom properties re-resolve
-        ↓
-All elements using var(--color-*) repaint
-(No React state, no JS involved)
+3 concurrent API calls all 401 simultaneously
+        |
+TokenAuthenticator.authenticate() is @Synchronized
+        |
+Thread 1: token == requestToken -> calls /api/auth/refresh -> stores new token -> retries
+Thread 2: wakes, sees currentToken != requestToken (already refreshed) -> retries with new token
+Thread 3: same as Thread 2
+        |
+Single refresh round-trip regardless of concurrency
 ```
 
----
+### Key Data Flows
 
-## Anti-Patterns
+1. **Tree flattening:** Server returns `List<BulletDto>` sorted by `position` (FLOAT8). `FlattenTreeUseCase` builds a map keyed by bullet ID, then DFS-walks from `parentId=null` to produce `List<FlatBullet>` (Bullet + depth integer). Collapsed bullets (`isCollapsed=true`) skip their subtree. This is a direct port of `buildBulletMap` + `flattenTree` from `BulletTree.tsx`.
 
-### Anti-Pattern 1: Adding isMobile State to Zustand
+2. **Drag reorder:** On drag start, `ComputeDragProjectionUseCase` receives the flat list, the active item's index, and the current pointer position (Y coordinate + horizontal delta in pixels). It excludes the dragged item and its descendants from the projection list, finds the insertion index from Y, then bounds the depth from the horizontal offset. On drop, ViewModel calls `bulletRepo.moveBullet(id, newParentId, afterId)` mapping to `POST /api/bullets/:id/move`.
 
-**What people do:** Create a `isMobile: boolean` in `uiStore`, derive it from `window.matchMedia`, update it on resize.
+3. **Debounced content save:** User types in `BasicTextField` inside `BulletRow`. A `LaunchedEffect(content)` with `delay(800L)` debounces saves: `PATCH /api/bullets/:id` with `{ content }`. When the debounce settles, the ViewModel also calls `POST /api/bullets/:id/undo-checkpoint` with current and previous content — identical to the web client pattern.
 
-**Why it's wrong:** Layout breakpoints belong in CSS, not JS state. Every media query change triggers a React re-render of every component subscribed to the store. CSS media queries are free.
+4. **Document reorder:** Server uses FLOAT8 midpoint positioning. Client sends `PATCH /api/documents/:id/position` with `{ afterId: UUID | null }`. Server computes the midpoint FLOAT8 — client never stores or manipulates position floats. This is the same contract used in the web client's drag reorder.
 
-**Do this instead:** Use CSS classes + `@media` rules. Let `sidebarOpen` remain the only sidebar-related state. The CSS handles whether "open" means "translate in from left" (mobile) or "occupy flex space" (desktop).
+5. **Undo/Redo:** After every structural mutation (create, delete, indent, outdent, move), ViewModel calls `GET /api/undo/status` to update `canUndo`/`canRedo` in the `TreeUiState.Success`. Undo/Redo buttons trigger `POST /api/undo` / `POST /api/redo`, then reload the full bullet list (undo can restructure the entire tree).
 
-### Anti-Pattern 2: Conditionally Unmounting Sidebar Based on sidebarOpen
+## Navigation Compose Graph Structure
 
-**What people do:** `{sidebarOpen && <Sidebar />}` — unmount sidebar when closed.
+```
+AppNavGraph
+├── AuthGraph (when not authenticated)
+│   ├── login (start destination)
+│   └── register
+└── MainGraph (when authenticated)
+    └── main (single destination)
+        ├── ModalNavigationDrawer (document list, CRUD)
+        └── BulletTreeScreen (current document content)
+            └── SearchScreen (modal bottom sheet)
+```
 
-**Why it's wrong:** React Query caches associated with the sidebar (DocumentList, TagBrowser) are destroyed on unmount and re-fetched on remount. Creates flicker and unnecessary network requests. The existing overlay pattern implies the sidebar stays mounted.
+**Routing logic:**
 
-**Do this instead:** Keep sidebar always mounted. Use CSS transform to hide it off-screen. The overlay handles the dimming and tap-to-close.
+```kotlin
+// AppNavGraph.kt
+@Composable
+fun AppNavGraph(navController: NavHostController) {
+    val authViewModel: AuthViewModel = hiltViewModel()
+    val authState by authViewModel.authState.collectAsStateWithLifecycle()
 
-### Anti-Pattern 3: Creating a Separate ThemeContext for Dark Mode
+    NavHost(
+        navController = navController,
+        startDestination = if (authState.isAuthenticated) "main" else "login"
+    ) {
+        composable("login") { LoginScreen(navController) }
+        composable("register") { RegisterScreen(navController) }
+        composable("main") { MainScreen() }  // drawer + bullet tree
+    }
+}
+```
 
-**What people do:** Build a React context for `theme`, wrap the app, inject `theme` as a prop into every styled component.
-
-**Why it's wrong:** Massively overengineered for a single prefers-color-scheme media query. CSS handles this natively with zero JS.
-
-**Do this instead:** CSS custom properties + `@media (prefers-color-scheme: dark)`. If a manual toggle is later needed, set `data-theme="dark"` on `document.documentElement` from `uiStore` — one line of code, no context needed.
-
-### Anti-Pattern 4: Merging QuickOpenPalette into SearchModal
-
-**What people do:** Add a `mode` prop to `SearchModal` to handle both Ctrl+F full-text and Ctrl+K quick-open.
-
-**Why it's wrong:** The two have different UX: SearchModal shows bullet results only, needs debounce, fires on 2+ chars. QuickOpenPalette shows docs instantly (no debounce, no minimum chars), then bullets below. Sharing the component creates branching logic that grows complex.
-
-**Do this instead:** Two separate components. They share `FilteredBulletList` as a display primitive. They both use `useSearch` but with different conditions. Keep them decoupled.
-
----
+**Why a single Main route (not separate document/bullet routes):** The UX pattern (from Dynalist/Workflowy and the web client) is a persistent split-pane where the document list is always available via a drawer. On Android this maps to `ModalNavigationDrawer` wrapping `BulletTreeScreen`. Document switching is a ViewModel state change (`viewModel.openDocument(id)`), not a navigation event. Separate routes would reload the bullet tree on every document switch and break scroll position.
 
 ## Integration Points
 
-### Internal Boundaries
+### New Components (Android-only, no backend changes needed)
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| AppPage ↔ Sidebar | `sidebarOpen` via uiStore | No props needed — store is shared |
-| HamburgerButton ↔ uiStore | Direct `setSidebarOpen(true)` call | Simple, no event bus |
-| useGlobalKeyboard ↔ QuickOpenPalette | `quickOpenOpen` in uiStore | Same pattern as `searchOpen` |
-| QuickOpenPalette ↔ useDocuments | React Query cache — no new fetch | Documents already in cache from AppPage |
-| QuickOpenPalette ↔ useSearch | Same hook SearchModal uses | Reuse existing hook |
-| CSS tokens ↔ all components | CSS custom properties via `var()` | Components need inline styles → CSS class migration |
+| Component | What it integrates with | Notes |
+|-----------|------------------------|-------|
+| `NotesApiService` | Express REST API — all 8 route files | Single interface covers all ~30 endpoints |
+| `AuthInterceptor` | JWT `Authorization: Bearer` header | Bearer token strategy confirmed in `server/src/middleware/auth.ts` |
+| `TokenAuthenticator` | `POST /api/auth/refresh` + `refreshToken` cookie | Refresh returns `{ accessToken }` — confirmed in `auth.ts` |
+| `JavaNetCookieJar` | `refreshToken` httpOnly cookie set by server | Server uses `setRefreshCookie()` — client must not touch this cookie manually |
+| `TokenStore` | `EncryptedSharedPreferences` | Replaces web's in-memory React context; must survive process death for UX |
+| `FlattenTreeUseCase` | Port of `flattenTree()` from `BulletTree.tsx` | Identical algorithm — recursive DFS, respects `isCollapsed`, returns depth |
+| `ComputeDragProjectionUseCase` | Port of `computeDragProjection()` from `BulletTree.tsx` | Replace `getBoundingClientRect()` with Compose layout coordinates |
 
-### Key Constraint: FocusToolbar is Inside DndContext
+### Existing Backend Endpoints Used by Android (all unchanged)
 
-FocusToolbar is mounted inside `BulletTree` (inside `DndContext`). Modifying its icon library does not affect this constraint. Adding dark mode `var()` references to its inline styles is straightforward. No structural change needed.
+| Endpoint | Phase | Usage |
+|----------|-------|-------|
+| `POST /api/auth/register` | Phase 1 | Register screen |
+| `POST /api/auth/login` | Phase 1 | Login screen |
+| `POST /api/auth/refresh` | Phase 1 | TokenAuthenticator + cold start silent login |
+| `POST /api/auth/logout` | Phase 1 | Drawer logout action |
+| `GET /api/documents` | Phase 2 | DocumentsDrawer initial load |
+| `POST /api/documents` | Phase 2 | New document button |
+| `PATCH /api/documents/:id` | Phase 2 | Inline rename in drawer |
+| `PATCH /api/documents/:id/position` | Phase 2 | Drag reorder in drawer |
+| `POST /api/documents/:id/open` | Phase 2 | Called on document tap (tracks last-opened) |
+| `DELETE /api/documents/:id` | Phase 2 | Swipe-to-delete or context menu |
+| `GET /api/bullets/documents/:docId/bullets` | Phase 3 | BulletTreeScreen initial load + refresh |
+| `POST /api/bullets` | Phase 3 | Enter key creates new bullet |
+| `PATCH /api/bullets/:id` | Phase 3 | Content edit (debounced), complete, collapse |
+| `DELETE /api/bullets/:id` | Phase 3 | Backspace on empty or swipe gesture |
+| `DELETE /api/bullets/documents/:docId/completed` | Phase 3 | Bulk delete completed |
+| `POST /api/bullets/:id/indent` | Phase 3 | Tab / indent button |
+| `POST /api/bullets/:id/outdent` | Phase 3 | Shift+Tab / outdent button |
+| `POST /api/bullets/:id/move` | Phase 3 | Drag-drop reorder |
+| `POST /api/bullets/:id/undo-checkpoint` | Phase 3 | After debounced content save settles |
+| `GET /api/search?q=` | Phase 4 | Search screen with 300ms debounce |
+| `POST /api/undo` | Phase 4 | Undo button |
+| `POST /api/redo` | Phase 4 | Redo button |
+| `GET /api/undo/status` | Phase 4 | Polled after each mutation to update button state |
 
----
+### Internal Layer Boundaries
 
-## Suggested Build Order (with Rationale)
+| Boundary | Communication | Rule |
+|----------|---------------|------|
+| Presentation -> Domain | Direct calls to use cases + repository interfaces | ViewModels never import data layer classes |
+| Domain -> Data | Repository interfaces only — Hilt `@Binds` wires impls | Domain layer has zero Android SDK imports |
+| Data -> Network | `NotesApiService` suspend functions | All exceptions propagate up; ViewModels catch at the boundary |
+| ViewModel -> Composable | `StateFlow` for state + `Channel<UiEvent>` for one-shot events | One-shot events: snackbars, navigation triggers; never pass suspend lambdas into composables |
 
-```
-Step 1: CSS Token Foundation (index.css)
-  - Define --color-* custom properties (light + dark)
-  - Define .app-layout, .app-sidebar, .app-content skeleton classes
-  - Rationale: Everything else depends on tokens existing first
+## Suggested Build Order for Phases
 
-Step 2: Responsive Layout (AppPage + Sidebar)
-  - Apply CSS classes to AppPage flex layout
-  - Apply CSS class to Sidebar <aside>
-  - Add data-sidebar-open attribute wiring
-  - Add HamburgerButton (can be a simple inline button for now)
-  - Verify: sidebar slides on mobile, stays persistent on desktop, Ctrl+E works
-  - Rationale: Layout is the frame; all other UI sits inside it
+### Phase 1 — Foundation (prerequisite for everything)
 
-Step 3: Dark Mode — Component Pass
-  - Convert inline hex colors in Sidebar, AppPage, DocumentView to var(--color-*)
-  - Convert FocusToolbar, DocumentToolbar, BulletNode, BulletContent
-  - Verify: system dark mode switches correctly, WCAG AA contrast
-  - Rationale: After layout is settled, color migration is pure find-and-replace work
+Build first. All subsequent phases require authenticated network access.
 
-Step 4: Icon Library + Fonts (lucide-react)
-  - npm install lucide-react
-  - Add font links to index.html
-  - Update font-family in index.css
-  - Replace FocusToolbar unicode chars with Lucide icons
-  - Replace Sidebar header chars, DocumentToolbar chars, BulletNode chars
-  - Verify: all icons render, no missing glyphs, FocusToolbar remains functional
-  - Rationale: Icons + fonts are purely additive; no logic changes
+1. Gradle project scaffold (`build.gradle.kts`, `settings.gradle.kts`, `AndroidManifest.xml`)
+2. `NotesApiService` — auth + document endpoints (bullets can be stubbed as empty lists)
+3. `TokenStore` with `EncryptedSharedPreferences`
+4. `AuthInterceptor` + `TokenAuthenticator` + `JavaNetCookieJar` wired via `NetworkModule`
+5. `AuthRepositoryImpl` — login, register, silent refresh, logout
+6. `AuthViewModel` — cold start check, login/register actions
+7. `LoginScreen` + `RegisterScreen` composables (Material 3 form)
+8. `AppNavGraph` — Auth/Main routing
+9. `Theme.kt` — Material 3 `lightColorScheme` + `darkColorScheme`
+10. Verify: register, login, silent refresh, logout all work against production server
 
-Step 5: PWA Manifest
-  - Create public/manifest.json
-  - Create/source icon-192.png, icon-512.png
-  - Add <link rel="manifest"> and theme-color to index.html
-  - Verify: browser installs PWA, shows app name + icon on home screen
-  - Rationale: Isolated change, no component dependencies
+### Phase 2 — Documents (drawer)
 
-Step 6: Quick-Open Palette
-  - Add quickOpenOpen to uiStore
-  - Add Ctrl+K to useGlobalKeyboard
-  - Build QuickOpenPalette component (fuzzy doc filter + useSearch bullets)
-  - Mount in AppPage
-  - Verify: Ctrl+K opens palette, arrow key nav works, Enter navigates
-  - Rationale: Builds on stable layout + icons; uses existing hooks; last because most new logic
-```
+Depends on Phase 1. The drawer is the entry point to all document content.
 
-### Dependency Graph
+1. `DocumentRepositoryImpl` — list, create, rename, reorder, open, delete
+2. `DocumentsViewModel` — `StateFlow<DocumentsUiState>`
+3. `DocumentsDrawer` composable — `ModalNavigationDrawer` with CRUD + drag reorder
+4. Main route scaffold with empty `BulletTreeScreen` placeholder content
+5. Last-opened persistence — call `POST /api/documents/:id/open` on tap; store ID in `DataStore` for cold start restoration
+6. Verify: full document CRUD, drag reorder calls `/position`, last-opened restored on restart
 
-```
-Step 1 (CSS Tokens)
-  ↓ (blocking)
-Step 2 (Layout)     Step 3 (Dark Mode)   — both depend on Step 1
-  ↓                      ↓
-Step 4 (Icons)           |               — depends on Step 2 (layout stable)
-  ↓                      |
-Step 5 (PWA)             |               — independent, can go anywhere after Step 1
-  ↓
-Step 6 (Quick-Open)      |               — can start after Step 2; does not depend on icons/fonts/dark mode
-```
+### Phase 3 — Bullet Tree (core feature)
 
-Steps 3, 4, 5 are independent of each other once Step 2 is done. Steps 3-5 can be done in any order or in parallel.
+Depends on Phase 2. Highest complexity phase.
 
----
+1. `FlattenTreeUseCase` — port `buildBulletMap` + `flattenTree` from `client/src/components/DocumentView/BulletTree.tsx`
+2. `BulletRepositoryImpl` — get, create, patch, delete, indent, outdent, move
+3. `BulletTreeViewModel` — `StateFlow<TreeUiState>` with optimistic updates
+4. `BulletRow` composable — `BasicTextField` for content, indent offset display, collapse chevron, complete toggle
+5. `BulletTreeScreen` — `LazyColumn` rendering the flat list
+6. Keyboard handling — Enter creates child bullet at same depth; Backspace on empty calls delete
+7. Indent/outdent — toolbar buttons call `POST /api/bullets/:id/indent|outdent`
+8. Collapse/expand — tap chevron calls `PATCH /api/bullets/:id` with `{ isCollapsed }`, re-flatten tree
+9. Drag-drop reorder — `ComputeDragProjectionUseCase` + `POST /api/bullets/:id/move`
+10. Debounced content save + undo checkpoint
+11. Verify: full tree interaction, drag projection produces correct server positions
+
+### Phase 4 — Reactivity and Polish
+
+Depends on Phase 3. No new architecture — quality and completeness pass.
+
+1. Pull-to-refresh (`PullToRefreshBox` from Compose Material 3)
+2. Swipe gestures on `BulletRow` — right = complete, left = delete (`SwipeToDismiss`)
+3. `SearchViewModel` + `SearchScreen` with 300ms debounce
+4. Undo/Redo toolbar buttons + `GET /api/undo/status` polling
+5. `AnimatedVisibility` for collapse/expand animation
+6. `animateItem` modifier on `LazyColumn` items for reorder animation
+7. `Crossfade` for document switching in the content area
+8. Loading skeletons or `CircularProgressIndicator` while initial data loads
+9. Error states with retry buttons
+10. `SnackbarHostState` for error and confirmation messages
+11. Verify: 60fps animations, all error paths handled, no crashes
+
+## Scaling Considerations
+
+| Scale | Architecture Adjustments |
+|-------|--------------------------|
+| Personal (1 user, self-hosted) | Current approach is sufficient — no local caching layer needed |
+| Small team (2-10 users) | Add Room for offline bullet caching; sync on reconnect — explicitly deferred |
+| Large scale | Out of scope — self-hosted personal tool with no sharing features |
+
+### Scaling Priorities
+
+1. **First bottleneck:** Cookie loss on process death forces re-login. Add `PersistentCookieJar` (a third-party OkHttp CookieJar library) to persist the refresh cookie across process death. The `EncryptedSharedPreferences` access token handles the common case; persistent cookies handle the edge case.
+2. **Second bottleneck:** No offline support means unusable on airplane mode or poor connectivity. Room + offline-first architecture is explicitly deferred per `PROJECT.md`. Pull-to-refresh provides a manual sync affordance.
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Single OkHttp Interceptor for Both Token Injection and Refresh
+
+**What people do:** One interceptor checks for 401, calls refresh inside `intercept()`, and retries with the new token — all in one class.
+
+**Why it's wrong:** When multiple in-flight requests all return 401 simultaneously, each thread calls refresh independently, resulting in multiple refresh calls with the same (now invalid) refresh cookie. The second and third refresh calls return 401, and those requests fail. Additionally, a single interceptor cannot use OkHttp's built-in retry-count protection.
+
+**Do this instead:** `Interceptor` for token injection only. `Authenticator` for 401 handling — OkHttp calls it exclusively on 401 responses and has built-in max-retry protection. `@Synchronized` on `authenticate()` prevents concurrent refresh races.
+
+### Anti-Pattern 2: Storing JWT Access Token in Unencrypted SharedPreferences
+
+**What people do:** Write `accessToken` to plain `SharedPreferences` for persistence across process death.
+
+**Why it's wrong:** Plain `SharedPreferences` files are world-readable with root access, readable via ADB backup on unencrypted devices, and accessible to other apps on rooted devices. JWT access tokens are credentials.
+
+**Do this instead:** Keep access token in memory during the session. Use `EncryptedSharedPreferences` (Jetpack Security) only for cold-start restoration. The httpOnly refresh cookie is the primary persistence mechanism — a valid cookie can always generate a new access token.
+
+### Anti-Pattern 3: Calling Retrofit from Composables via LaunchedEffect
+
+**What people do:** `LaunchedEffect(Unit) { val bullets = repo.getBullets(docId); ... }` directly in a composable.
+
+**Why it's wrong:** Composables recompose on every state change. `LaunchedEffect` keys must be carefully managed. Business logic in composables is untestable without a full Compose UI test environment.
+
+**Do this instead:** All API calls go through ViewModel methods. Composables call `viewModel.loadDocument(id)` and observe `StateFlow`. The ViewModel's `init {}` or a dedicated load function triggers the network call.
+
+### Anti-Pattern 4: Re-fetching the Entire Bullet Tree After Every Patch
+
+**What people do:** After `PATCH /api/bullets/:id`, call `GET /api/bullets/documents/:docId/bullets` to resync.
+
+**Why it's wrong:** Each patch endpoint already returns the updated `BulletDto`. Re-fetching the full tree on every keystroke (debounced content save fires every 800ms) creates unnecessary latency and server load.
+
+**Do this instead:** On successful patch, update only the affected bullet in the ViewModel's local `List<FlatBullet>` with the returned DTO. Re-fetch the full tree only after undo/redo (which can restructure the entire tree) or on explicit pull-to-refresh.
+
+### Anti-Pattern 5: Separate Navigation Routes for Document List and Bullet Tree
+
+**What people do:** `NavHost` with `documents/`, `document/{id}/bullets` as distinct routes, navigating between them like separate pages.
+
+**Why it's wrong:** The Dynalist/Workflowy UX pattern (which this app replicates) is a persistent split-pane — the document list is always accessible. Separate routes cause the bullet tree to unmount and remount on every document switch, resetting scroll position and triggering a full reload.
+
+**Do this instead:** One `Main` composable with `ModalNavigationDrawer`. Document switching is `viewModel.openDocument(id)` — a state change, not a navigation event. The bullet tree stays mounted and replaces its content reactively.
 
 ## Sources
 
-- Source code directly read: `AppPage.tsx`, `Sidebar.tsx`, `uiStore.ts`, `index.css`, `index.html`, `useUndo.ts` (useGlobalKeyboard), `SearchModal.tsx`, `FocusToolbar.tsx`, `gestures.ts`, `BulletTree.tsx`, `DocumentView.tsx`, `package.json` — HIGH confidence on all integration points
-- PWA Web App Manifest spec: https://developer.mozilla.org/en-US/docs/Web/Manifest — standard, stable
-- CSS custom properties + prefers-color-scheme: standard CSS, browser support universal in 2026
-- Lucide React: https://lucide.dev — tree-shakeable, actively maintained, replaces heroicons/feather
+- Direct inspection: `server/src/routes/auth.ts`, `documents.ts`, `bullets.ts`, `search.ts`, `undo.ts`, `bookmarks.ts`, `attachments.ts`, `tags.ts` — all endpoint signatures verified — HIGH confidence
+- Direct inspection: `server/src/middleware/auth.ts` — JWT Bearer token strategy via `passport-jwt` confirmed — HIGH confidence
+- Direct inspection: `client/src/contexts/AuthContext.tsx` — silent refresh on mount, token in memory only, refresh cookie flow — HIGH confidence
+- Direct inspection: `client/src/components/DocumentView/BulletTree.tsx` — `flattenTree`, `buildBulletMap`, `computeDragProjection` algorithms — HIGH confidence
+- `ANDROID-PLAN.md` (project root) — planned library choices confirmed by project owner: Hilt, Retrofit, Coroutines/Flow, Navigation Compose, Material 3 — HIGH confidence
+- OkHttp `Authenticator` interface semantics — standard OkHttp design; `authenticate()` is called exclusively on HTTP 401 with built-in retry limiting — HIGH confidence
 
 ---
-*Architecture research for: v1.1 Mobile & UI Polish integration*
-*Researched: 2026-03-10*
+*Architecture research for: Kotlin/Jetpack Compose Android client integrating with Express REST API*
+*Researched: 2026-03-12*

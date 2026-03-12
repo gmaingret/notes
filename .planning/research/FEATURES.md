@@ -1,14 +1,16 @@
 # Feature Research
 
-**Domain:** Mobile UX polish + dark mode + quick-open palette (v1.1 milestone)
-**Researched:** 2026-03-10
-**Confidence:** HIGH (hamburger UX, dark mode WCAG, PWA manifest fields), MEDIUM (gesture feedback patterns, palette scope conventions)
+**Domain:** Native Android outliner — Kotlin/Jetpack Compose + Material Design 3 (v2.0 milestone)
+**Researched:** 2026-03-12
+**Confidence:** HIGH (Material 3 gesture patterns, Compose APIs, existing backend capabilities), MEDIUM (competitor Android UX parity, physical keyboard conventions)
 
 ---
 
 ## Scope Note
 
-This file covers only the **six new feature areas for v1.1**. The existing v1.0 core (infinite outliner, bullet CRUD, swipe gestures, search, tags, undo/redo, bookmarks, attachments, comments) is already shipped and is not re-researched here. The existing FEATURES.md content from 2026-03-09 remains the authoritative record for v1.0 table stakes.
+This file covers the **v2.0 native Android client**. The backend API is complete and unchanged. The question is: what does a native Android outliner app need to feel first-class, and what should be deferred or skipped entirely?
+
+The web client (v1.0 + v1.1) is the canonical feature reference. This research focuses on what "table stakes" means specifically for a **native Android Material Design 3** context — where user expectations, gesture primitives, and interaction vocabulary differ from the browser.
 
 ---
 
@@ -16,389 +18,147 @@ This file covers only the **six new feature areas for v1.1**. The existing v1.0 
 
 ### Table Stakes (Users Expect These)
 
-Features users assume exist in any modern mobile web app. Missing these means the app feels unfinished on mobile and in dark mode.
+Features Android users assume exist. Missing these = app feels like a port, not a native app.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Sidebar hidden on mobile, full-width content | Every mobile app does this; visible sidebar on 375px screen is unusable | MEDIUM | CSS media query at ≤768px breakpoint; sidebar becomes a drawer overlay |
-| Hamburger button to open sidebar | Universal drawer disclosure pattern; users look for this instinctively | LOW | Fixed top-left position; min 44×44px touch target (WCAG 2.5.5) |
-| Sidebar auto-closes on outside tap | Users tap content to dismiss overlays — muscle memory from every mobile OS | LOW | Backdrop overlay with pointerdown listener; must not interfere with bullet drag |
-| Sidebar visible close button (X) | Outside-tap alone fails discoverability; users look for explicit close affordance | LOW | Top-right of drawer panel; do not rely only on backdrop dismiss |
-| System-preference dark mode | macOS/iOS/Android all have OS dark mode; users expect apps to follow it automatically | MEDIUM | `@media (prefers-color-scheme: dark)` + CSS custom property token system |
-| WCAG AA contrast in dark mode | A dark mode that fails contrast creates an accessibility regression worse than no dark mode | MEDIUM | Text ≥4.5:1; large text ≥3:1; UI controls/icons ≥3:1 (WCAG 1.4.3 and 1.4.11) |
-| Touch targets ≥44×44px on all interactive elements | WCAG 2.5.5 + Apple HIG; small targets = fat-finger errors and user frustration | LOW | Applies to: hamburger, sidebar items, bullet action icons, palette results |
-| Safe area insets respected (notch + home indicator) | iPhones with home indicator clip bottom content without CSS env() padding | LOW | Requires `viewport-fit=cover` in meta viewport + `padding-bottom: env(safe-area-inset-bottom)` on fixed elements |
-| PWA installable (Add to Home Screen prompt) | Users expect "app-like" tools to be installable; Dynalist and Workflowy both support this | LOW | Manifest with name, short_name, icons (192px + 512px), start_url, display: standalone; HTTPS already met |
-| App icon for home screen | Blank or generic icon destroys trust when installed | LOW | 192×192 PNG + 512×512 PNG minimum; maskable variant for Android adaptive icons |
+| Email/password login with JWT persistence | No session on every cold open is a showstopper | LOW | EncryptedSharedPreferences for token; httpOnly cookie for refresh handled by OkHttp CookieJar |
+| Document list in ModalNavigationDrawer | Native Android navigation pattern; Dynalist and Workflowy both use drawer | MEDIUM | DrawerState; swipe-from-edge to open; close on item select |
+| Bullet tree rendered as flat LazyColumn | Infinite scroll, no layout jank — LazyColumn is the only viable approach for deep trees | HIGH | Flatten tree to display list at ViewModel layer; indentation via paddingStart per depth level |
+| Tap bullet to edit inline | Users expect in-place text editing, not a separate edit screen | MEDIUM | BasicTextField per bullet row; FocusRequester to bring up keyboard |
+| Enter to create next bullet at same level | Universal outliner behavior; missing = app is unusable | MEDIUM | KeyboardActions with ImeAction; intercept onKeyEvent for physical keyboards |
+| Tab / Shift+Tab to indent / outdent | All outliners do this; finger-reachable via toolbar buttons when soft keyboard is shown | MEDIUM | Hardware keyboard: intercept Tab via onKeyPreviewKeyEvent; touch: toolbar buttons |
+| Collapse/expand bullets with children | Core outliner interaction; Workflowy/Dynalist both have it | MEDIUM | Chevron icon on bullet row; collapsed state drives tree flattening in ViewModel |
+| Zoom into bullet as root (drill down) | Core outliner interaction; missing = users can't focus on subtrees | MEDIUM | Navigate to new screen or push new composition with that bullet as virtual root + breadcrumbs |
+| Breadcrumb trail when zoomed in | Users need to know where they are and navigate up | LOW | Horizontal scrollable row above the list; each crumb tappable |
+| Swipe right = complete bullet | Direct parity with web client; Workflowy Android uses same gesture | MEDIUM | SwipeToDismissBox with StartToEnd direction; green backing with checkmark icon |
+| Swipe left = delete bullet | Direct parity with web client; standard Android destructive swipe pattern | MEDIUM | SwipeToDismissBox with EndToStart direction; red backing with trash icon; confirmation for non-empty bullets |
+| Long press bullet = context menu | Standard Android pattern for contextual actions on list items | MEDIUM | DropdownMenu or ModalBottomSheet anchored to item; actions: indent, outdent, zoom, complete, delete, add comment |
+| Pull to refresh | Universal Android pattern for sync; users expect it on any list screen | LOW | PullToRefreshBox (Material 3 component); re-fetches current document |
+| Dark mode follows system | Android users set system dark mode and expect apps to follow | LOW | MaterialTheme dynamicColorScheme + isSystemInDarkTheme(); no manual toggle needed in v2.0 |
+| Material 3 theme throughout | App feels foreign if it uses custom colors/shapes out of nowhere | MEDIUM | Dynamic color (Material You) where available; static seed color fallback for Android 11 and below |
+| Back gesture (predictive back) | Android 13+ users swipe from edge to go back; app must handle this | MEDIUM | opt into predictive back in manifest; NavHost handles cross-screen; BackHandler for within-screen (e.g., close drawer) |
+| Search across documents | Users can't browse 50+ docs without search | MEDIUM | SearchBar/SearchView Material 3 pattern; reuse backend /search endpoint |
+| Undo last action | Server-side undo already exists; Android users expect Ctrl+Z equivalent | LOW | Undo button in top app bar; POST /api/undo — purely a UI affordance over existing API |
 
 ### Differentiators (Competitive Advantage)
 
-Features that go beyond expected — these make the mobile experience genuinely good rather than merely functional, or add power-user capabilities not present in Dynalist/Workflowy.
+Features that make the Android app feel genuinely native and polished, beyond what a mobile browser delivers.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Quick-open palette (Ctrl+K) — documents + bullets | Power users navigate 50+ documents by keyboard; faster than sidebar scroll; Obsidian, Notesnook, Notion all have this | MEDIUM | Fuzzy search over document titles + bullet text; keyboard navigation (arrows + Enter + Escape) |
-| Palette shows recent documents when query is empty | Reduces keystrokes for the most common case: reopening a recent document | LOW | Piggybacks on existing document open tracking; no new persistence needed |
-| Swipe gesture color + icon reveal feedback | Bare swipes without color cues feel broken; Todoist/Things show red/green backing with icon appearing as you drag | MEDIUM | Translate bullet row on swipe; reveal colored backing layer (red=delete, green=complete); icon fades in after 30% threshold |
-| Swipe snap-back animation on cancelled swipe | Without a spring snap-back, aborted swipes feel jarring | LOW | CSS `transition: transform 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94)` on touch-end when threshold not met |
-| Lucide icon library (consistent, tree-shakable) | Coherent icon set elevates perceived quality; Lucide is the de facto standard for React apps in 2025 | LOW | 1000+ icons; import individually for tree-shaking; aria-hidden by default; add aria-label on standalone icon controls |
-| Inter + JetBrains Mono font pairing | Legible, modern typography pair; Inter is the de facto UI font; JetBrains Mono for code/inline-code; x-height harmony (0.72 vs 0.73 ratio) | LOW | Load via Google Fonts or self-host; font-display: swap to prevent FOIT; min 16px body, 1.5 line-height |
-| Ctrl/Cmd+E desktop sidebar toggle | Keyboard-first users expect sidebar toggle; VS Code pattern is well-known | LOW | Single keydown listener; no conflict with Ctrl+Z/Y/F/B/I/Enter existing shortcuts |
-| Haptic feedback at swipe commit threshold | Android: the moment a swipe commits should feel distinct from passive dragging | LOW | `navigator.vibrate(10)` at threshold crossing; check API availability — iOS Safari does NOT support Vibration API |
+| Drag-to-reorder bullets with long-press handle | Native drag feel that a PWA cannot match; Dynalist Android does this | HIGH | Use Calvin-LL/Reorderable library (supports LazyColumn + animateItem); drag handle icon on each row; long-press to initiate; reorder API call on drop |
+| Drag-to-reorder documents in drawer | Document organization without tapping through menus | MEDIUM | Same reorderable pattern inside ModalNavigationDrawer's content list |
+| Optimistic updates on all mutations | Native apps feel faster than web apps; mutations should feel instant | HIGH | Update local state in ViewModel before API call; revert on error; all bullet operations (create, edit, complete, delete, indent, reorder) must be optimistic |
+| Swipe animation with proportional icon reveal | Proportional color + icon as you drag; matches web v1.1 behavior and Todoist/Things pattern | MEDIUM | SwipeToDismissBox progress property + lerp() for color; icon fades in at 30% threshold |
+| Physical keyboard support (Bluetooth/Chromebook) | Power users on Pixels, tablets, Chromebooks use Bluetooth keyboards | MEDIUM | Tab=indent, Shift+Tab=outdent, Enter=new bullet, Backspace-on-empty=delete+merge, Ctrl+Z=undo — all via onPreviewKeyEvent |
+| Inline markdown rendering per bullet | Bold, italic, strikethrough, inline code visible without entering edit mode | HIGH | AnnotatedString built from markdown parser; switch to raw text when bullet has focus |
+| #tags, @mentions, !!dates as tappable chips | Already in backend; render as colored spans; tap to filter | MEDIUM | SpanStyle with clickable modifier; tap launches search filtered by tag/mention/date |
+| Comment count badge on bullets | Signals hidden context without navigating into comments | LOW | Small badge composable on bullet row; driven by comment_count field in bullet API response |
+| Bookmarks screen | Users bookmark important bullets and need to access them natively | LOW | Dedicated screen accessible from drawer; reuse GET /api/bookmarks endpoint |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Manual dark/light mode toggle button | Users want override control | Creates a third UI state (user preference vs OS preference) that must be persisted, synced, and surfaced in settings; doubles theming work; can get permanently out-of-sync with OS | Follow OS preference only via `prefers-color-scheme`; add manual toggle in v1.2 settings if users request it |
-| Full offline mode (service worker + cache) | Users want the app to work on planes | Service worker + cache invalidation conflicts with server-side undo/redo model; sync conflicts on reconnect; explicitly out of scope per PROJECT.md | PWA manifest for home screen install without service worker; fast server is the offline mitigation |
-| Animated sidebar with spring physics (Framer Motion) | "Premium" feel | Animation libraries like Framer Motion add 30KB+ to bundle; CSS `transition: transform 250ms ease-out` achieves 90% of the feel with zero dependencies | CSS transitions only; no animation library |
-| Full command palette (all app actions) | VS Code / Linear pattern | VS Code has hundreds of commands; this app has ~15 real actions; a full command layer adds discovery complexity without proportional value | Scope palette to navigation only (documents + bullets + bookmarks); action shortcuts remain keyboard bindings |
-| Per-document custom themes | Power user personalization | Multiplies token system complexity; every new theme must be WCAG-audited; creates visual inconsistency across docs | Single coherent light/dark pair; token system enables future expansion without implementing it now |
-| Bottom tab bar replacing hamburger | More thumb-friendly for primary nav | App has one primary workspace (the open document) plus secondary content (sidebar, search); a bottom tab bar implies multiple co-equal top-level sections that don't exist | Hamburger drawer matches Dynalist/Workflowy conventions users already know |
-| Animated hamburger icon (lines → X morphing) | Looks polished | CSS-only morphing hamburger animations often have layout reflow issues on older Android; unclear UX benefit over a static hamburger + a separate X inside the drawer | Static hamburger icon that opens drawer; explicit X button inside drawer to close |
-
----
-
-## Feature Details by Category
-
-### 1. Hamburger Sidebar UX
-
-**Pattern:** Drawer overlay (not push-layout). Document content stays fixed; sidebar slides over it from the left.
-
-**Behavior checklist:**
-- Sidebar hidden by default on viewport width ≤768px
-- Hamburger button in app header, top-left; min 44×44px
-- Tap hamburger → sidebar translates from `translateX(-100%)` to `translateX(0)`; transition 250ms ease-out
-- Semi-transparent backdrop covers content behind sidebar (rgba(0,0,0,0.4))
-- Tap backdrop → sidebar closes (translateX(-100%)); transition 200ms ease-in
-- Tap any document in sidebar → navigate + auto-close sidebar
-- Escape key → close sidebar (mirrors standard modal behavior)
-- Sidebar contains visible X button top-right (not relying solely on backdrop)
-- On desktop (≥768px): sidebar always visible; hamburger hidden; Ctrl/Cmd+E toggles it
-- Sidebar width: 280–320px (Notion: 280px, Dynalist: ~240px; 280px is the standard)
-
-**Thumb reach note:** Hamburger at top-left is outside the natural thumb zone on large phones. This is acceptable because it is used at most once per session (switching documents), not on every interaction. High-frequency actions (new bullet, complete, search) should remain in the thumb-friendly bottom 40% of screen.
-
-**Desktop Ctrl/Cmd+E behavior:**
-- Toggle sidebar visibility (same behavior as sidebar being collapsed)
-- Store collapse state in localStorage so it persists across page refresh
-- No conflict with existing shortcuts: Ctrl+E is not currently bound
-
-### 2. Dark Mode Token System
-
-**Required WCAG AA contrast ratios (WCAG 2.1):**
-- Normal text on background: ≥4.5:1 (WCAG 1.4.3)
-- Large text (≥18pt or 14pt bold) on background: ≥3:1 (WCAG 1.4.3)
-- UI controls, borders, icons, focus rings vs adjacent color: ≥3:1 (WCAG 1.4.11)
-
-**Common dark mode contrast failures to avoid:**
-- Pure black (#000000) background with white text: harsh, causes halation
-- Pure white on dark: eye strain at night
-- Low-contrast disabled states (gray-on-gray): fails 3:1 on dark backgrounds
-- Focus rings disappearing in dark mode (focus ring color must contrast with dark background)
-
-**Recommended token structure:**
-```css
-:root {
-  /* Backgrounds */
-  --color-bg-base: #ffffff;
-  --color-bg-surface: #f8f9fa;
-  --color-bg-elevated: #ffffff;
-
-  /* Text */
-  --color-text-primary: #1a1a1a;
-  --color-text-secondary: #6b7280;
-  --color-text-muted: #9ca3af;
-
-  /* Interactive */
-  --color-accent: #3b82f6;
-  --color-accent-hover: #2563eb;
-
-  /* Borders / Dividers */
-  --color-border: #e5e7eb;
-
-  /* Status */
-  --color-success: #10b981;
-  --color-danger: #ef4444;
-
-  /* Focus */
-  --color-focus-ring: #3b82f6;
-
-  /* Swipe feedback */
-  --color-swipe-delete: #ef4444;
-  --color-swipe-complete: #10b981;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg-base: #0f1115;
-    --color-bg-surface: #1a1d23;
-    --color-bg-elevated: #22262e;
-    --color-text-primary: #e9ecf1;
-    --color-text-secondary: #9ca3af;
-    --color-text-muted: #6b7280;
-    --color-accent: #58a6ff;
-    --color-accent-hover: #79b8ff;
-    --color-border: #30363d;
-    --color-success: #3fb950;
-    --color-danger: #f85149;
-    --color-focus-ring: #58a6ff;
-    --color-swipe-delete: #f85149;
-    --color-swipe-complete: #3fb950;
-  }
-}
-```
-
-**Naming discipline:** tokens describe purpose, not style (`--color-text-primary` not `--color-dark-gray`). This makes future palette changes non-breaking.
-
-**Additional dark mode adjustments:**
-- Shadows: reduce opacity in dark mode or eliminate; dark mode shadows look wrong
-- Images with white backgrounds: `filter: brightness(0.85)` to reduce glare
-- Markdown code blocks: surface token elevates them above base background
-
-### 3. Quick-Open Palette (Ctrl+K)
-
-**User expectations from Obsidian, Notesnook, Notion, Capacities:**
-
-| Behavior | Expected |
-|----------|----------|
-| Keyboard shortcut | Ctrl+K (Windows/Linux), Cmd+K (Mac); also Cmd+P accepted by power users |
-| Trigger from mobile | Search icon tap — Ctrl+K is keyboard-only, mobile needs an icon entry point |
-| Opening position | Centered modal overlay with backdrop; 600px wide max; responsive |
-| Auto-focus | Input field receives focus immediately on open |
-| Results when empty | "Recent documents" list (last 5-10 opened) |
-| Results when typing | Fuzzy match: documents by title, bullets by text, bookmarks by name |
-| Update speed | Debounced ~150ms; document title matches are instant (client-side); bullet matches need server call |
-| Keyboard navigation | ArrowUp/ArrowDown to move focus through results; Enter to select |
-| Dismiss | Escape key or click outside backdrop |
-| Result groups | Documents / Bullets / Bookmarks (clearly separated, labeled) |
-| Fuzzy tolerance | "inb" matches "Inbox"; "mtg nts" matches "Meeting Notes"; partial and out-of-order chars |
-
-**Scope for v1.1 (navigation only — no action commands):**
-- Fuzzy search documents by title (client-side, instant)
-- Fuzzy search bullets by text (server-side, debounced — reuse existing `/search` endpoint)
-- Fuzzy search bookmarks (client-side, instant)
-- Show recently opened documents when query is empty
-- Keyboard navigation through results
-
-**Scope NOT in v1.1:**
-- Action commands ("bold selection", "export document", "create new doc") — these stay as keyboard shortcuts
-- Tag navigation via palette
-- Date-based search within palette
-- Mobile bottom sheet variant
-
-**Fuzzy library options:**
-- Fuse.js: 16KB, excellent fuzzy matching, battle-tested, good for document/bookmark titles (client-side)
-- microfuzz: ~2KB, faster, from Nozbe (makers of Nozbe productivity app), good for simple string matching
-- Recommendation: microfuzz for document title matching (smaller); fall back to server full-text search for bullet content
-
-**Interaction with existing search:** The existing Ctrl+F search searches within the current document only. Ctrl+K palette searches across all documents. These are complementary and should not conflict.
-
-### 4. PWA Manifest — Required Fields
-
-**Minimum for Chrome/Edge install prompt (no service worker required as of Chrome 135+):**
-
-```json
-{
-  "name": "Notes",
-  "short_name": "Notes",
-  "description": "Self-hosted infinite outliner for personal knowledge management",
-  "start_url": "/",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#3b82f6",
-  "icons": [
-    {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-512-maskable.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
-  ]
-}
-```
-
-**Additional recommended (Android richer install dialog):**
-```json
-{
-  "screenshots": [
-    { "src": "/screenshots/narrow-1.png", "sizes": "390x844", "type": "image/png", "form_factor": "narrow" },
-    { "src": "/screenshots/narrow-2.png", "sizes": "390x844", "type": "image/png", "form_factor": "narrow" }
-  ]
-}
-```
-
-**theme_color in dark mode:** The `<meta name="theme-color">` tag supports a `media` attribute:
-```html
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
-```
-
-**HTML link:** `<link rel="manifest" href="/manifest.json">` in the `<head>`.
-
-**Service worker:** NOT needed. Offline mode is explicitly out of scope. Do not add a service worker to meet install criteria — Chrome 135+ no longer requires it.
-
-**HTTPS:** Already satisfied by Nginx + Let's Encrypt.
-
-**Install criteria summary:**
-1. Manifest present with required fields (name/short_name, icons 192+512, start_url, display)
-2. Served over HTTPS
-3. User has interacted with page (one click + 30 seconds minimum — automatic with normal use)
-
-### 5. Swipe Gesture Animation Polish
-
-**Current state:** Swipe right = complete, swipe left = delete, long-press = context menu. Already functional. v1.1 adds visual feedback quality.
-
-**Expected behavior (Todoist/Things/iOS Mail pattern):**
-1. User begins swipe → bullet row `translateX()` follows touch delta in real-time (no transition during active touch)
-2. Colored backing layer revealed behind the row: red for left (delete), green for right (complete)
-3. Icon (trash / checkmark from Lucide) on the backing layer fades in after 25–30% swipe threshold
-4. At ~50% threshold: icon scale-up (transform: scale(1.1)) signals "commit zone"
-5. On touch end:
-   - Threshold met: action executes; row animates out (translateX to ±100% + opacity 0)
-   - Threshold not met: row snaps back with ease-out transition (300ms)
-
-**CSS approach (no animation library needed):**
-```css
-.bullet-row {
-  position: relative;
-  transition: transform 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              opacity 200ms ease;
-}
-.bullet-row.is-swiping {
-  transition: none; /* disable transition during active touch — follows finger */
-}
-.swipe-backing-left,
-.swipe-backing-right {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  opacity: 0;
-  transition: opacity 150ms ease;
-}
-.swipe-backing-left { background: var(--color-swipe-delete); justify-content: flex-end; padding-right: 20px; }
-.swipe-backing-right { background: var(--color-swipe-complete); justify-content: flex-start; padding-left: 20px; }
-.bullet-row.swipe-threshold-reached .swipe-backing-left,
-.bullet-row.swipe-threshold-reached .swipe-backing-right {
-  opacity: 1;
-}
-```
-
-**Haptic feedback (Android only — iOS Safari does not support Vibration API):**
-- Check: `if ('vibrate' in navigator)` before calling
-- On threshold cross: `navigator.vibrate(10)` — single short pulse
-- On action commit: `navigator.vibrate(20)` — slightly longer pulse
-- Do NOT vibrate on every pixel of swipe movement — only at threshold events
-- Centralize in a helper: `function haptic(ms) { if ('vibrate' in navigator) navigator.vibrate(ms); }`
-
-### 6. Icon Library and Font Pairing
-
-**Lucide React — recommended icon library:**
-- 1,500+ icons; consistent 24×24 design grid; community-maintained fork of Feather Icons
-- Tree-shakable (ES modules): `import { Trash2, Check, ChevronRight } from 'lucide-react'` — only imported icons appear in bundle
-- First-class TypeScript support
-- All icons accept `size`, `color`, `strokeWidth` props and any SVG attribute
-- `aria-hidden="true"` by default; add `aria-label` when icon is the sole label for a control
-- Weekly npm downloads: 200,000+; 14,000+ GitHub stars (HIGH confidence, current)
-
-**Installation:** `npm install lucide-react`
-
-**Anti-pattern to avoid:** `import * as Icons from 'lucide-react'` — imports all 1,500 icons into bundle. Always use named imports.
-
-**Inter + JetBrains Mono font pairing:**
-- Inter: de facto standard for UI text; designed for screen readability; variable font available; x-height 0.72
-- JetBrains Mono: designed for code readability; ligatures; x-height 0.73 (matches Inter visually); free + open source
-- Pairing score: 88/100 (fontalternatives.com analysis); x-height harmony means same font-size looks visually consistent
-- Use Inter for: all UI text, sidebar, bullets, toolbar, palette results
-- Use JetBrains Mono for: inline code spans (backtick-delimited), code block content
-- Load strategy: Google Fonts CDN or self-host; `font-display: swap` to prevent invisible text during load
-
-**Font size minimums:**
-- Body/bullet text: 16px minimum
-- Secondary labels: 14px minimum (ensure contrast still passes WCAG at smaller size)
-- Code: 14px with JetBrains Mono is standard for inline code
+| Offline mode with local SQLite cache | "I want it to work without internet" | Sync conflicts with server-side undo/redo model; conflict resolution on reconnect requires a full CRDT layer; out of scope per PROJECT.md | Accept online-only; make API calls fast with optimistic updates so latency is invisible |
+| Rich text editor (ProseMirror/Quill equivalent) | Users want formatting toolbar like Google Docs | A document-model editor conflicts with the tree structure; the web client deliberately avoided this — same reasoning applies | AnnotatedString-based inline markdown with a minimal formatting toolbar (bold/italic/code buttons above keyboard) |
+| Nested RecyclerView / nested LazyColumn | "Natural" for a tree structure | Deeply nested scrollable containers cause touch event conflicts and performance issues at scale; the web client solved this with a flat SortableContext — same pattern applies | Single flat LazyColumn with depth-based paddingStart for indentation |
+| Real-time collaborative sync | "Sync between my phone and laptop simultaneously" | Server is privacy-first, single-user; real-time sync requires WebSocket or SSE infrastructure not in the backend; out of scope | Pull-to-refresh for explicit sync; optimistic updates handle the latency gap |
+| Bottom navigation bar | Thumb-friendly for multiple top-level sections | This app has one primary surface (the document); a bottom nav implies multiple co-equal sections that don't exist; Dynalist/Workflowy both use drawer-only | ModalNavigationDrawer with swipe-from-left; single-surface design |
+| Separate "edit mode" per bullet | Perceived safety before committing edits | Adds a tap to start every edit and a tap to confirm every edit — 2x the taps for the most frequent action in an outliner | Tap-to-edit in place; IME Done/Enter commits; Back dismisses keyboard |
+| File attachment picker within bullet | Web client has this | Android SAF (Storage Access Framework) integration is non-trivial; file upload over mobile data is slow and lossy; adds significant complexity for a rarely-used feature | Defer attachments to v2.1; focus on core outlining on v2.0 |
+| Google SSO on Android | Web already has it | `google-services.json` + Firebase/Auth credential flow requires Play Services dependency and adds build complexity; one-sign-in per lifetime for a self-hosted app; low ROI | Email/password auth only in v2.0; Google SSO is a v2.1 candidate |
+| Kanban board view | "Organizing cards like Workflowy Boards" | Orthogonal UI paradigm; requires a completely different layout and interaction model | Outline view only; PROJECT.md is clear that the tool is an outliner, not a project manager |
+| Widget / home screen shortcut to document | Convenient for power users | AppWidgetProvider implementation is substantial; requires separate layout XML + service | Deep link shortcut (android:autoVerify App Links) to a specific document is simpler and achieves 80% of the use case |
 
 ---
 
 ## Feature Dependencies
 
 ```
-Dark Mode Token System
-    └──required-by──> ALL UI components in v1.1
-    └──must-implement-first──> (every other change should use tokens from day one)
+Auth (JWT + refresh cookie)
+    └──required-by──> ALL screens (drawer, document, search, bookmarks)
+    └──must-implement-first──> (nothing else works without a valid session)
 
-Responsive Layout (sidebar hidden on mobile)
-    └──required-by──> Hamburger button (needs hidden state to disclose)
-    └──required-by──> Swipe gesture polish (gestures should not fire when sidebar overlay is open)
-    └──bundled-with──> Safe area insets (single CSS refactor covers both)
+ModalNavigationDrawer + Document List
+    └──required-by──> Document CRUD (create/rename/delete)
+    └──required-by──> Drawer document drag-reorder
+    └──enhances──> Back gesture (drawer close on back)
 
-Lucide Icon Library
-    └──enhances──> Swipe gesture backing layer icons (trash, checkmark)
-    └──enhances──> Hamburger and sidebar close icons
-    └──enhances──> Quick-open palette icons (document, bullet, bookmark)
+Bullet Tree ViewModel (tree flattening)
+    └──required-by──> LazyColumn rendering
+    └──required-by──> Collapse/expand
+    └──required-by──> Zoom/drill-down
+    └──required-by──> All bullet mutations (create, edit, indent, delete, complete)
+    └──required-by──> Drag-to-reorder bullets
 
-Dark Mode Tokens
-    └──required-by──> Swipe backing colors (--color-swipe-delete, --color-swipe-complete)
-    └──required-by──> Palette backdrop and surface colors
+LazyColumn with flat tree model
+    └──required-by──> Swipe gestures (SwipeToDismissBox wraps each row)
+    └──required-by──> Long-press context menu
+    └──required-by──> Drag-to-reorder (Calvin-LL/Reorderable operates on LazyColumn)
 
-Quick-Open Palette
-    └──reuses──> Existing document list (sidebar state — no new data fetch for doc titles)
-    └──reuses──> Existing /search endpoint (bullet text search)
-    └──requires──> Modal/overlay pattern (same as sidebar backdrop)
+Optimistic updates (ViewModel mutation pattern)
+    └──enhances──> ALL bullet mutations (must be designed in from the start)
+    └──must-NOT-be-retrofitted──> (bolt-on optimism after the fact causes state bugs)
 
-PWA Manifest
-    └──independent──> (standalone feature; no deps on other v1.1 features)
-    └──requires──> Icon assets (192px + 512px PNG) to be created first
+Inline markdown rendering (AnnotatedString)
+    └──required-by──> #tags, @mentions, !!dates as tappable chips
+    └──conflicts-with──> Edit mode (must switch to raw text on focus)
 
-Font Pairing
-    └──independent──> (CSS font-family swap; no structural dependencies)
-    └──enhances──> Overall visual quality of dark mode (readable at small sizes in dim light)
+Search
+    └──required-by──> Tag/mention/date navigation (filter searches)
+    └──reuses──> Existing /search backend endpoint
+
+Physical keyboard support
+    └──enhances──> All bullet editing (Tab, Shift+Tab, Enter, Backspace, Ctrl+Z)
+    └──independent──> (graceful degradation when no physical keyboard present)
 ```
 
 ### Dependency Notes
 
-- **Implement dark mode tokens first** — if any component is built before tokens exist, it will use hardcoded colors that must be retrofitted. Token system is the foundation all other v1.1 features rest on.
-- **Responsive layout and safe area insets are one refactor** — the same CSS pass that adds media queries should also add `env(safe-area-inset-*)` padding. Doing them separately doubles the CSS churn.
-- **Palette does not need new search infrastructure** — the existing `/search` endpoint handles bullet full-text search; document titles are already in sidebar state. The palette is a new UI over existing data.
-- **Gesture polish is additive CSS** — the existing touch handler in `gestures.ts` already has threshold detection callbacks. The v1.1 work adds CSS classes to the row and backing layers at each threshold, not new gesture logic.
-- **Lucide icons are a drop-in replacement** — existing ad-hoc SVGs can be replaced icon by icon; no architectural change required.
+- **Auth must be phase 1**: Every subsequent screen requires a valid JWT. Build auth + token refresh + EncryptedSharedPreferences storage before any other screen.
+- **Tree flattening is the architectural foundation**: The decision to flatten the bullet tree into a display list in the ViewModel (not in the UI) determines how collapse/expand, zoom, drag, and swipe all work. This must be designed correctly in phase 1 of the outliner, not retrofitted.
+- **Optimistic updates must be designed in from the start**: If the ViewModel pattern is built with pessimistic (wait-for-API) updates first and then "made optimistic" later, the state management logic doubles in complexity. Optimism is an architectural choice, not a polish step.
+- **Inline markdown and edit mode are in tension**: When a bullet has focus, it must show raw text (so the user can edit `**bold**` without fighting rendering). AnnotatedString rendering is for read-only bullets only. This requires a `isFocused` flag per bullet row.
+- **Drag-to-reorder requires the flat LazyColumn**: Nested lists break drag libraries. This is why the flat-list-with-depth-padding approach is non-negotiable.
 
 ---
 
 ## MVP Definition
 
-### v1.1 Launch (all features are in scope per PROJECT.md)
+### v2.0 Launch With
 
-Order matters — implement in this sequence to avoid rework:
+The minimum Android client that delivers the core outliner experience without the web browser overhead.
 
-- [ ] Dark mode token system — CSS custom properties; every other component uses tokens
-- [ ] Responsive mobile layout + safe area insets — CSS refactor; sidebar becomes drawer on mobile
-- [ ] Hamburger + backdrop + sidebar close button + Ctrl/Cmd+E desktop toggle
-- [ ] Lucide icon library — replace existing SVGs; bundled naturally with layout refactor
-- [ ] Inter + JetBrains Mono font pairing — CSS font-family changes
-- [ ] PWA manifest + icon assets — manifest.json + HTML link tag
-- [ ] Swipe gesture color/icon feedback — CSS backing layers + threshold classes
-- [ ] Quick-open palette (Ctrl+K) — modal overlay + fuzzy doc/bullet/bookmark search
+- [ ] Auth — email/password login, JWT + refresh cookie, EncryptedSharedPreferences, auto-refresh on 401
+- [ ] Document management — list in drawer, create/rename/delete, last-opened persistence
+- [ ] Bullet tree — flat LazyColumn, depth indentation, create/edit/delete, Tab/Shift+Tab indent, Enter new bullet, collapse/expand, zoom + breadcrumbs
+- [ ] Swipe gestures — swipe right = complete, swipe left = delete, with proportional color/icon reveal
+- [ ] Long-press context menu — indent, outdent, complete, delete, add comment, zoom
+- [ ] Pull to refresh — explicit sync trigger on document screen
+- [ ] Undo — single tap undo button in top app bar (existing server-side undo)
+- [ ] Search — Material 3 SearchBar across documents and bullets
+- [ ] Material 3 theme — dark/light follows system; dynamic color (Material You) on Android 12+
+- [ ] Optimistic updates — all mutations update local state before API response
+- [ ] Predictive back gesture — proper back handling throughout
 
-### Defer to v1.2
+### Add After v2.0 Launch (v2.1)
 
-- [ ] Manual dark/light override toggle — add to settings if user-requested
-- [ ] Offline support / service worker — explicitly out of scope
-- [ ] Palette action commands — navigation-only is sufficient for v1.1
-- [ ] Screenshots in PWA manifest — nice for Android install dialog; not blocking install
+- [ ] Drag-to-reorder bullets — depends on v2.0 flat LazyColumn being stable; adds significant complexity
+- [ ] Drag-to-reorder documents — same library; simpler list; bundle with bullet drag
+- [ ] Inline markdown rendering — AnnotatedString; needs edit/view mode switching; polish feature
+- [ ] #tags, @mentions, !!dates as tappable chips — depends on inline markdown rendering
+- [ ] Comment count badge — requires comment_count in API response (minor backend addition)
+- [ ] Bookmarks screen — straightforward; low complexity; good v2.1 filler
+- [ ] Physical keyboard shortcuts (Bluetooth keyboards) — niche; implement after core is stable
+
+### Future Consideration (v3+)
+
+- [ ] Google SSO on Android — Firebase Auth dependency; not worth the build complexity for v2.0
+- [ ] File attachments — SAF integration; meaningful complexity; most usage is desktop
+- [ ] Widgets / App Links deep-link to document
+- [ ] Import/export (Markdown) from Android — SAF-based file write; nice-to-have
 
 ---
 
@@ -406,123 +166,135 @@ Order matters — implement in this sequence to avoid rework:
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Dark mode token system | HIGH | MEDIUM | P1 — foundation; implement first |
-| Responsive mobile layout | HIGH | MEDIUM | P1 — nothing else works on mobile without this |
-| Safe area insets | MEDIUM | LOW | P1 — bundle with responsive layout refactor |
-| Hamburger + auto-close sidebar | HIGH | LOW | P1 — without it mobile users can't navigate |
-| Sidebar explicit close button | MEDIUM | LOW | P1 — accessibility + discoverability |
-| Ctrl/Cmd+E desktop toggle | LOW | LOW | P2 — power user quality-of-life |
-| PWA manifest + icons | HIGH | LOW | P1 — low effort, high perceived value |
-| Lucide icon library | MEDIUM | LOW | P1 — visual coherence; bundle with layout work |
-| Inter + JetBrains Mono fonts | MEDIUM | LOW | P1 — CSS change; immediate quality uplift |
-| Swipe gesture color/icon reveal | MEDIUM | MEDIUM | P2 — existing gestures work; this is polish |
-| Swipe snap-back animation | LOW | LOW | P2 — bundle with swipe color work |
-| Haptic swipe feedback | LOW | LOW | P3 — Android only; graceful skip on iOS |
-| Quick-open palette (docs + bookmarks) | HIGH | MEDIUM | P2 — high value; needs token + layout done first |
-| Quick-open palette (bullet search) | HIGH | MEDIUM | P2 — extension of palette; server call |
-| Mobile entry point for palette | MEDIUM | LOW | P2 — search icon on toolbar; Ctrl+K is keyboard-only |
+| Auth (JWT + refresh) | HIGH | LOW | P1 — nothing works without it |
+| Document drawer (list + CRUD) | HIGH | MEDIUM | P1 — core navigation |
+| Bullet tree (flat LazyColumn + CRUD) | HIGH | HIGH | P1 — core product |
+| Tab/Shift+Tab indent | HIGH | MEDIUM | P1 — outliner unusable without it |
+| Collapse/expand | HIGH | MEDIUM | P1 — core outliner behavior |
+| Zoom + breadcrumbs | HIGH | MEDIUM | P1 — core outliner behavior |
+| Swipe gestures (complete + delete) | HIGH | MEDIUM | P1 — matches web; users expect it |
+| Optimistic updates | HIGH | HIGH | P1 — must be designed in from start |
+| Dark mode (system-follow) | HIGH | LOW | P1 — Android users expect this |
+| Pull to refresh | MEDIUM | LOW | P1 — standard Android pattern |
+| Long-press context menu | HIGH | MEDIUM | P1 — needed for indent/outdent on touch |
+| Search | HIGH | MEDIUM | P1 — unusable without search at scale |
+| Undo button | MEDIUM | LOW | P1 — existing API; 30 min of work |
+| Predictive back | MEDIUM | MEDIUM | P1 — Android 13+ requirement |
+| Drag-to-reorder bullets | MEDIUM | HIGH | P2 — powerful but complex; v2.1 |
+| Inline markdown rendering | MEDIUM | HIGH | P2 — polish; v2.1 |
+| #tags/@mentions/!!dates chips | MEDIUM | MEDIUM | P2 — depends on markdown rendering |
+| Bookmarks screen | LOW | LOW | P2 — quick win in v2.1 |
+| Physical keyboard shortcuts | LOW | MEDIUM | P2 — niche; v2.1 |
+| Comment count badge | LOW | LOW | P3 — requires API change |
+| File attachments | LOW | HIGH | P3 — defer to v3 |
+| Google SSO | LOW | HIGH | P3 — not worth Firebase dep in v2.0 |
 
 **Priority key:**
-- P1: Must have for v1.1 launch — without these the milestone fails
-- P2: Should have in v1.1 — high value, bundle with surrounding work
-- P3: Nice to have — include only if no complexity risk
+- P1: Must have for v2.0 launch — without these the milestone fails
+- P2: Should have in v2.1 — high value but separate effort
+- P3: Nice to have — future consideration
 
 ---
 
 ## Competitor Feature Analysis
 
-| Feature | Dynalist | Workflowy | Notion | Our v1.1 Approach |
-|---------|----------|-----------|--------|-------------------|
-| Mobile hamburger sidebar | Drawer overlay | Drawer overlay | Bottom sheet / sidebar | Drawer overlay (matches Dynalist pattern) |
-| Dark mode | System-follow | System-follow | System + manual toggle | System-follow only (no manual toggle in v1.1) |
-| Quick-open palette | Ctrl+K (docs only) | Ctrl+K (docs) | Ctrl+K (full command palette) | Ctrl+K (docs + bullets + bookmarks; no action commands) |
-| PWA installable | Yes | Yes | Yes | Yes via manifest (no service worker needed) |
-| Icon library | Custom SVGs | Minimal | Lucide-based | Lucide |
-| Typography | System font | System font | Custom (Notion font) | Inter (UI) + JetBrains Mono (code) |
-| Swipe gestures with feedback | Color reveal | Minimal | No swipe | Color reveal + icon + snap-back |
-| Haptic feedback | Not on web | Not on web | Not on web | Android only via Vibration API |
-| Safe area insets | Yes (iOS app) | Yes (iOS app) | Yes | Yes via CSS env() |
+| Feature | Workflowy Android | Dynalist Android | Our v2.0 Approach |
+|---------|------------------|-----------------|-------------------|
+| Auth | Email + Google | Email + Google | Email only (Google SSO deferred) |
+| Document navigation | Side drawer | Side drawer | ModalNavigationDrawer (Material 3) |
+| Bullet editing | Tap to edit inline | Tap to edit inline | BasicTextField per row, tap to edit |
+| Indent/outdent | Toolbar buttons + drag | Toolbar buttons + drag | Toolbar buttons; Tab key on physical KB |
+| Swipe complete | Swipe right | Swipe right | SwipeToDismissBox StartToEnd |
+| Swipe delete | Swipe left (via menu) | Swipe left | SwipeToDismissBox EndToStart |
+| Drag to reorder | Long-press handle | Long-press handle | v2.1 (Calvin-LL/Reorderable) |
+| Search | Full-text + tags | Full-text + tags | SearchBar + existing /search API |
+| Collapse/expand | Yes | Yes | Yes |
+| Zoom/drill-down | Yes (tap bullet icon) | Yes | Yes (tap bullet expand icon or context menu) |
+| Dark mode | System-follow | System-follow | System-follow + Material You |
+| Offline | Offline-capable | Offline-capable | Online-only (deferred by design) |
+| Markdown rendering | Yes (inline) | Yes (inline) | v2.1 (AnnotatedString) |
+| Tags as chips | Yes | Yes | v2.1 |
+| Attachments | No (mobile) | Limited | v3 |
 
 ---
 
-## Mobile-Specific UX Patterns
+## Android-Specific UX Patterns
 
-### Thumb Reach Zones
+### Bullet Editing Keyboard Flow
 
-On a typical 6-inch phone held one-handed:
+The standard "outliner keyboard loop" on Android with soft keyboard:
 
-| Zone | Location | Suitable For |
-|------|----------|--------------|
-| Easy (natural) | Bottom 40%, center | High-frequency: new bullet, complete, search input |
-| Reachable | Middle 30% | Moderate-frequency: toolbar buttons, sidebar items |
-| Stretch (hard) | Top 30%, far corners | Low-frequency: hamburger (once/session), settings |
+1. User taps blank area → new bullet created → keyboard opens → `ImeAction.Default` (no action button shown; Enter is the action)
+2. User types text
+3. User presses Enter → new sibling bullet created below; focus moves to it
+4. User presses Tab (or taps indent button in floating toolbar) → current bullet becomes child of bullet above
+5. User presses Shift+Tab (or taps outdent button) → current bullet promoted one level
+6. User presses Backspace on empty bullet → bullet deleted; focus moves to previous bullet's end
 
-**Implications for v1.1:**
-- Hamburger at top-left is acceptable — it is used once per session to switch documents
-- If a floating action button (FAB) for "new document" is considered in a future milestone, bottom-right is the correct thumb-friendly placement
-- Sidebar document items should be ≥48px tall (48px is Material Design's minimum; 44px is Apple HIG minimum)
-- Quick-open palette results: 48px row height; finger-sized tap targets
+The ImeAction must be set to `ImeAction.Default` (shows standard Enter key, not "Done" or "Search"), and `KeyboardCapitalization.Sentences` for auto-capitalize. Override `onKeyEvent` with `onPreviewKeyEvent` to intercept Tab, Shift+Tab, and Backspace-on-empty before they reach the TextField.
 
-### Safe Area Insets — Implementation Pattern
+**Known pitfall:** Gboard and some OEM keyboards intercept Tab and do not deliver it as a KeyEvent to the app. Always provide touch-accessible toolbar buttons (indent/outdent) as the primary path; physical keyboard Tab is a secondary convenience. (Source: Obsidian Android community bug reports confirming this behavior.)
 
-```css
-/* Requires in HTML: <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"> */
+### Swipe Gesture Behavior (SwipeToDismissBox)
 
-.app-header {
-  padding-top: max(env(safe-area-inset-top), 16px);
-}
+Per Material 3 and the existing web client pattern:
 
-.sidebar {
-  padding-bottom: env(safe-area-inset-bottom);
-}
+- **Swipe right (StartToEnd)**: Complete bullet. Green backing (`colorScheme.tertiary` or #10b981). Checkmark icon. `confirmValueChange` returns `false` (row stays in place after toggle — completed state is a visual change, not removal).
+- **Swipe left (EndToStart)**: Delete bullet. Red backing (`colorScheme.error`). Trash icon. `confirmValueChange` returns `true` for leaf bullets (immediate removal with `animateItem()`). For bullets with children, show a ModalBottomSheet confirmation before deletion.
+- **Proportional reveal**: Use `swipeToDismissBoxState.progress` + `lerp(containerColor, actionColor, progress.coerceIn(0f, 1f))` for smooth color transition. Icon fades in with `alpha = (progress - 0.25f).coerceIn(0f, 1f) / 0.25f` (appears between 25–50% swipe).
 
-/* Any fixed bottom bars */
-.bottom-toolbar {
-  padding-bottom: max(env(safe-area-inset-bottom), 8px);
-}
-```
+### Long-Press Context Menu
 
-Without `viewport-fit=cover`, `env(safe-area-inset-*)` returns 0 — the meta viewport tag change is required.
+Use `DropdownMenu` anchored to the long-pressed item for in-line actions. Prefer it over ModalBottomSheet for list items because:
+- DropdownMenu appears near the touch point (better spatial relationship)
+- ModalBottomSheet requires bottom half of screen (disrupts reading position)
+- Exception: destructive confirmation (delete subtree) → use ModalBottomSheet or AlertDialog for weight
 
-### Touch Target Minimums
+Actions in the context menu:
+1. Indent (becomes child of bullet above)
+2. Outdent (promoted one level)
+3. Complete / Uncomplete
+4. Zoom into this bullet
+5. Add comment
+6. Delete (with confirmation if has children)
 
-| Element | Minimum Size | Standard |
-|---------|--------------|----------|
-| Hamburger button | 44×44px | WCAG 2.5.5, Apple HIG |
-| Sidebar document items | 44px height, full width | WCAG 2.5.5 |
-| Bullet expand/collapse caret | 44×44px tap area (visual can be smaller) | WCAG 2.5.5 |
-| Palette result rows | 48px height | Material Design |
-| Swipe action icon area | Visual only — swipe gesture initiates action, not icon tap | N/A |
-| Close (X) button | 44×44px | WCAG 2.5.5 |
+### Drag-to-Reorder (v2.1)
+
+Use `sh.calvin.reorderable:reorderable` (Calvin-LL/Reorderable) — the most maintained library as of 2025, supporting `LazyColumn` with `Modifier.animateItem()`. Long-press on a drag handle icon (6-dot vertical grip icon from Material icons) initiates drag. Drop calls `PATCH /api/bullets/:id` with new position. The flat LazyColumn model (already required for rendering) is exactly what this library needs.
+
+**Do not use** the older `aclassen/ComposeReorderable` — it has not been updated for recent Compose APIs.
+
+### Predictive Back Handling
+
+Register `BackHandler` in screens with sub-states to intercept before system handles it:
+- Drawer open → close drawer, do not pop screen
+- Keyboard open + focus in bullet → close keyboard, do not pop screen
+- Zoomed into bullet → pop zoom level (navigate up), do not pop to document list
+
+For Android 13+ predictive back animation: opt in via `android:enableOnBackInvokedCallback="true"` in AndroidManifest. NavHost in Jetpack Navigation automatically applies the cross-fade animation.
 
 ---
 
 ## Sources
 
-- [Mobile Navigation UX Best Practices (2026) — designstudiouiux.com](https://www.designstudiouiux.com/blog/mobile-navigation-ux/)
-- [Mobile UX Thumb Zones 2025 — elaris.software](https://elaris.software/blog/mobile-ux-thumb-zones-2025/)
-- [Command Palette UX Patterns — Mobbin glossary](https://mobbin.com/glossary/command-palette)
-- [Command Palette — UX Patterns for Developers](https://uxpatterns.dev/patterns/advanced/command-palette)
-- [Maggie Appleton on Command K Bars](https://maggieappleton.com/command-bar)
-- [Notesnook 3.0.27 Command Palette Launch — AlternativeTo, Feb 2025](https://alternativeto.net/news/2025/2/notesnook-3-0-27-introduces-a-command-palette-support-for-markdown-pasting-and-more/)
-- [PWA Install Criteria — web.dev](https://web.dev/articles/install-criteria)
-- [PWA Web App Manifest — web.dev/learn](https://web.dev/learn/pwa/web-app-manifest)
-- [Making PWAs Installable — MDN](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable)
-- [PWA 2025 Web Almanac — HTTP Archive](https://almanac.httparchive.org/en/2025/pwa)
-- [Dark Mode Accessibility Guide (WCAG 2.1 AA) — blog.greeden.me, Feb 2026](https://blog.greeden.me/en/2026/02/23/complete-accessibility-guide-for-dark-mode-and-high-contrast-color-design-contrast-validation-respecting-os-settings-icons-images-and-focus-visibility-wcag-2-1-aa/)
-- [Color Contrast WCAG Guide 2025 — allaccessible.org](https://www.allaccessible.org/blog/color-contrast-accessibility-wcag-guide-2025)
-- [CSS env() Safe Area Insets — MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/env)
-- [Chrome Android Edge-to-Edge Migration Guide — developer.chrome.com, Feb 2025](https://developer.chrome.com/docs/css-ui/edge-to-edge)
-- [Lucide React — lucide.dev](https://lucide.dev/guide/packages/lucide-react)
-- [Inter + JetBrains Mono Pairing Score 88/100 — fontalternatives.com](https://fontalternatives.com/pairings/inter-and-jetbrains-mono/)
-- [JetBrains Mono — jetbrains.com](https://www.jetbrains.com/lp/mono/)
-- [Best Fonts for Web Design 2025 — shakuro.com](https://shakuro.com/blog/best-fonts-for-web-design)
-- [WebHaptics for React — cssscript.com](https://www.cssscript.com/haptic-feedback-web/)
-- [2025 Haptics Guide — saropa-contacts.medium.com](https://saropa-contacts.medium.com/2025-guide-to-haptics-enhancing-mobile-ux-with-tactile-feedback-676dd5937774)
-- [Motion for React Gestures — motion.dev](https://motion.dev/docs/react-gestures)
-- [microfuzz fuzzy library — github.com/Nozbe/microfuzz](https://github.com/Nozbe/microfuzz)
+- [Material 3 Gestures — m3.material.io](https://m3.material.io/foundations/interaction/gestures)
+- [Material 3 Lists — m3.material.io](https://m3.material.io/components/lists/guidelines)
+- [SwipeToDismissBox — developer.android.com](https://developer.android.com/develop/ui/compose/touch-input/user-interactions/swipe-to-dismiss)
+- [Navigation Drawer — developer.android.com](https://developer.android.com/develop/ui/compose/components/drawer)
+- [Material 3 Navigation Drawer — m3.material.io](https://m3.material.io/components/navigation-drawer/guidelines)
+- [Material 3 Search — m3.material.io](https://m3.material.io/components/search)
+- [Search Bar — developer.android.com](https://developer.android.com/develop/ui/compose/components/search-bar)
+- [Pull to Refresh Material 3 Compose — domen.lanisnik.medium.com](https://medium.com/@domen.lanisnik/pull-to-refresh-with-compose-material-3-26b37dbea966)
+- [Calvin-LL/Reorderable — github.com](https://github.com/Calvin-LL/Reorderable)
+- [Handle Keyboard Actions Compose — developer.android.com](https://developer.android.com/develop/ui/compose/touch-input/keyboard-input/commands)
+- [Predictive Back Gesture — developer.android.com](https://developer.android.com/guide/navigation/custom-back/predictive-back-gesture)
+- [Workflowy Android — play.google.com](https://play.google.com/store/apps/details?id=com.workflowy.android)
+- [Workflowy Mobile Shortcuts blog post — blog.workflowy.com](https://blog.workflowy.com/swipe-right-on-us-mobile-shortcuts/)
+- [Drag Drop in Compose — dev.to/myougatheaxo](https://dev.to/myougatheaxo/drag-drop-in-compose-reorderable-lists-swipe-to-delete-4nfd)
+- [Swipe Actions in Compose — dev.to/myougatheaxo](https://dev.to/myougatheaxo/swipe-actions-in-compose-swipetodismissbox-archive-delete-patterns-2i9m)
+- [Obsidian Android keyboard Enter/Tab bug — forum.obsidian.md](https://forum.obsidian.md/t/enter-in-lists-on-android-gboard-doesnt-make-next-bullet-point-checkbox-etc-due-to-autosuggest-autocorrect/51716)
 
 ---
 
-*Feature research for: Notes v1.1 Mobile & UI Polish milestone*
-*Researched: 2026-03-10*
+*Feature research for: Notes v2.0 Native Android Client milestone*
+*Researched: 2026-03-12*

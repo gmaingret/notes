@@ -41,7 +41,13 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 
 ### Active
 
-(No active requirements — planning next milestone)
+- [ ] Native Android client in Kotlin/Jetpack Compose + Material Design 3
+- [ ] Android app talks to existing backend API (no new backend features)
+- [ ] Auth: JWT bearer tokens with refresh via httpOnly cookie, EncryptedSharedPreferences
+- [ ] Document management: list, CRUD, drag reorder, last-opened persistence
+- [ ] Bullet tree: nested bullets, tree flattening, indent/outdent, collapse/expand, complete, drag-drop
+- [ ] Reactivity: optimistic updates, pull-to-refresh, swipe gestures, search, undo/redo
+- [ ] Material Design 3 theme with dark mode, smooth animations
 
 ### Deferred
 
@@ -51,7 +57,7 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 
 ### Out of Scope
 
-- Native mobile apps — web-first, no native apps
+- ~~Native mobile apps~~ — reversed in v2.0: Android client now in scope
 - Offline mode — requires service worker complexity, defer
 - Shared documents / collaboration — deliberately no sharing, privacy-first design
 - Folders — flat document list by design (Dynalist/Workflowy pattern)
@@ -64,6 +70,17 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - Custom domains — self-hosted, user manages their own domain
 - AI features — out of scope for focused outliner clone
 - Real-time sync / collaboration — privacy-first means no sync
+
+## Current Milestone: v2.0 Native Android Client
+
+**Goal:** Build a native Android client in Kotlin/Jetpack Compose + Material Design 3 that talks to the existing backend API — no new features, focus on reactivity and polish.
+
+**Target features:**
+- Project scaffolding with Clean Architecture + MVVM, Hilt DI, Retrofit + OkHttp
+- Login/Register with JWT auth (token refresh via httpOnly cookie)
+- Document management in ModalNavigationDrawer with CRUD and drag reorder
+- Bullet tree outliner: nested bullets, tree flattening, indent/outdent, collapse/expand, drag-drop
+- Reactivity & polish: optimistic updates, pull-to-refresh, swipe gestures, search, undo/redo, dark theme, Material 3 animations
 
 ## Context
 
@@ -79,7 +96,7 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 
 ## Constraints
 
-- **Platform**: Web application only — must be fully usable on desktop browsers and mobile browsers (no native apps)
+- **Platform**: Web application (desktop + mobile browsers) and native Android (Kotlin/Jetpack Compose)
 - **Self-hosted**: Runs in Docker on user's own server; no cloud dependencies beyond optional Google OAuth
 - **Privacy**: Complete per-user data isolation; no sharing features by design
 - **File storage**: Docker volume mount at `/data/attachments`; 100MB max per file
@@ -111,4 +128,4 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 | Inter Variable + JetBrains Mono via @fontsource (no Google Fonts) | Self-hosted fonts maintain privacy-first approach | ✓ Good — no external dependencies, fast load from same server |
 
 ---
-*Last updated: 2026-03-11 after v1.1 milestone complete*
+*Last updated: 2026-03-12 after v2.0 milestone started*

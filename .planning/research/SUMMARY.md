@@ -1,196 +1,229 @@
 # Project Research Summary
 
-**Project:** Notes v1.1 — Mobile & UI Polish
-**Domain:** Self-hosted multi-user outliner (Dynalist/Workflowy clone) — mobile experience, dark mode, PWA, quick-open palette
-**Researched:** 2026-03-10
+**Project:** Notes v2.0 — Native Android Client
+**Domain:** Native Android outliner (Kotlin/Jetpack Compose) consuming an existing Express REST API
+**Researched:** 2026-03-12
 **Confidence:** HIGH
 
 ## Executive Summary
 
-The v1.1 milestone is a UI polish and mobile hardening layer on top of an already-working v1.0 outliner. The core stack (React 19, Vite 7, Express 5, Drizzle, TanStack Query, Zustand, dnd-kit) is locked and validated in production. The six new feature areas — responsive mobile layout with hamburger sidebar, system dark mode, Lucide icon library, self-hosted font pairing, PWA manifest, and a Ctrl+K quick-open palette — are all well-researched with clear implementation paths. No new architectural patterns are needed; the work is additive CSS refactoring plus two new components (`HamburgerButton` and `QuickOpenPalette`). All five new npm packages (`lucide-react`, `@fontsource-variable/inter`, `@fontsource-variable/jetbrains-mono`, `cmdk`, `vite-plugin-pwa`) have been verified against the npm registry as of 2026-03-10 and confirmed compatible with the existing React 19 / Vite 7 stack.
+This milestone adds a native Android client to an already-complete Express + PostgreSQL backend. No backend changes are needed. The architecture question is entirely about how to consume the existing REST API in a Kotlin/Jetpack Compose application. The recommended approach is strict Clean Architecture layering (presentation → domain → data) with MVVM, Hilt DI, Retrofit 3.0 for networking, and a flat LazyColumn tree model that ports the existing web client's `flattenTree` algorithm directly. The entire library stack uses KSP (not KAPT), Navigation3 (not Navigation 2), and DataStore + Tink (not the deprecated EncryptedSharedPreferences). All version choices have been verified against official sources as of 2026-03-12.
 
-The recommended approach is to build in strict dependency order: CSS color tokens first (foundation for all other features), then responsive layout (foundation for swipe gesture polish and correct sidebar behavior on mobile), then dark mode component migration (large surface area but mechanical find-and-replace), then the parallel tracks of icons/fonts, PWA manifest, and swipe gesture polish, and finally the quick-open palette (which reuses existing data hooks and the established modal pattern from SearchModal). This order avoids the single most expensive rework scenario: building components with hardcoded inline hex colors before the token system exists, which would require a second migration pass.
+The critical architectural decision — and the one with the most pitfall surface — is the bullet tree rendering model. The web client solved the "tree in a flat list" problem with a single flat SortableContext. The Android client must apply the identical pattern: a recursive `flattenTree` DFS that produces a `List<FlatBullet>` (bullet + depth int), rendered in a single `LazyColumn` with `paddingStart` per depth. Collapse/expand, drag-to-reorder, zoom, and swipe gestures all depend on this model being correct before they are built. The two use cases that port this algorithm from the web client (`FlattenTreeUseCase`, `ComputeDragProjectionUseCase`) must live in the domain layer with zero Android SDK imports — making them unit-testable without a device.
 
-The critical risks are all known and avoidable. The most dangerous is dnd-kit's PointerSensor with its low 5px activation distance intercepting horizontal swipe gestures before they reach the custom gesture handler — this must be fixed by switching to a 250ms delay-based activation before any swipe polish work begins, and must be validated on a physical iPhone (Chrome DevTools emulation does not reproduce the conflict). The second highest risk is the dark mode migration: the existing codebase uses inline styles almost exclusively, and CSS variables cannot override inline style attributes. Every color literal must be migrated before the `@media (prefers-color-scheme: dark)` override can take effect. Both risks have specific file locations documented and clear prevention strategies.
+Three build-order constraints override all others: (1) auth infrastructure — specifically the `Mutex`-synchronized `TokenAuthenticator` that prevents concurrent 401 refresh races — must be correct in Phase 1 before any screen is built; (2) the flat tree ViewModel must be designed with optimistic updates from the start, not retrofitted; (3) the Android project must live in `/android/` (not the repo root) to avoid Gradle scanning `node_modules`. These are not polish decisions — they are architectural choices that carry HIGH recovery cost if shipped incorrectly.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The v1.0 foundation stack is validated and unchanged. For v1.1, five additions are needed in the client only. All package versions were verified against the npm registry on 2026-03-10. Dark mode requires no new library — CSS custom properties with `@media (prefers-color-scheme: dark)` handles it natively with zero dependency and universal browser support. The `motion` (Framer Motion) animation library is explicitly optional and should be deferred until CSS transitions are proven insufficient for swipe snap-back physics on a physical device.
+The Android client uses a modern Kotlin-first stack with all components selected for compatibility and long-term support. Kotlin 2.3.0 with KSP 2.3.0-1.0.31 replaces the KAPT-era approach entirely. Jetpack Compose BOM 2025.12.00 pins all Compose/Material 3 versions in sync. Navigation3 1.0.1 (stable November 2025) replaces Navigation 2's error-prone string routes with type-safe data class destinations. Retrofit 3.0.0 has native coroutine support — no Jake Wharton adapter needed. The EncryptedSharedPreferences API was deprecated in April 2025; DataStore 1.2.1 + Tink 1.8.0 is the mandated replacement. One hard constraint: OkHttp must stay at 4.12.0 because Retrofit 3.0 does not yet support OkHttp 5.x.
 
-**Core v1.1 technologies:**
-- `lucide-react ^0.577.0`: SVG icon components replacing Unicode/emoji — tree-shakable at named import, 1,400+ icons, React 19 compatible
-- `@fontsource-variable/inter ^5.2.8`: Self-hosted UI font — variable font (single file for all weights), eliminates Google Fonts third-party network dependency
-- `@fontsource-variable/jetbrains-mono ^5.2.8`: Self-hosted monospace font for code/tags — x-height 0.73 matches Inter's 0.72, visually harmonious pairing
-- `cmdk ^1.1.1`: Headless command palette — ARIA-compliant (combobox role, focus trap, activedescendant), built-in fuzzy search, React 19 compatible, actively maintained (kbar alternative last updated 2022)
-- `vite-plugin-pwa ^1.2.0`: PWA manifest generation — Vite 7 support added in v1.0.1, confirmed compatible with project's Vite 7.3.1
-- CSS custom properties (built-in): Dark mode token system — zero dependency, `@media (prefers-color-scheme: dark)` on `:root`, universal browser support
-- `motion ^12.35.2` (optional): Spring-physics swipe snap-back — defer until CSS `transition: transform 300ms cubic-bezier(...)` is tested on physical device and found insufficient
+See `.planning/research/STACK.md` for the complete Gradle version catalog TOML and full version compatibility matrix.
 
-**Critical existing constraint:** Drizzle ORM is pinned at 0.40.0 (not 0.45.x — 0.45.x has a broken npm package missing `index.cjs`). This is a v1.0 constraint with no v1.1 impact; do not upgrade.
+**Core technologies:**
+- Kotlin 2.3.0 + KSP 2.3.0-1.0.31: primary language + annotation processor — K2 compiler is production-grade; 2x faster than KAPT for Hilt and Room
+- Jetpack Compose BOM 2025.12.00 (Compose 1.10.0, Material 3 1.4.0): declarative UI — all required patterns (drawer, swipe, pull-to-refresh, search bar) are in Material 3 1.4.0
+- Hilt 2.56 + hilt-lifecycle-viewmodel-compose 1.3.0: compile-time DI — integrates directly with ViewModel and Compose; `hiltViewModel()` without transitive Nav2 dependency at 1.3.0
+- Navigation3 1.0.1: in-app navigation — type-safe destinations; correct choice for greenfield Compose-only apps in 2026
+- Retrofit 3.0.0 + OkHttp 4.12.0: HTTP client — native coroutine suspend functions; kotlinx.serialization 1.10.0 converter for null-safe JSON; do not upgrade OkHttp to 5.x
+- DataStore 1.2.1 + Tink 1.8.0: secure persistent storage — replaces deprecated EncryptedSharedPreferences for refresh cookie and access token persistence
+- sh.calvin.reorderable 3.0.0: drag-to-reorder in LazyColumn — the only actively maintained Compose reorder library; uses `Modifier.animateItem` (v2.1 feature but the LazyColumn structure must be compatible from v2.0)
+
+**What not to add:**
+- Room: no offline mode in scope per PROJECT.md; adds schema migration complexity for zero gain
+- LiveData: replaced by StateFlow + `collectAsStateWithLifecycle()` in Compose
+- Navigation 2 (`navigation-compose:2.9.7`): string-based routes are runtime-error-prone; Nav3 is stable and preferred
+- WorkManager / FCM: background sync and push notifications are out of scope
+- OkHttp 5.x: incompatible with Retrofit 3.0.0
+- KAPT: deprecated; KSP is 2x faster and all modern Jetpack processors support it
+- `retrofit2-kotlin-coroutines-adapter` (Jake Wharton): redundant with Retrofit 3.0's built-in coroutine support
 
 ### Expected Features
 
-**Must have (table stakes — mobile users expect these):**
-- Sidebar hidden on mobile (≤768px), full-width content — a visible 240px sidebar on a 375px screen is unusable
-- Hamburger button (min 44×44px) in app header to open sidebar — universal drawer disclosure pattern; instinctive
-- Sidebar auto-close on outside tap + explicit X close button — both required; tap-outside alone fails discoverability
-- System-preference dark mode (`prefers-color-scheme`) — macOS, iOS, Android all have OS dark mode; apps that ignore it feel broken
-- WCAG AA contrast in dark mode — text ≥4.5:1 ratio, UI controls ≥3:1 (failing creates an accessibility regression worse than no dark mode)
-- Touch targets ≥44×44px on all interactive elements — WCAG 2.5.5 and Apple HIG
-- Safe area insets via `env(safe-area-inset-*)` with `viewport-fit=cover` — iPhones clip bottom content under home indicator without this
-- PWA installable (Add to Home Screen) — Dynalist and Workflowy both support this; users expect installable tools
-- App icon for home screen — 192×192 and 512×512 PNG; blank icon destroys trust when installed
+The v2.0 milestone delivers the core outliner experience on Android. The web client (v1.0 + v1.1) is the feature reference; the question is what "table stakes" means specifically for a native Material Design 3 context.
 
-**Should have (differentiators — competitive advantage for v1.1):**
-- Quick-open palette (Ctrl+K) — navigation across documents, bullets, and bookmarks; power users navigate 50+ documents; Obsidian, Notesnook, Notion all have this
-- Swipe gesture color/icon reveal feedback — bare swipes without visual backing feel broken; Todoist/Things pattern (colored backing layer revealed as user drags)
-- Swipe snap-back animation on cancelled swipe — CSS `transition`, no library needed; aborted swipes feel jarring without it
-- Lucide icon library replacing Unicode characters — visual coherence; emoji render at system font size and ignore CSS color tokens (dark mode incompatible)
-- Inter + JetBrains Mono font pairing — 88/100 pairing score; legible, modern; Inter is the de facto 2025 React UI font
-- Ctrl/Cmd+E desktop sidebar toggle — already implemented in `useGlobalKeyboard`; just needs the CSS layout wired to respond to it
-- Recent documents shown when palette is opened with no query — reduces keystrokes for the most common case
+**Must have (table stakes for v2.0 launch):**
+- Email/password login with JWT + refresh cookie persistence — nothing works without auth
+- ModalNavigationDrawer with document list + CRUD — native Android navigation pattern; Dynalist/Workflowy both use drawer
+- Bullet tree as flat LazyColumn with depth-based indentation — the only viable approach; nested LazyColumn causes touch event conflicts
+- Tap to edit inline (BasicTextField per row) — separate edit screen is unacceptable outliner UX
+- Enter = new bullet at same level, Tab/Shift+Tab = indent/outdent — core outliner keyboard loop
+- Collapse/expand bullets, zoom into bullet as root, breadcrumb trail — core outliner interactions
+- Swipe right = complete, swipe left = delete with proportional color/icon reveal — matches web v1.1 and Workflowy Android
+- Long-press context menu (indent, outdent, complete, zoom, delete) — required for indent/outdent when no physical keyboard
+- Pull to refresh — universal Android sync pattern; explicit sync trigger
+- Undo button in top app bar (existing server-side undo API)
+- Search via Material 3 SearchBar reusing existing `/api/search` endpoint
+- Material 3 dark/light follows system; dynamic color (Material You) on Android 12+
+- Optimistic updates on all mutations — must be designed in from the start, not retrofitted
+- Predictive back gesture (opt in via manifest; Android 13+)
 
-**Defer to v1.2:**
-- Manual dark/light toggle — creates a three-state complexity (system/light/dark) requiring persistence, settings UI, and sync; follow OS only for v1.1
-- Full offline mode — explicitly out of scope per PROJECT.md; service worker cache invalidation conflicts with server-side undo/redo model
-- Palette action commands — navigation-only is sufficient; VS Code command depth not warranted at this app's scale (~15 real actions)
-- Screenshots in PWA manifest — nice for Android richer install dialog; not blocking home screen installation
+**Should have (v2.1 — after v2.0 stabilizes):**
+- Drag-to-reorder bullets and documents — Calvin-LL/Reorderable; depends on v2.0 flat LazyColumn being stable
+- Inline markdown rendering (AnnotatedString) — read mode only; raw text when bullet has focus
+- #tags, @mentions, !!dates as tappable chips — depends on inline markdown
+- Bookmarks screen — low complexity quick win
+- Physical keyboard shortcuts (Tab, Shift+Tab, Ctrl+Z for Bluetooth keyboards/Chromebooks)
+
+**Defer (v3+):**
+- Google SSO — Firebase/Play Services dependency; low ROI for a self-hosted app
+- File attachments — SAF integration is substantial; most usage is on desktop
+- Offline mode — requires CRDT or conflict resolution; explicitly out of scope per PROJECT.md
+- Widgets / App Links deep-link to document
+
+**Anti-features (do not build in v2.0):**
+- Separate "edit mode" per bullet — doubles tap count for the most frequent action
+- Bottom navigation bar — wrong pattern for single-surface app; Dynalist/Workflowy both use drawer-only
+- Nested LazyColumn / RecyclerView — touch event conflicts and perf issues at scale
+- Real-time collaborative sync — no WebSocket infrastructure in backend
+- Kanban / board view — orthogonal paradigm; this is an outliner, not a project manager
 
 ### Architecture Approach
 
-The codebase uses a flat `src/` component tree with inline styles dominating throughout. Architecture research was conducted by directly reading source files, giving HIGH confidence on all integration points. Two key findings from source inspection: (1) `sidebarOpen` already exists in `uiStore` and `Ctrl+E` is already wired in `useGlobalKeyboard` — the sidebar simply never visually responds because no CSS applies an off-canvas transform based on that state; the layout fix is purely CSS. (2) `SearchModal.tsx` already demonstrates the exact overlay pattern — backdrop, centered box, debounced input, result list — that the `QuickOpenPalette` needs. It is a template, not a competing concern, and the two should remain separate components with different behavior rather than being merged.
+The Android client follows strict Clean Architecture with three layers: presentation (ViewModels + Composables), domain (repository interfaces + pure use cases), and data (Retrofit implementations + DTOs). The domain layer has zero Android SDK imports, making `FlattenTreeUseCase` and `ComputeDragProjectionUseCase` unit-testable without a device. The navigation graph has two routes (Auth / Main) — document switching is a `viewModel.openDocument(id)` state change, not a navigation event, which preserves scroll position and avoids remounting the bullet tree on every document tap.
 
-**Major components and their v1.1 roles:**
-1. `index.css` — expanded from ~13 lines to the CSS token system foundation; all `--color-*` variables and layout classes live here; no component works correctly in dark mode until this exists
-2. `AppPage.tsx` — gains CSS layout class + `data-sidebar-open` attribute wiring; mounts `<QuickOpenPalette>`
-3. `Sidebar.tsx` — gains CSS class on `<aside>` for off-canvas transform; must remain always-mounted (conditional unmounting evicts React Query caches for DocumentList, TagBrowser — causes flicker and unnecessary refetches)
-4. `HamburgerButton` — new, small; calls `setSidebarOpen(true)`; hidden on desktop via CSS media query
-5. `QuickOpenPalette.tsx` — new component; fuzzy-filters `useDocuments()` cache client-side for instant document results; reuses `useSearch` hook for bullet content search (same hook SearchModal uses); wired via `quickOpenOpen: boolean` in `uiStore` (not persisted — transient)
-6. `FocusToolbar.tsx` — highest-priority target for dark mode migration; densest concentration of hardcoded hex inline styles (`background: '#fff'`, `color: '#444'`, `color: '#e55'`, `borderTop: '1px solid #e5e7eb'`) that will silently fail in dark mode
-7. `useGlobalKeyboard` in `useUndo.ts` — gains `Ctrl+K` handler; all global shortcuts must be registered here, never in individual components
+See `.planning/research/ARCHITECTURE.md` for the full component diagram, all data flow sequences, the complete `NotesApiService` Retrofit interface (~30 endpoints), and the suggested build order per phase.
 
-**Key patterns to follow:**
-- CSS custom properties for theming — not React context, not ThemeProvider, not styled-components
-- Off-canvas sidebar via CSS `transform: translateX(-100%)` — sidebar always in DOM, never conditionally unmounted
-- Client-side fuzzy filter for quick-open documents (`useDocuments()` cache is warm from session start); server `useSearch` for bullet content (debounced, ≥2 chars)
-- All global keyboard shortcuts registered in one centralized `useGlobalKeyboard` handler in `useUndo.ts`
+**Major components:**
+1. `NotesApiService` — Retrofit interface mirroring all ~30 Express routes; single interface appropriate for this API size; suspend functions throughout
+2. `AuthInterceptor` + `TokenAuthenticator` + `JavaNetCookieJar` — split auth: Interceptor attaches Bearer token, Authenticator handles 401 with Mutex-synchronized refresh, JavaNetCookieJar persists the httpOnly refresh cookie
+3. `TokenStore` — in-memory access token + DataStore/Tink refresh cookie persistence; Hilt singleton
+4. `FlattenTreeUseCase` — pure Kotlin port of `buildBulletMap` + `flattenTree` from `BulletTree.tsx`; recursive DFS, respects `isCollapsed`; drives all tree rendering, collapse, zoom, and drag
+5. `BulletTreeViewModel` — `StateFlow<TreeUiState>` with optimistic update + rollback pattern for all mutations; snapshot before API call, revert on failure
+6. `AppNavGraph` — two routes (Auth / Main); `ModalNavigationDrawer` wraps `BulletTreeScreen`; document switching is ViewModel state, not navigation
 
 ### Critical Pitfalls
 
-1. **FocusToolbar invisible in dark mode (inline styles override CSS variables)** — CSS custom properties cannot override inline `style` attribute values (inline styles have highest cascade specificity). Run a complete migration pass — convert every hardcoded hex color literal in TSX files to CSS class + `var(--color-*)` references — before wiring the `@media (prefers-color-scheme: dark)` override. Grep for `style=\{\{.*#` across all TSX files; result must be zero before dark mode is wired.
+1. **Token refresh race condition** — Multiple concurrent 401s each independently call `/api/auth/refresh` without synchronization. Prevention: `Mutex.withLock` in `TokenAuthenticator.authenticate()`; compare stored token against the failed request's token before calling refresh. Must be correct in Phase 1. Recovery cost: HIGH.
 
-2. **dnd-kit PointerSensor intercepts horizontal swipe gestures** — `activationConstraint: { distance: 5 }` in `BulletTree.tsx` fires after any 5px movement, including fast horizontal swipes. Change to `{ delay: 250, tolerance: 5 }` — a 250ms press naturally distinguishes vertical drag-to-reorder from fast horizontal swipe-to-complete/delete. Test on a physical iPhone before closing this pitfall; Chrome DevTools emulation does not reproduce the conflict.
+2. **httpOnly cookie dropped by CookieJar** — Some third-party OkHttp CookieJar implementations silently discard cookies with the `HttpOnly` flag, causing `/api/auth/refresh` to always return 401. Prevention: use `JavaNetCookieJar(CookieManager(null, CookiePolicy.ACCEPT_ALL))` as the baseline; do NOT use `franmontiel/PersistentCookieJar` without auditing. Validate the cookie round-trip as the first Phase 1 test.
 
-3. **Dark mode FOUC — white flash before React mounts** — React effects fire after the first browser paint; any theme state initialized in `useEffect` produces a visible white flash on hard refresh for users with dark OS preference. Prevention: add a synchronous inline `<script>` block in `client/index.html` before the `<script type="module">` that loads the React bundle; it reads `window.matchMedia('(prefers-color-scheme: dark)').matches` and calls `document.documentElement.setAttribute('data-theme', 'dark')` synchronously before any paint.
+3. **flattenTree collapsed-subtree leak** — An iterative Kotlin port of the TypeScript `flattenTree` will have an off-by-one in the "skip subtree" logic. Prevention: port as a direct recursive function first (no stack overflow risk for personal outliner depths < 100 levels); unit-test with collapsed parents and grandchildren before wiring to UI. Recovery cost: HIGH — this algorithm underlies every tree feature.
 
-4. **iOS Safari 100dvh clips sidebar bottom** — `height: 100vh` on the sidebar overlay or full-height layout elements is calculated as total viewport including the collapsed address bar on iOS Safari. Use `height: 100dvh` (dynamic viewport height, Safari 15.4+) with `height: 100vh` as a fallback. Add `padding-bottom: env(safe-area-inset-bottom)` to the sidebar scroll container for home-indicator clearance on iPhone X+. Test on a physical device — desktop testing shows no problem.
+4. **Debounced content save cancelled on navigation** — `viewModelScope` is cancelled on `onCleared()`. If the user types and navigates away within the ~500ms debounce window, the save and undo checkpoint are dropped. Prevention: override `onCleared()` to flush pending saves via `runBlocking(NonCancellable)`.
 
-5. **PWA service worker caches `/api/*` responses — stale data after deploys** — default Workbox configuration caches API responses with `cache-first` or `stale-while-revalidate`. After any server restart or deploy, installed PWA users see old bullet data. Configure `runtimeCaching` with `NetworkOnly` for all `/api/*` routes, or skip the service worker entirely (Chrome 135+ allows home screen installation without one — HTTPS + manifest is sufficient).
-
-6. **iOS Safari auto-zoom on `contenteditable` elements with font-size < 16px** — Safari zooms the viewport on focus for any `input` or `contenteditable` with computed font-size below 16px. The new Inter font applied at a design size below 16px will trigger this on every bullet tap. Add `font-size: max(16px, 1em)` globally to all `[contenteditable]` and `<input>` in `index.css`. Cannot be reproduced in DevTools; requires a physical iPhone.
-
-7. **Ctrl+K keyboard shortcut must live in the centralized handler** — adding a separate `window.addEventListener('keydown', ...)` inside the palette component creates a second global listener with unpredictable firing order. On Firefox, `Ctrl+K` is a native browser shortcut (focuses address bar); the app handler must call `e.preventDefault()` reliably. Add `Ctrl+K` directly as a new branch in `useGlobalKeyboard` in `useUndo.ts`, following the same pattern as the existing `Ctrl+F`, `Ctrl+E`, `Ctrl+Z` handlers.
+5. **Gradle root pollution** — Placing `settings.gradle.kts` at the repo root causes Gradle to scan `server/node_modules` and `client/node_modules`. Prevention: Android project lives in `/android/` subdirectory; all `./gradlew` commands run from `/android/`; separate GitHub Actions workflows for Node vs Android changes.
 
 ## Implications for Roadmap
 
-Based on the dependency graph documented in ARCHITECTURE.md and the feature prioritization in FEATURES.md, a 4-phase structure is recommended. This matches the build order validated by direct source inspection.
+Four phases map naturally from the architecture's suggested build order. The structure is dictated by hard dependencies: auth must precede everything; documents must precede bullets; the tree model must be stable before swipe/drag/search are layered on top.
 
-### Phase 1: Mobile Layout Foundation
-**Rationale:** Everything in v1.1 depends on CSS tokens existing and the sidebar being correctly responsive. Layout is the frame; colors, icons, and the palette all sit inside it. The dnd-kit swipe/drag conflict must be fixed here before swipe gesture polish begins in Phase 4 — it is a prerequisite, not an afterthought.
-**Delivers:** CSS token foundation in `index.css` (light values only — dark values added in Phase 2), responsive sidebar with hamburger open/close, backdrop overlay, off-canvas slide animation (250ms ease-out), sidebar auto-close on outside tap and Escape key, Ctrl/Cmd+E desktop toggle (already wired — just needs CSS), safe area insets, 100dvh fix, iOS font-zoom fix (`font-size: max(16px, 1em)` on `[contenteditable]`), defensive FocusToolbar clamp for iOS 26 visualViewport regression.
-**Addresses features:** Sidebar hidden on mobile, hamburger button, auto-close, explicit X button, safe area insets, touch targets ≥44px, Ctrl/Cmd+E toggle.
-**Avoids pitfalls:** dnd-kit sensor conflict (change activation constraint first in `BulletTree.tsx`), iOS 100dvh clip, iOS contenteditable auto-zoom, FocusToolbar stuck mid-screen on iOS 26 keyboard dismiss.
-**Research flag:** Standard patterns, no additional research needed. All integration points read directly from source with HIGH confidence.
+### Phase 1: Foundation (Auth + Project Scaffold)
 
-### Phase 2: Dark Mode
-**Rationale:** Dark mode is the largest surface-area change in v1.1 — it touches nearly every component file. It must happen as a single coherent pass; partial migration leaves the app broken in dark mode with some elements themed and others displaying hardcoded light colors. Sequenced after layout (Phase 1) to avoid re-converting colors in rearranged layout elements. The FOUC-prevention inline script must be the absolute first step within this phase.
-**Delivers:** Complete CSS custom property token system (`--color-*`) with `@media (prefers-color-scheme: dark)` override, FOUC-prevention synchronous inline script in `index.html`, full migration of all inline hex color literals to CSS `var()` references across all component files, WCAG AA contrast compliance verified, `color-scheme: light dark` on `<html>` so browser chrome (scrollbars, form inputs) also themes.
-**Uses:** CSS custom properties only — no new libraries.
-**Implements:** Token system that swipe backing layer colors (`--color-swipe-delete`, `--color-swipe-complete`) and palette backdrop/surface colors depend on.
-**Avoids pitfalls:** FocusToolbar invisible in dark mode (complete inline style migration as the first task of this phase), FOUC on hard refresh (inline script before any other dark mode wiring).
-**Research flag:** Standard patterns — CSS custom properties and `prefers-color-scheme` are universal and well-documented. Validate WCAG contrast ratios with a contrast checker tool (e.g., WebAIM Contrast Checker) during implementation for the specific dark palette values.
+**Rationale:** Every subsequent screen requires authenticated network access. The three critical infrastructure decisions — Mutex-synchronized token refresh, httpOnly cookie handling, and `/android/` project location — must be made and validated before any feature work begins. This phase has no user-visible product output but is the highest-leverage phase for preventing HIGH recovery-cost failures.
 
-### Phase 3: Icons, Fonts, and PWA Manifest
-**Rationale:** These three features are independent of each other once the token system (Phase 2) exists — icon colors can reference `var(--color-*)` rather than hardcoded hex, fonts are a CSS `font-family` change, and the manifest is static file addition. Grouped into one phase because they are all additive, low-risk, no-logic changes that can be validated in a single deployment. PWA manifest is the highest ratio of perceived user value to implementation effort in the entire milestone.
-**Delivers:** Lucide icon library replacing all Unicode characters and emoji in FocusToolbar (11 buttons), Sidebar, DocumentToolbar, and BulletNode; Inter variable font as UI font; JetBrains Mono variable font for inline code and tag chips; PWA manifest (`manifest.json` with 192px + 512px icons, `display: standalone`) enabling "Add to Home Screen" on iOS and Android.
-**Uses:** `lucide-react`, `@fontsource-variable/inter`, `@fontsource-variable/jetbrains-mono`, static `manifest.json` in `public/` (preferred over `vite-plugin-pwa` given offline mode is out of scope).
-**Avoids pitfalls:** PWA service worker caching API responses (use static manifest without service worker — Chrome 135+ allows installation without one), icon wildcard import bloating bundle (named imports only: `import { Trash2, Check } from 'lucide-react'`).
-**Research flag:** Standard patterns for icons and fonts. Verify PWA installability with Lighthouse PWA audit after deployment — confirm install criteria are met on both iOS Safari (manual Add to Home Screen) and Chrome Android (install prompt).
+**Delivers:** Working auth round-trip against production server (register, login, silent refresh on cold start, logout); Hilt DI module; OkHttp client with AuthInterceptor + TokenAuthenticator + JavaNetCookieJar; TokenStore with DataStore/Tink; Material 3 theme (light + dark, dynamic color on Android 12+); AppNavGraph with Auth/Main routing; LoginScreen + RegisterScreen composables.
 
-### Phase 4: Swipe Gesture Polish and Quick-Open Palette
-**Rationale:** Swipe gesture polish is additive CSS on top of already-working gesture logic (`gestures.ts` threshold callbacks already fire at 40% swipe). The quick-open palette is the most new-logic item in the milestone but reuses existing data hooks. Both are sequenced last because they benefit from stable layout (Phase 1 — swipe gestures should not fire when sidebar overlay is open), dark mode tokens for backing layer colors and palette surface (Phase 2), and Lucide icons for swipe action icons (Phase 3 — trash and checkmark icons in the backing layer).
-**Delivers:** Swipe color/icon reveal (red backing for delete-left, green for complete-right), icon fades in after 25–30% threshold, scale-up at commit zone (~50%), row animates out on commit, snap-back with ease-out on cancelled swipe, optional Android haptic feedback via `navigator.vibrate()` (gracefully skipped on iOS Safari which does not support Vibration API). Quick-open palette triggered by Ctrl+K — instant fuzzy document title matching from warm `useDocuments()` cache, bullet content search via existing `/api/search` endpoint (debounced 150ms, ≥2 chars), bookmark matching, keyboard navigation (arrow keys + Enter + Escape), recent documents shown on empty query (last 5–10 opened).
-**Uses:** `cmdk` for palette UI rendering and built-in fuzzy search (command-score); existing `useDocuments()`, `useSearch()`, `useBookmarks()` hooks — no new API endpoints.
-**Implements:** `QuickOpenPalette.tsx` (new component), `quickOpenOpen: boolean` state in `uiStore`, `Ctrl+K` handler added to `useGlobalKeyboard` in `useUndo.ts`.
-**Avoids pitfalls:** Ctrl+K registered in centralized `useGlobalKeyboard` (never inside the palette component or a separate `window.addEventListener`), palette kept separate from `SearchModal` (different UX: instant client-side doc results vs debounced full-text bullet search), `isContentEditable` guard bypassed for `Ctrl+K` so palette opens even when a bullet is being edited.
-**Research flag:** Standard patterns throughout. cmdk API is well-documented. No additional research phase needed.
+**Addresses:** Auth (JWT + refresh cookie), Material 3 theme, dark mode system-follow, predictive back manifest opt-in.
+
+**Avoids:** Token refresh race condition (Pitfall 1 — Mutex in Authenticator), httpOnly cookie drop (Pitfall 2 — JavaNetCookieJar), CORS confusion (Pitfall 5 — no Origin header in OkHttp), Gradle root pollution (Pitfall 8 — /android/ subdirectory).
+
+### Phase 2: Document Management (Drawer)
+
+**Rationale:** Document management is the entry point to all content. It is architecturally simpler than the bullet tree (flat list, not recursive) and validates the full data layer stack — Retrofit calls, DTO mapping, ViewModel StateFlow, Composable collection — before the complex tree work begins. Last-opened persistence (DataStore) lives here.
+
+**Delivers:** ModalNavigationDrawer with full document CRUD (list, create, rename, delete); document position reorder calling `PATCH /api/documents/:id/position`; document selection navigates to placeholder BulletTreeScreen; last-opened document ID persisted in DataStore and restored on cold start.
+
+**Addresses:** Document drawer navigation, document CRUD, last-opened persistence.
+
+**Uses:** DataStore 1.2.1 for last-opened ID; full DocumentRepositoryImpl + DocumentsViewModel + DocumentsDrawer composable.
+
+### Phase 3: Bullet Tree (Core Feature)
+
+**Rationale:** Highest-complexity phase. All core outliner behaviors live here. The flat tree model is the foundation for swipe, zoom, and search — these cannot be built until the LazyColumn rendering is stable and the optimistic update pattern is proven. Drag-to-reorder is deferred to v2.1 per the feature research (it depends on this phase's LazyColumn being stable first, and it is a P2 feature).
+
+**Delivers:** Full bullet tree interaction — create, edit (BasicTextField per row), delete, indent (`POST /api/bullets/:id/indent`), outdent, collapse/expand, zoom into bullet as root + breadcrumbs, Enter to create sibling, Backspace on empty to delete; debounced content save (800ms) + undo checkpoint; all mutations optimistic with rollback; `LazyColumn` with `key = { it.id }` on every items block.
+
+**Addresses:** Bullet tree (flat LazyColumn + CRUD), Tab/Shift+Tab indent, Enter new bullet, collapse/expand, zoom + breadcrumbs, optimistic updates, undo.
+
+**Avoids:** flattenTree collapsed-subtree leak (Pitfall 3 — recursive port, unit-tested before UI wiring), computeDragProjection DOM dependency (Pitfall 4 — use Reorderable library for v2.1; spike at Phase 3 start), debounced save drop on navigation (Pitfall 6 — onCleared flush), missing LazyColumn keys, re-fetching full tree on every patch (update only the affected item from the returned DTO).
+
+### Phase 4: Reactivity and Polish
+
+**Rationale:** No new architecture — this phase adds the interaction layer (swipe gestures, search, undo, animations) on top of the stable tree model from Phase 3. Swipe gesture directional discrimination must be implemented from the start (not bolted on) to prevent the scroll/swipe conflict pitfall.
+
+**Delivers:** Swipe right = complete / swipe left = delete (SwipeToDismissBox with proportional color/icon reveal; icon fades in at 25% threshold); SearchBar with 300ms debounce against `/api/search`; undo/redo toolbar buttons with `GET /api/undo/status` polling; pull-to-refresh (PullToRefreshBox); AnimatedVisibility for collapse/expand; `animateItem` on LazyColumn for mutations; Crossfade for document switching; loading skeletons; error states with retry buttons; SnackbarHostState for confirmations; keyboard-aware scroll (`WindowCompat.setDecorFitsSystemWindows` + `Modifier.imePadding()` + `LazyListState.animateScrollToItem` on focus).
+
+**Addresses:** Swipe gestures (complete + delete), search, undo/redo, pull to refresh, animation polish, error handling, empty states.
+
+**Avoids:** Swipe/scroll gesture conflict (Pitfall 7 — directional discrimination: arm swipe only when `abs(deltaX) > abs(deltaY) * 2`), loading spinner on every operation (optimistic updates from Phase 3 already prevent this), focused bullet hidden behind IME (imePadding + scroll to focused item).
 
 ### Phase Ordering Rationale
 
-- CSS tokens must precede all components — components referencing `var(--color-*)` before tokens exist in `index.css` produce `transparent` values silently, not errors.
-- Layout must precede swipe gesture polish — swipe gestures should not fire when the sidebar overlay is open, and the layout changes in Phase 1 establish this constraint correctly.
-- Dark mode is sequenced before icons and PWA — icon SVG colors must reference `var(--color-*)` tokens (available after Phase 2), and the FOUC-prevention script in `index.html` is cleaner to add before the manifest `<link>` tag is present.
-- Icons, fonts, and PWA are parallel-capable once the token system exists; grouping them avoids three separate deployments for low-risk additive changes.
-- The quick-open palette is last — it is the only feature with meaningful new component logic and benefits from all prior phases being stable and validated.
+- Auth before everything: JWT + refresh cookie is required for every API call; the Mutex Authenticator must be correct from the start — retrofitting synchronized token refresh is painful and its bugs are subtle.
+- Documents before bullets: the simpler flat document list validates the full data layer (Retrofit → DTO → domain model → ViewModel → StateFlow → Composable) before the complex recursive tree model is built.
+- Tree model before gestures: swipe, zoom, and search all operate on the flat `List<FlatBullet>`; the list must be stable before interaction layers are added.
+- Optimistic updates in Phase 3, not retrofitted: the feature research is explicit — bolt-on optimism after pessimistic mutations doubles state management complexity.
+- Drag-to-reorder deferred to v2.1: feature research places it at P2; it depends on Phase 3's LazyColumn being stable and it is not needed for the v2.0 launch milestone.
 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- None. All four phases have well-documented implementation paths. Architecture research was conducted against actual source files with HIGH confidence on every integration point.
 
-Phases with standard patterns (skip research-phase during roadmap execution):
-- **Phase 1 (Mobile Layout):** CSS off-canvas sidebar transform and dnd-kit sensor configuration are documented patterns. All integration points verified in source.
-- **Phase 2 (Dark Mode):** CSS custom properties + `prefers-color-scheme` is universal; WCAG contrast ratios are normative standard. The only implementation task is mechanical find-and-replace of inline hex values.
-- **Phase 3 (Icons/Fonts/PWA):** npm package installations + static file additions. Lighthouse PWA audit provides automated verification of install criteria.
-- **Phase 4 (Swipe/Palette):** cmdk API is simple and well-documented. Palette reuses existing `useDocuments()` and `useSearch()` hooks with no new endpoints.
+- **Phase 1:** Refresh cookie persistence across process death — the research identifies `JavaNetCookieJar` as correct for in-session persistence but notes that standard `CookieManager` holds cookies in memory only (lost on process death). The exact DataStore/Tink serialization wrapper for the `Set-Cookie` response value needs to be written and validated against the production server's cookie format as the first Phase 1 deliverable.
+- **Phase 3:** `ComputeDragProjectionUseCase` — the web algorithm uses `getBoundingClientRect()` which has no Android equivalent. The research recommends using Calvin-LL/Reorderable to avoid hand-rolling coordinate transforms. Confirm this is the right call via a 1-day tech spike at the start of Phase 3 before committing to the drag architecture.
+
+Phases with standard, well-documented patterns (skip research-phase):
+
+- **Phase 2:** Document drawer pattern is standard Material 3; `ModalNavigationDrawer` + StateFlow + CRUD is well-documented with official samples.
+- **Phase 4:** SwipeToDismissBox, PullToRefreshBox, SearchBar, and SnackbarHostState are all Material 3 Compose components with official documentation and established patterns.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All 5 new package versions verified against npm registry 2026-03-10; Vite 7 compatibility for `vite-plugin-pwa` confirmed in release notes; React 19 compatibility confirmed for all packages |
-| Features | HIGH | Feature list cross-validated against Dynalist, Workflowy, Notion, and Obsidian behavior; WCAG 2.1 contrast ratios are normative standard (1.4.3, 1.4.11, 2.5.5); competitor feature matrix documented |
-| Architecture | HIGH | Integration points read directly from actual source files: `AppPage.tsx`, `Sidebar.tsx`, `uiStore.ts`, `useUndo.ts`, `gestures.ts`, `BulletTree.tsx`, `index.css`, `FocusToolbar.tsx`, `SearchModal.tsx` |
-| Pitfalls | HIGH | All pitfalls traced to specific files and line numbers in the v1.0 codebase; iOS-specific bugs sourced from Apple Developer Forums (thread #800125) and WebKit bug tracker (bug #237851); dnd-kit conflict sourced from GitHub issues #435 and #791 |
+| Stack | HIGH | All versions verified against official release pages and changelogs 2026-03-12; Gradle version catalog TOML provided in STACK.md |
+| Features | HIGH | Material 3 gesture patterns and Compose APIs well-documented; competitor Android UX parity (Workflowy/Dynalist) verified against app store behavior — MEDIUM on that subset |
+| Architecture | HIGH | Derived from direct inspection of all server route files, middleware, and web client algorithms; Retrofit interface covers all ~30 endpoints with verified signatures |
+| Pitfalls | HIGH | Critical pitfalls (token refresh, cookie handling, flattenTree) derived from direct inspection of production backend code; confirmed by official OkHttp and Android docs |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **iOS 26 visualViewport regression (WebKit bug #237851):** The defensive clamp in `computeKeyboardOffset` is documented as the mitigation (return 0 if computed offset exceeds 60% of `window.innerHeight`). Full validation requires a physical device running iOS 26 stable when it ships. Add "FocusToolbar stays at screen bottom after keyboard dismiss on iOS 26" as an acceptance criterion for Phase 1, flagged as requiring future validation.
-- **PWA install prompt on Android vs iOS:** iOS Safari does not fire the standard `beforeinstallprompt` event and uses its own "Add to Home Screen" UX flow. A service worker is not required for this flow. Chrome Android's `beforeinstallprompt` (richer install dialog) does require a service worker. If the Android install prompt (not just manual Add to Home Screen) is a hard requirement, a minimal service worker with `NetworkOnly` for `/api/*` is needed. Resolution: the static manifest-only approach (no service worker) is recommended for v1.1; document the Android limitation in release notes.
-- **`motion` animation library decision:** Research recommends attempting CSS `transition: transform 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94)` first for swipe snap-back. The decision to add `motion` (+35KB gzipped) should be made during Phase 4 implementation after testing on a physical iOS device — not during planning.
-- **Manual dark mode override:** System-preference-only is correct for v1.1 scope per PROJECT.md. The token system is designed to accept a `data-theme="dark"` attribute on `<html>` set by a `uiStore` field — adding the toggle in v1.2 is a one-line state addition plus a settings UI button. Not a gap in architecture; just a deferred feature.
+- **Refresh cookie serialization across process death:** The research identifies `JavaNetCookieJar` as correct for in-session use but does not provide a complete implementation for persisting the refresh cookie to DataStore/Tink across process death. This must be written and tested as the very first Phase 1 deliverable — before any login UI is built.
+
+- **Gboard Tab key interception:** FEATURES.md documents that Gboard and some OEM keyboards intercept Tab before the app receives it as a KeyEvent. The Phase 3 plan must treat toolbar indent/outdent buttons as the primary interaction path and physical keyboard Tab as a secondary convenience — not the reverse. This is a UX decision that should be noted in Phase 3 acceptance criteria.
+
+- **Dynamic color brand consistency (Material You):** Material You changes the app's color scheme per device based on wallpaper. PITFALLS.md flags this as a UX concern. The Phase 1 theme implementation must establish an explicit decision: opt in with a consistent fallback seed color, or opt out entirely. Document this decision in `Theme.kt`.
+
+- **`computeDragProjection` Android port:** The web implementation is tightly coupled to DOM APIs (`getBoundingClientRect`). Confirm the Reorderable library approach before Phase 3 begins via a tech spike — if the library's API does not fit the flat-tree model, the custom `Modifier.onGloballyPositioned` approach documented in PITFALLS.md is the fallback.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Direct source inspection (2026-03-10): `client/src/pages/AppPage.tsx`, `Sidebar.tsx`, `store/uiStore.ts`, `hooks/useUndo.ts`, `gestures.ts`, `BulletTree.tsx`, `index.css`, `FocusToolbar.tsx`, `SearchModal.tsx`, `package.json`
-- https://www.npmjs.com/package/lucide-react — version 0.577.0 verified 2026-03-10
-- https://www.npmjs.com/package/vite-plugin-pwa — version 1.2.0; Vite 7 support from v1.0.1 confirmed in release notes
-- https://www.npmjs.com/package/cmdk — version 1.1.1 verified 2026-03-10; kbar last published 2022
-- https://www.npmjs.com/package/@fontsource-variable/inter — version 5.2.8 verified 2026-03-10
-- https://www.npmjs.com/package/@fontsource-variable/jetbrains-mono — version 5.2.8 verified 2026-03-10
-- https://bugs.webkit.org/show_bug.cgi?id=237851 — iOS 26 visualViewport regression documented
-- https://developer.apple.com/forums/thread/800125 — Apple Developer Forums iOS 26 keyboard regression
-- https://web.dev/articles/install-criteria — PWA install criteria; Chrome 135+ no service worker required
-- WCAG 2.1 SC 1.4.3, 1.4.11, 2.5.5 — contrast and touch target normative requirements
-- dnd-kit GitHub issues #435, #791 — PointerSensor mobile touch conflict documented
+
+- Direct code inspection: `server/src/routes/auth.ts`, `documents.ts`, `bullets.ts`, `search.ts`, `undo.ts`, `bookmarks.ts`, `attachments.ts`, `tags.ts` — all endpoint signatures verified
+- Direct code inspection: `server/src/middleware/auth.ts` — JWT Bearer token strategy via passport-jwt confirmed
+- Direct code inspection: `client/src/components/DocumentView/BulletTree.tsx` — `flattenTree`, `buildBulletMap`, `computeDragProjection` algorithms verified
+- Direct code inspection: `client/src/contexts/AuthContext.tsx` — silent refresh on mount, access token in memory only, refresh cookie flow confirmed
+- https://developer.android.com/develop/ui/compose/bom/bom-mapping — BOM 2025.12.00; Compose 1.10.0, Material3 1.4.0
+- https://developer.android.com/jetpack/androidx/releases/navigation3 — Navigation3 1.0.1 stable November 2025
+- https://developer.android.com/jetpack/androidx/releases/lifecycle — lifecycle 2.10.0 stable
+- https://developer.android.com/jetpack/androidx/releases/hilt — androidx.hilt 1.3.0; hilt-lifecycle-viewmodel-compose API change
+- https://github.com/square/retrofit/releases — Retrofit 3.0.0 stable; OkHttp 4.12 dependency confirmed
+- https://developer.android.com/jetpack/androidx/releases/security — EncryptedSharedPreferences deprecated in security-crypto 1.1.0-alpha07
+- https://developer.android.com/build/releases/agp-9-1-0-release-notes — AGP 9.1.0 March 2026
+- https://blog.jetbrains.com/kotlin/2025/12/kotlin-2-3-0-released/ — Kotlin 2.3.0 stable December 2025
+- https://developer.android.com/develop/ui/compose/performance/bestpractices — LazyColumn keys; collectAsStateWithLifecycle
+- https://developer.android.com/develop/ui/compose/touch-input/pointer-input/drag-swipe-fling — gesture conflict resolution
+- https://m3.material.io/foundations/interaction/gestures — Material 3 swipe gesture patterns
+- https://github.com/Calvin-LL/Reorderable — sh.calvin.reorderable 3.0.0; Modifier.animateItem support
 
 ### Secondary (MEDIUM confidence)
-- https://lucide.dev/guide/packages/lucide-react — tree-shaking via named imports confirmed
-- https://fontalternatives.com/pairings/inter-and-jetbrains-mono/ — Inter + JetBrains Mono pairing score 88/100; x-height harmony analysis
-- https://css-tricks.com/16px-or-larger-text-prevents-ios-form-zoom/ — iOS contenteditable zoom threshold documented
-- https://www.joshwcomeau.com/react/dark-mode/ — dark mode FOUC prevention via inline script
-- https://notanumber.in/blog/fixing-react-dark-mode-flickering — React SPA dark mode FOUC solution
-- Competitor analysis: Dynalist, Workflowy, Notion, Obsidian behavior observed for dark mode, hamburger sidebar, and Ctrl+K palette patterns
+
+- https://github.com/hoc081098/Refresh-Token-Sample — OkHttp Authenticator + Mutex pattern (widely referenced)
+- https://mvnrepository.com/artifact/com.google.crypto.tink/tink-android — tink-android 1.8.0 latest stable
+- WebSearch: EncryptedSharedPreferences deprecation migration 2026 — DataStore + Tink pattern (corroborated by official release notes)
+- WebSearch: Retrofit 3.0.0 migration guide — suspend fun, no coroutines adapter needed
+- Workflowy Android UX behavior observed for swipe and drawer patterns
+- Obsidian Android community (forum.obsidian.md) — Gboard Tab key interception behavior
 
 ### Tertiary (LOW confidence)
-- `motion` bundle size estimate (~35KB gzipped) — from library documentation; not independently measured for this specific Vite 7 build configuration
-- microfuzz (https://github.com/Nozbe/microfuzz) — lightweight alternative to Fuse.js for client-side fuzzy matching; viable but cmdk's built-in command-score is sufficient and reduces dependencies
+
+- Obsidian Android forum confirmation of Gboard Tab behavior scope — needs direct device testing; behavior may vary by OEM keyboard variant
 
 ---
-*Research completed: 2026-03-10*
+*Research completed: 2026-03-12*
 *Ready for roadmap: yes*

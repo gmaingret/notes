@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Native Android Client
 status: ready_to_plan
-stopped_at: Completed 11-03-PLAN.md
-last_updated: "2026-03-12T13:57:36.840Z"
+stopped_at: Completed 11-04-PLAN.md
+last_updated: "2026-03-12T14:05:04.499Z"
 last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 ---
@@ -74,6 +74,7 @@ Progress: [░░░░░░░░░░] 0% (v2.0)
 | Phase 11-bullet-tree P01 | 14 | 2 tasks | 28 files |
 | Phase 11-bullet-tree P02 | 9 | 1 tasks | 3 files |
 | Phase 11-bullet-tree P03 | 13 | 2 tasks | 6 files |
+| Phase 11-bullet-tree P04 | 5 | 1 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -120,6 +121,9 @@ Recent decisions affecting v2.0:
 - [Phase 11-02]: backspaceOnEmpty reparents deleted bullet's children to deleted bullet's own parentId — keeps tree consistent without extra API call
 - [Phase 11-03]: LinkAnnotation.Url + addLink require @OptIn(ExperimentalTextApi) in Compose BOM 2025.02 — applied to buildMarkdownAnnotatedString and link test method
 - [Phase 11-03]: BulletRow uses FlowRow for mixed text+chip segments; pure-text bullets use buildMarkdownAnnotatedString directly to avoid FlowRow overhead
+- [Phase 11-04]: Cycle prevention uses flat-list position scan (not recursive tree walk) — avoids extra method since FlattenTreeUseCase produces DFS order
+- [Phase 11-04]: Note expansion state lives in BulletTreeScreen as local Set<String> — pure ephemeral UI state, no need to survive config change
+- [Phase 11-04]: showSnackbar() added to BulletTreeViewModel as public method launching in viewModelScope — allows UI to trigger snackbar without coroutine context
 
 ### Pending Todos
 
@@ -133,6 +137,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T13:57:36.837Z
-Stopped at: Completed 11-03-PLAN.md
+Last session: 2026-03-12T14:04:58.585Z
+Stopped at: Completed 11-04-PLAN.md
 Resume file: None

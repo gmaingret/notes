@@ -33,7 +33,7 @@
 - [x] **TREE-06**: User can collapse/expand bullets with children (animated)
 - [x] **TREE-07**: User can mark bullets complete (strikethrough + opacity)
 - [x] **TREE-08**: User can zoom into any bullet with breadcrumb navigation
-- [ ] **TREE-09**: User can drag-reorder bullets with projection algorithm
+- [x] **TREE-09**: User can drag-reorder bullets with projection algorithm
 - [x] **TREE-10**: User can add/edit notes field per bullet
 - [x] **TREE-11**: User can view and add comments on a bullet
 
@@ -98,7 +98,7 @@
 | TREE-06 | Phase 11 | Complete |
 | TREE-07 | Phase 11 | Complete |
 | TREE-08 | Phase 11 | Complete |
-| TREE-09 | Phase 11 | Pending |
+| TREE-09 | Phase 11 | Complete |
 | TREE-10 | Phase 11 | Complete |
 | CONT-01 | Phase 11 | Complete |
 | CONT-02 | Phase 11 | Complete |

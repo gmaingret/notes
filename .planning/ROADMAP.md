@@ -40,7 +40,7 @@ Full details: [`.planning/milestones/v1.1-ROADMAP.md`](milestones/v1.1-ROADMAP.m
 - [x] **Phase 9: Android Foundation and Auth** — Project scaffold with Clean Architecture, Hilt DI, OkHttp auth infrastructure, login and register screens (completed 2026-03-12)
 - [x] **Phase 10: Document Management** — ModalNavigationDrawer with full document CRUD, drag reorder, last-opened persistence (completed 2026-03-12)
 - [x] **Phase 11: Bullet Tree** — Flat LazyColumn outliner with all core editing interactions, markdown rendering, and chip syntax (completed 2026-03-12)
-- [ ] **Phase 12: Reactivity and Polish** — Swipe gestures, search, undo/redo, pull-to-refresh, animations, attachments, bookmarks
+- [x] **Phase 12: Reactivity and Polish** — Swipe gestures, search, undo/redo, pull-to-refresh, animations, attachments, bookmarks (completed 2026-03-12)
 
 ## Phase Details
 
@@ -130,4 +130,4 @@ Plans:
 | 9. Android Foundation and Auth | 5/5 | Complete   | 2026-03-12 | - |
 | 10. Document Management | 3/3 | Complete   | 2026-03-12 | - |
 | 11. Bullet Tree | 4/4 | Complete    | 2026-03-12 | - |
-| 12. Reactivity and Polish | 4/5 | In Progress|  | - |
+| 12. Reactivity and Polish | 5/5 | Complete   | 2026-03-12 | - |

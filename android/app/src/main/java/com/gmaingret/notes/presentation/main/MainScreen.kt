@@ -95,7 +95,6 @@ fun MainScreen(
                     },
                     onCreateDocument = {
                         viewModel.createDocument()
-                        scope.launch { drawerState.close() }
                     },
                     onRename = { docId ->
                         viewModel.startRename(docId)

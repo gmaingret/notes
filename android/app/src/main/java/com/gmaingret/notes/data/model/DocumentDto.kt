@@ -41,5 +41,5 @@ data class RenameDocumentRequest(
  * [afterId] is the ID of the document after which to insert; null means move to first position.
  */
 data class ReorderDocumentRequest(
-    @SerializedName("after_id") val afterId: String?
+    val afterId: String?
 )

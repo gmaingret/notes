@@ -28,8 +28,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+import android.view.HapticFeedbackConstants
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -109,7 +109,7 @@ fun DocumentDrawerContent(
                     }
                 }
                 is MainUiState.Success -> {
-                    val hapticFeedback = LocalHapticFeedback.current
+                    val view = LocalView.current
                     val lazyListState = rememberLazyListState()
                     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
                         onMoveLocally(from.index, to.index)
@@ -128,7 +128,7 @@ fun DocumentDrawerContent(
                                     isDragging = isDragging,
                                     dragModifier = Modifier.longPressDraggableHandle(
                                         onDragStarted = {
-                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                                         },
                                         onDragStopped = {
                                             onCommitReorder(doc.id)

@@ -96,7 +96,7 @@ Each task was committed atomically:
 1. **Task 1: Domain model, API interface, DTOs, and Reorderable dependency** - `97aeafb` (feat)
 2. **Task 2: Repository interface, implementation, DI wiring, and lastDocId persistence** - `36d426b` (feat)
 
-**Plan metadata:** (docs commit — see below)
+**Plan metadata:** `88aa3a6` (docs: complete plan)
 
 ## Files Created/Modified
 

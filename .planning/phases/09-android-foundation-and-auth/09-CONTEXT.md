@@ -112,7 +112,7 @@ Project scaffold with Clean Architecture + Hilt DI, OkHttp auth infrastructure, 
 ### Integration Points
 - Backend API base: https://notes.gregorymaingret.fr/api/auth/* (register, login, refresh, logout, + new google/token)
 - Android project in /android/ subdirectory (prevents Gradle from scanning node_modules)
-- Google Cloud Console project 461904459737: needs Android client OAuth credential added
+- Google Cloud Console project notes-489706 (24598090780): Android + Web OAuth client IDs configured
 
 </code_context>
 

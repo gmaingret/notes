@@ -38,13 +38,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.gmaingret.notes.domain.usecase.GoogleSignInUseCase
 import kotlinx.coroutines.launch
 
 @Composable
@@ -56,6 +57,14 @@ fun AuthScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    // Check Google Sign-In availability once on screen entry and inform ViewModel.
+    // The check runs in the composable so the ViewModel never holds an Activity context.
+    LaunchedEffect(Unit) {
+        val available = GoogleSignInUseCase.isGoogleSignInAvailable(context)
+        viewModel.setGoogleSignInAvailability(available)
+    }
 
     // Show snackbar when cold-start network error is detected (one-shot)
     LaunchedEffect(showNetworkErrorOnStart) {
@@ -222,20 +231,24 @@ fun AuthScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Google Sign-In button (only shown if available)
+                // Google Sign-In button — only shown when Credential Manager is available.
+                // Hidden entirely on unsupported devices (no crash, no error — per locked decision).
                 if (uiState.isGoogleSignInAvailable) {
                     OutlinedButton(
                         onClick = {
-                            // Google credential manager integration: idToken obtained externally
-                            // and passed to viewModel.onGoogleSignIn(idToken, onAuthSuccess)
-                            // For now this is a placeholder — Google Sign-In launcher handles the flow
+                            viewModel.onGoogleSignIn(context, onAuthSuccess)
                         },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !uiState.isLoading
                     ) {
-                        // Google "G" icon using painter (requires google logo drawable)
-                        // Using text fallback since no Google asset in this project
-                        Text("Sign in with Google")
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Sign in with Google")
+                        }
                     }
                 }
 

@@ -1,9 +1,10 @@
 package com.gmaingret.notes.presentation.auth
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gmaingret.notes.domain.usecase.GoogleSignInUseCase
 import com.gmaingret.notes.domain.usecase.LoginUseCase
-import com.gmaingret.notes.domain.usecase.LoginWithGoogleUseCase
 import com.gmaingret.notes.domain.usecase.RegisterUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,7 @@ import javax.inject.Inject
 class AuthViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
     private val registerUseCase: RegisterUseCase,
-    private val loginWithGoogleUseCase: LoginWithGoogleUseCase
+    private val googleSignInUseCase: GoogleSignInUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -110,11 +111,26 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun onGoogleSignIn(idToken: String, onSuccess: () -> Unit) {
+    /**
+     * Called from AuthScreen LaunchedEffect to update Credential Manager availability.
+     * ViewModel must not hold Activity context, so the check is done in the composable
+     * and the result is passed here.
+     */
+    fun setGoogleSignInAvailability(available: Boolean) {
+        _uiState.update { it.copy(isGoogleSignInAvailable = available) }
+    }
+
+    /**
+     * Triggers Google Sign-In via Credential Manager two-step flow.
+     * Context is obtained from LocalContext.current in AuthScreen (not stored in ViewModel).
+     * On success: invokes [onSuccess] callback.
+     * On failure: shows Snackbar "Google sign-in failed. Please try again." (per locked decision).
+     */
+    fun onGoogleSignIn(context: Context, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            val result = loginWithGoogleUseCase(idToken)
+            val result = googleSignInUseCase(context)
 
             result.fold(
                 onSuccess = { _ ->

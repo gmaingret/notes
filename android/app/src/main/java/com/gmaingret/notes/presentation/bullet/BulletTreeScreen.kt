@@ -30,6 +30,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SwipeToDismissBox
@@ -97,6 +98,7 @@ fun BulletTreeScreen(
     val bookmarkedBulletIds by viewModel.bookmarkedBulletIds.collectAsState()
     val attachments by viewModel.attachments.collectAsState()
     val expandedAttachments by viewModel.expandedAttachments.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -178,11 +180,16 @@ fun BulletTreeScreen(
                         }
 
                         Column(modifier = Modifier.fillMaxSize().imePadding()) {
-                            LazyColumn(
-                                state = lazyListState,
+                            PullToRefreshBox(
+                                isRefreshing = isRefreshing,
+                                onRefresh = { viewModel.refresh() },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f)
+                            ) {
+                            LazyColumn(
+                                state = lazyListState,
+                                modifier = Modifier.fillMaxSize()
                             ) {
                                 items(
                                     items = flatList,
@@ -445,6 +452,7 @@ fun BulletTreeScreen(
                                     }
                                 }
                             }
+                            } // end PullToRefreshBox
 
                             // Editing toolbar — animated, shown only when a bullet is focused
                             AnimatedVisibility(

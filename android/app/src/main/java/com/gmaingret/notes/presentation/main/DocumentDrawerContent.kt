@@ -20,11 +20,13 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DocumentDrawerContent(
     uiState: MainUiState,
@@ -50,7 +53,9 @@ fun DocumentDrawerContent(
     onMoveLocally: (Int, Int) -> Unit,
     onCommitReorder: (String) -> Unit,
     onRetry: () -> Unit,
-    onBookmarksClick: () -> Unit = {}
+    onBookmarksClick: () -> Unit = {},
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
 
@@ -130,31 +135,37 @@ fun DocumentDrawerContent(
                         onMoveLocally(from.index, to.index)
                     }
 
-                    LazyColumn(
-                        state = lazyListState,
+                    PullToRefreshBox(
+                        isRefreshing = isRefreshing,
+                        onRefresh = onRefresh,
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(uiState.documents, key = { it.id }) { doc ->
-                            ReorderableItem(reorderableState, key = doc.id) { isDragging ->
-                                DocumentRow(
-                                    document = doc,
-                                    isSelected = doc.id == uiState.openDocumentId,
-                                    isEditing = doc.id == uiState.inlineEditingDocId,
-                                    isDragging = isDragging,
-                                    dragModifier = Modifier.longPressDraggableHandle(
-                                        onDragStarted = {
-                                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                        },
-                                        onDragStopped = {
-                                            onCommitReorder(doc.id)
-                                        }
-                                    ),
-                                    onTap = { onDocumentClick(doc) },
-                                    onRename = { onRename(doc.id) },
-                                    onDelete = { onDelete(doc.id) },
-                                    onSubmitRename = { title -> onSubmitRename(doc.id, title) },
-                                    onCancelRename = onCancelRename
-                                )
+                        LazyColumn(
+                            state = lazyListState,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(uiState.documents, key = { it.id }) { doc ->
+                                ReorderableItem(reorderableState, key = doc.id) { isDragging ->
+                                    DocumentRow(
+                                        document = doc,
+                                        isSelected = doc.id == uiState.openDocumentId,
+                                        isEditing = doc.id == uiState.inlineEditingDocId,
+                                        isDragging = isDragging,
+                                        dragModifier = Modifier.longPressDraggableHandle(
+                                            onDragStarted = {
+                                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                            },
+                                            onDragStopped = {
+                                                onCommitReorder(doc.id)
+                                            }
+                                        ),
+                                        onTap = { onDocumentClick(doc) },
+                                        onRename = { onRename(doc.id) },
+                                        onDelete = { onDelete(doc.id) },
+                                        onSubmitRename = { title -> onSubmitRename(doc.id, title) },
+                                        onCancelRename = onCancelRename
+                                    )
+                                }
                             }
                         }
                     }

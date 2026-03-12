@@ -49,6 +49,9 @@ class MainViewModel @Inject constructor(
     private val _snackbarMessage = MutableSharedFlow<String>()
     val snackbarMessage: SharedFlow<String> = _snackbarMessage.asSharedFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     // -----------------------------------------------------------------------
     // Init
     // -----------------------------------------------------------------------
@@ -306,25 +309,32 @@ class MainViewModel @Inject constructor(
      */
     fun refreshDocuments() {
         viewModelScope.launch {
+            _isRefreshing.value = true
             val current = _uiState.value as? MainUiState.Success
             val result = getDocumentsUseCase()
-            result.onSuccess { docs ->
-                if (docs.isEmpty()) {
-                    _uiState.value = MainUiState.Empty
-                    return@onSuccess
+            result.fold(
+                onSuccess = { docs ->
+                    if (docs.isEmpty()) {
+                        _uiState.value = MainUiState.Empty
+                    } else {
+                        val currentOpenId = current?.openDocumentId
+                        val newOpenId = if (currentOpenId != null && docs.any { it.id == currentOpenId }) {
+                            currentOpenId
+                        } else {
+                            docs.first().id
+                        }
+                        _uiState.value = MainUiState.Success(
+                            documents = docs,
+                            openDocumentId = newOpenId,
+                            inlineEditingDocId = current?.inlineEditingDocId
+                        )
+                    }
+                    _isRefreshing.value = false
+                },
+                onFailure = {
+                    _isRefreshing.value = false
                 }
-                val currentOpenId = current?.openDocumentId
-                val newOpenId = if (currentOpenId != null && docs.any { it.id == currentOpenId }) {
-                    currentOpenId
-                } else {
-                    docs.first().id
-                }
-                _uiState.value = MainUiState.Success(
-                    documents = docs,
-                    openDocumentId = newOpenId,
-                    inlineEditingDocId = current?.inlineEditingDocId
-                )
-            }
+            )
         }
     }
 }

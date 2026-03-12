@@ -67,6 +67,7 @@ fun MainScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val userEmail by viewModel.userEmail.collectAsState()
+    val isDrawerRefreshing by viewModel.isRefreshing.collectAsState()
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -169,7 +170,9 @@ fun MainScreen(
                     onBookmarksClick = {
                         viewModel.showBookmarks()
                         scope.launch { drawerState.close() }
-                    }
+                    },
+                    isRefreshing = isDrawerRefreshing,
+                    onRefresh = { viewModel.refreshDocuments() }
                 )
             }
         }

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Native Android Client
 status: ready_to_plan
-stopped_at: Phase 10 context gathered
-last_updated: "2026-03-12T11:00:38.434Z"
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-03-12T11:24:31.049Z"
 last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 8
+  completed_plans: 6
 ---
 
 ---
@@ -68,6 +68,7 @@ Progress: [░░░░░░░░░░] 0% (v2.0)
 | Phase 09 P03 | 6 | 3 tasks | 13 files |
 | Phase 09-android-foundation-and-auth P04 | 9 | 2 tasks | 11 files |
 | Phase 09 P05 | 11 | 3 tasks | 10 files |
+| Phase 10-document-management P01 | 9 | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,10 @@ Recent decisions affecting v2.0:
 - [Phase 09-04]: HttpException 409 field=email -> emailError; 401 -> passwordError 'Wrong email or password'; IOException -> snackbar
 - [Phase 09-05]: GoogleSignInUseCase.isGoogleSignInAvailable() is companion fn so AuthScreen calls it without ViewModel holding Context
 - [Phase 09-05]: testReleaseUnitTest disabled: Compose UI tests require debug test manifest (ui-test-manifest is debugImplementation-only)
+- [Phase 10-01]: openDocument and deleteDocument return Response<Unit> — Gson converter throws on 204 empty body with plain Unit return type
+- [Phase 10-01]: getDocuments() sorts by position ascending in the repository — avoids relying on server-side ORDER BY guarantee
+- [Phase 10-01]: lastDocId stored plain (no Tink encryption) — non-sensitive UUID; clearAll() covers it via DataStore.edit { it.clear() }
+- [Phase 10-01]: Reorderable 3.0.0 added in data layer plan — avoids build-config changes mid-UI development
 
 ### Pending Todos
 
@@ -109,6 +114,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T11:00:38.430Z
-Stopped at: Phase 10 context gathered
-Resume file: .planning/phases/10-document-management/10-CONTEXT.md
+Last session: 2026-03-12T11:24:31.046Z
+Stopped at: Completed 10-01-PLAN.md
+Resume file: None

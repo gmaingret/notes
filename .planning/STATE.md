@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Native Android Client
 status: ready_to_plan
-stopped_at: Completed 09-02-PLAN.md — POST /api/auth/google/token deployed
-last_updated: "2026-03-12T08:59:10.050Z"
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-03-12T09:15:48.785Z"
 last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 5
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 ---
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 0% (v2.0)
 
 *Updated after each plan completion*
 | Phase 09 P02 | 12 | 1 tasks | 3 files |
+| Phase 09-android-foundation-and-auth P01 | 18 | 3 tasks | 28 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,9 @@ Recent decisions affecting v2.0:
 - v2.0 scope: No Room database (no offline mode), no Firebase, no Play Services
 - [Phase 09]: google-auth-library OAuth2Client.verifyIdToken() used for native Android Google SSO server-side verification
 - [Phase 09]: POST /api/auth/google/token response shape matches email/password login exactly — Android reuses same token handler
+- [Phase 09-android-foundation-and-auth]: Hilt downgraded to 2.56.1 (2.59.x requires AGP 9.0+; 2.56.1 last AGP-8.x-compatible version)
+- [Phase 09-android-foundation-and-auth]: AGP bumped to 8.9.1 + compileSdk 36 (required by Navigation3 1.0.1 transitive deps)
+- [Phase 09-android-foundation-and-auth]: XML theme uses android:Theme.Material.NoActionBar base; Material3 applied at runtime via NotesTheme composable (com.google.android.material not a dependency)
 
 ### Pending Todos
 
@@ -95,6 +99,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T08:59:10.047Z
-Stopped at: Completed 09-02-PLAN.md — POST /api/auth/google/token deployed
+Last session: 2026-03-12T09:15:48.782Z
+Stopped at: Completed 09-01-PLAN.md
 Resume file: None

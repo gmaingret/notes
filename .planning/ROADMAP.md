@@ -89,7 +89,12 @@ Plans:
   4. User can tap any bullet's icon to zoom into it as the root, with a breadcrumb trail showing the path back
   5. Bullet text displays markdown formatting (bold, italic, strikethrough, links) and #tags/@mentions/!!dates appear as tappable chips
   6. User can view and add comments on a bullet
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 11-01-PLAN.md — Data layer, domain models, FlattenTreeUseCase, ViewModel scaffold
+- [ ] 11-02-PLAN.md — ViewModel operations + unit tests
+- [ ] 11-03-PLAN.md — BulletRow, toolbar, BulletTreeScreen, markdown/chip renderer, MainScreen wiring
+- [ ] 11-04-PLAN.md — Drag-reorder, zoom/breadcrumb, notes field, visual checkpoint
 
 ### Phase 12: Reactivity and Polish
 **Goal**: The app feels fast and native — gestures work, search finds content, undo works, and all screens handle loading and error states correctly

@@ -168,6 +168,16 @@ class BulletTreeViewModel @Inject constructor(
 
     private var currentDocumentId: String? = null
 
+    /**
+     * Maps real server bullet IDs back to the temp ID that was used as the LazyColumn key.
+     * This prevents the full-list re-animation glitch when the server responds and the temp
+     * ID is swapped for the real one — LazyColumn sees a stable key throughout.
+     */
+    private val realIdToTempId = mutableMapOf<String, String>()
+
+    /** Returns a stable key for LazyColumn: the temp ID if this bullet was just created, else its own ID. */
+    fun stableKeyFor(bulletId: String): String = realIdToTempId[bulletId] ?: bulletId
+
     /** Local overrides for content while the user is typing (before debounce fires).
      *  Exposed as StateFlow so the UI can read the latest typed text even before the
      *  debounced PATCH fires and the server state is updated. */
@@ -247,6 +257,7 @@ class BulletTreeViewModel @Inject constructor(
      */
     fun loadBullets(documentId: String) {
         currentDocumentId = documentId
+        realIdToTempId.clear()
         _uiState.value = BulletTreeUiState.Loading
         viewModelScope.launch {
             getBulletsUseCase(documentId).fold(
@@ -412,19 +423,33 @@ class BulletTreeViewModel @Inject constructor(
             )
             result.fold(
                 onSuccess = { newBullet ->
-                    // Replace temp bullet with server-returned real bullet.
-                    val current = currentBullets()
-                    val updatedBullets = current.map { b ->
+                    // Map real ID → temp ID so LazyColumn key stays stable (no re-animation).
+                    realIdToTempId[newBullet.id] = tempId
+
+                    // Silently swap temp bullet for real bullet in the backing state
+                    // WITHOUT rebuilding the flatList — the UI already shows the bullet
+                    // correctly with the temp ID; a full rebuild causes a visible redraw glitch.
+                    val currentState = _uiState.value as? BulletTreeUiState.Success ?: return@fold
+                    val updatedBullets = currentState.bullets.map { b ->
                         if (b.id == tempId) newBullet else b
                     }
-                    // Migrate focus and content overrides from temp ID to real ID.
+                    val updatedFlatList = currentState.flatList.map { fb ->
+                        if (fb.bullet.id == tempId) fb.copy(bullet = newBullet) else fb
+                    }
+                    // Migrate focus from temp ID to real ID
+                    val newFocusId = if (currentState.focusedBulletId == tempId) newBullet.id else currentState.focusedBulletId
+                    _uiState.value = currentState.copy(
+                        bullets = updatedBullets,
+                        flatList = updatedFlatList,
+                        focusedBulletId = newFocusId
+                    )
+                    // Migrate content overrides from temp ID to real ID.
                     val migratedContent = contentOverridesMap.remove(tempId)
                     if (migratedContent != null) {
                         contentOverridesMap[newBullet.id] = migratedContent
                         _contentOverrides.value = contentOverridesMap.toMap()
                         contentEditFlow.tryEmit(newBullet.id to migratedContent)
                     }
-                    updateState(updatedBullets, focusedBulletId = newBullet.id)
                 },
                 onFailure = {
                     // Remove temp bullet on failure

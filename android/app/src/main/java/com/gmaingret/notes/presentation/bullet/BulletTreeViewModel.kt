@@ -19,6 +19,7 @@ import com.gmaingret.notes.domain.usecase.CreateBulletUseCase
 import com.gmaingret.notes.domain.usecase.DeleteBulletUseCase
 import com.gmaingret.notes.domain.usecase.FlattenTreeUseCase
 import com.gmaingret.notes.domain.usecase.GetAttachmentsUseCase
+import com.gmaingret.notes.domain.usecase.DeleteAttachmentUseCase
 import com.gmaingret.notes.domain.usecase.UploadAttachmentUseCase
 import com.gmaingret.notes.domain.usecase.GetBookmarksUseCase
 import com.gmaingret.notes.domain.usecase.GetBulletsUseCase
@@ -76,6 +77,7 @@ class BulletTreeViewModel @Inject constructor(
     private val removeBookmarkUseCase: RemoveBookmarkUseCase,
     private val getAttachmentsUseCase: GetAttachmentsUseCase,
     private val uploadAttachmentUseCase: UploadAttachmentUseCase,
+    private val deleteAttachmentUseCase: DeleteAttachmentUseCase,
     private val tokenStore: TokenStore
 ) : AndroidViewModel(application) {
 
@@ -144,7 +146,13 @@ class BulletTreeViewModel @Inject constructor(
         _isDragInProgress.value = inProgress
     }
 
-    /** Sets a bullet ID to scroll to. Called from MainScreen on search/bookmark/tag tap. */
+    /**
+     * Sets a bullet ID to scroll to. Called from MainScreen on search/bookmark/tag tap.
+     *
+     * Also resets the zoom root so the target bullet is guaranteed to be visible in the
+     * flat list. Without this, if the user had previously zoomed into a subtree, the target
+     * bullet might not appear in flatList (targetIndex == -1) and the scroll would silently fail.
+     */
     fun setScrollTarget(bulletId: String) {
         _scrollTarget.value = bulletId
     }
@@ -248,6 +256,12 @@ class BulletTreeViewModel @Inject constructor(
                     // Load bookmarks in parallel after bullets are shown
                     getBookmarksUseCase().onSuccess { bookmarks ->
                         _bookmarkedBulletIds.value = bookmarks.map { it.bulletId }.toSet()
+                    }
+                    // Load attachments for all bullets in parallel
+                    bullets.forEach { bullet ->
+                        if (bullet.id !in _attachments.value) {
+                            loadAttachments(bullet.id)
+                        }
                     }
                 },
                 onFailure = { e ->
@@ -793,6 +807,32 @@ class BulletTreeViewModel @Inject constructor(
                 },
                 onFailure = {
                     _snackbarMessage.emit("Upload failed: ${it.message}")
+                }
+            )
+        }
+    }
+
+    /**
+     * Deletes an attachment by ID. Optimistically removes it from the cached list for
+     * the attachment's bullet. Emits a snackbar on failure and reloads the attachment list.
+     */
+    fun deleteAttachment(attachment: Attachment) {
+        val bulletId = attachment.bulletId
+        // Optimistic removal
+        val existing = _attachments.value[bulletId] ?: emptyList()
+        _attachments.value = _attachments.value + (bulletId to existing.filter { it.id != attachment.id })
+
+        viewModelScope.launch {
+            deleteAttachmentUseCase(attachment.id).fold(
+                onSuccess = {
+                    // Attachment removed — local state already updated optimistically
+                },
+                onFailure = {
+                    // Revert: reload attachment list for this bullet
+                    _snackbarMessage.emit("Failed to remove attachment: ${it.message}")
+                    getAttachmentsUseCase(bulletId).onSuccess { attachments ->
+                        _attachments.value = _attachments.value + (bulletId to attachments)
+                    }
                 }
             )
         }

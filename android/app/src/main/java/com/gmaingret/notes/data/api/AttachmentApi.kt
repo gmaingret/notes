@@ -2,6 +2,7 @@ package com.gmaingret.notes.data.api
 
 import com.gmaingret.notes.data.model.AttachmentDto
 import okhttp3.MultipartBody
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
@@ -27,4 +28,7 @@ interface AttachmentApi {
         @Path("bulletId") bulletId: String,
         @Part file: MultipartBody.Part
     ): AttachmentDto
+
+    @DELETE("api/attachments/{attachmentId}")
+    suspend fun deleteAttachment(@Path("attachmentId") attachmentId: String)
 }

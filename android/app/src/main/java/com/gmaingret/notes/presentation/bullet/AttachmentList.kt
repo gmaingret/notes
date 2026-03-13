@@ -45,15 +45,17 @@ import com.gmaingret.notes.domain.model.Attachment
  *   - Renders a thumbnail via Coil [AsyncImage] with crossfade and gray placeholder
  *   - Max height 200.dp, fills max width, 8.dp rounded corners
  *   - Tapping opens a fullscreen lightbox Dialog
+ *   - A small X button in the top-right corner removes the attachment (calls [onDelete])
  *
  * For non-image attachments:
- *   - Renders a Row with file-type icon, filename, and size (KB/MB)
- *   - Tapping triggers [onDownload]
+ *   - Renders a Row with file-type icon, filename, size (KB/MB), and a remove X button
+ *   - Tapping the row triggers [onDownload]; tapping X triggers [onDelete]
  */
 @Composable
 fun AttachmentList(
     attachments: List<Attachment>,
     onDownload: (Attachment) -> Unit,
+    onDelete: (Attachment) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Track which image (if any) is open in the lightbox
@@ -66,19 +68,40 @@ fun AttachmentList(
     ) {
         attachments.forEach { attachment ->
             if (attachment.mimeType.startsWith("image/")) {
-                AsyncImage(
-                    model = attachment.downloadUrl,
-                    contentDescription = attachment.filename,
-                    contentScale = ContentScale.Crop,
-                    placeholder = ColorPainter(Color(0xFFE0E0E0)),
-                    error = ColorPainter(Color(0xFFE0E0E0)),
+                // Image: thumbnail with overlay delete button
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp)
                         .padding(vertical = 2.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { lightboxAttachment = attachment },
-                )
+                ) {
+                    AsyncImage(
+                        model = attachment.downloadUrl,
+                        contentDescription = attachment.filename,
+                        contentScale = ContentScale.Crop,
+                        placeholder = ColorPainter(Color(0xFFE0E0E0)),
+                        error = ColorPainter(Color(0xFFE0E0E0)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { lightboxAttachment = attachment },
+                    )
+                    // Delete button overlaid in top-right corner
+                    IconButton(
+                        onClick = { onDelete(attachment) },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Remove attachment",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             } else {
                 Row(
                     modifier = Modifier
@@ -110,6 +133,18 @@ fun AttachmentList(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
+                    // Remove button
+                    IconButton(
+                        onClick = { onDelete(attachment) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Remove attachment",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                    }
                 }
             }
         }

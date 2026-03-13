@@ -47,4 +47,11 @@ class AttachmentRepositoryImpl @Inject constructor(
     } catch (e: Exception) {
         Result.failure(e)
     }
+
+    override suspend fun deleteAttachment(attachmentId: String): Result<Unit> = try {
+        attachmentApi.deleteAttachment(attachmentId)
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
 }

@@ -119,6 +119,7 @@ fun BulletRow(
     onToggleAttachments: () -> Unit,
     onDeleteFromMenu: () -> Unit,
     onDownloadAttachment: (Attachment) -> Unit,
+    onDeleteAttachment: (Attachment) -> Unit,
     onChipClick: ((String) -> Unit)? = null,
     /**
      * When true, the context menu is shown. Controlled externally by BulletTreeScreen
@@ -234,7 +235,7 @@ fun BulletRow(
                         )
                     }
                 },
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             // Bullet dot — tap to zoom into subtree
             Box(
@@ -354,8 +355,12 @@ fun BulletRow(
                                 }
                             },
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 20.sp
+                            color = if (bullet.isComplete)
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            else
+                                MaterialTheme.colorScheme.onSurface,
+                            fontSize = 20.sp,
+                            textDecoration = if (bullet.isComplete) TextDecoration.LineThrough else TextDecoration.None
                         ),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary)
                     )
@@ -446,10 +451,6 @@ fun BulletRow(
                         onClick = { onToggleBookmark(); showContextMenu = false; onContextMenuDismiss() }
                     )
                     DropdownMenuItem(
-                        text = { Text(if (isAttachmentsExpanded) "Hide attachments" else "Attachments") },
-                        onClick = { onToggleAttachments(); showContextMenu = false; onContextMenuDismiss() }
-                    )
-                    DropdownMenuItem(
                         text = { Text("Delete") },
                         onClick = { onDeleteFromMenu(); showContextMenu = false; onContextMenuDismiss() }
                     )
@@ -494,22 +495,14 @@ fun BulletRow(
             modifier = Modifier.padding(start = indentPx)
         )
 
-        // Inline attachment list — animated, shown when expanded
-        AnimatedVisibility(visible = isAttachmentsExpanded) {
-            if (attachments.isEmpty()) {
-                Text(
-                    text = "No attachments",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = indentPx, top = 4.dp, bottom = 4.dp)
-                )
-            } else {
-                AttachmentList(
-                    attachments = attachments,
-                    onDownload = onDownloadAttachment,
-                    modifier = Modifier.padding(start = indentPx)
-                )
-            }
+        // Inline attachment list — always visible when attachments exist
+        AnimatedVisibility(visible = attachments.isNotEmpty()) {
+            AttachmentList(
+                attachments = attachments,
+                onDownload = onDownloadAttachment,
+                onDelete = onDeleteAttachment,
+                modifier = Modifier.padding(start = indentPx)
+            )
         }
     }
 }

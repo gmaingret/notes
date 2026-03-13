@@ -202,7 +202,7 @@ fun buildMarkdownAnnotatedString(text: String): AnnotatedString {
 fun parseContentSegments(text: String): List<ContentSegment> {
     if (text.isEmpty()) return emptyList()
 
-    val chipRegex = Regex("""(#\w+)|(@\w+)|(!![\w-]+)""")
+    val chipRegex = Regex("""(#\w+)|(@\w+)|(!!\[[\w-]+\])|(!![\w-]+)""")
     val segments = mutableListOf<ContentSegment>()
     var cursor = 0
 

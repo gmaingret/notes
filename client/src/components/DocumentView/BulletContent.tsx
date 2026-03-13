@@ -290,7 +290,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     // ── ArrowUp: navigate to previous bullet ──────────────────────────────
     if (e.key === 'ArrowUp' && !isMeta) {
       const allBulletEls = Array.from(
-        document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]')
+        document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]:not([id^="bullet-row-"])')
       );
       const myIdx = allBulletEls.indexOf(divRef.current!);
       if (myIdx > 0) {
@@ -303,7 +303,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     // ── ArrowDown: navigate to next bullet ────────────────────────────────
     if (e.key === 'ArrowDown' && !isMeta) {
       const allBulletEls = Array.from(
-        document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]')
+        document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]:not([id^="bullet-row-"])')
       );
       const myIdx = allBulletEls.indexOf(divRef.current!);
       if (myIdx < allBulletEls.length - 1) {
@@ -512,7 +512,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         } else if (bullet.parentId !== null) {
           target = document.getElementById(`bullet-${bullet.parentId}`) as HTMLDivElement | null;
         } else {
-          const allBulletEls = Array.from(document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]'));
+          const allBulletEls = Array.from(document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]:not([id^="bullet-row-"])'));
           const myDomIdx = allBulletEls.findIndex(d => d === divRef.current);
           target = allBulletEls[myDomIdx + 1] ?? null;
         }
@@ -575,7 +575,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
         if ((el.textContent ?? '') === '') {
           softDeleteBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
           setTimeout(() => {
-            const allBulletEls = Array.from(document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]'));
+            const allBulletEls = Array.from(document.querySelectorAll<HTMLDivElement>('[id^="bullet-"]:not([id^="bullet-row-"])'));
             const myDomIdx = allBulletEls.findIndex(d => d === divRef.current);
             const target = allBulletEls[myDomIdx - 1];
             if (target) {

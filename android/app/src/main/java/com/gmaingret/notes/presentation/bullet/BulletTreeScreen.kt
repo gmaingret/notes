@@ -169,6 +169,9 @@ fun BulletTreeScreen(
     // Track which bullets have their note field expanded (by bullet ID)
     var expandedNoteIds by remember { mutableStateOf(setOf<String>()) }
 
+    // LazyColumn state hoisted outside the when-block so scroll position survives state changes
+    val lazyListState = rememberLazyListState()
+
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
 
@@ -197,6 +200,16 @@ fun BulletTreeScreen(
 
                         val focusedBulletId = state.focusedBulletId
                         val flatList = state.flatList
+
+                        // Scroll to focused bullet instantly (no animation) when it changes
+                        LaunchedEffect(focusedBulletId) {
+                            if (focusedBulletId != null) {
+                                val idx = flatList.indexOfFirst { it.bullet.id == focusedBulletId }
+                                if (idx >= 0) {
+                                    lazyListState.scrollToItem(idx)
+                                }
+                            }
+                        }
 
                         // Compute toolbar enabled states
                         val focusedIndex = flatList.indexOfFirst { it.bullet.id == focusedBulletId }
@@ -228,7 +241,6 @@ fun BulletTreeScreen(
                         // Drag state for reparenting
                         val view = LocalView.current
                         val density = LocalDensity.current
-                        val lazyListState = rememberLazyListState()
                         var dragHorizontalOffset by remember { mutableFloatStateOf(0f) }
                         var draggedBulletId by remember { mutableStateOf<String?>(null) }
                         // Index of the dragged item at the START of the drag (to detect no-move long-press)
@@ -245,7 +257,7 @@ fun BulletTreeScreen(
                         // the flatList may be empty when the ID first arrives. The LaunchedEffect
                         // re-fires once the flatList grows and we find the target bullet.
                         val effectiveScrollTarget = pendingScrollToBulletId ?: vmScrollTarget
-                        LaunchedEffect(effectiveScrollTarget, flatList.size) {
+                        LaunchedEffect(effectiveScrollTarget) {
                             if (effectiveScrollTarget != null) {
                                 // Zoom into the target bullet — shows it in the breadcrumb
                                 // with its children below.
@@ -270,13 +282,14 @@ fun BulletTreeScreen(
                             ) {
                             LazyColumn(
                                 state = lazyListState,
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 items(
                                     items = flatList,
-                                    key = { it.bullet.id }
+                                    key = { viewModel.stableKeyFor(it.bullet.id) }
                                 ) { flatBullet ->
-                                    ReorderableItem(reorderableState, key = flatBullet.bullet.id, modifier = Modifier.animateItem()) { isDragging ->
+                                    ReorderableItem(reorderableState, key = viewModel.stableKeyFor(flatBullet.bullet.id)) { isDragging ->
                                         val indentPerLevel = 24.dp
                                         val targetDepthDelta = if (isDragging) {
                                             val indentPx = with(density) { indentPerLevel.toPx() }

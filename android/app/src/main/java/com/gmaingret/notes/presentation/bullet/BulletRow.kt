@@ -46,6 +46,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
@@ -140,6 +143,18 @@ fun BulletRow(
     val guideLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
     val bulletDotColor = MaterialTheme.colorScheme.onSurface
 
+    // Tight text style: removes Android's built-in font padding for compact rows
+    val tightTextStyle = TextStyle(
+        fontSize = 18.sp,
+        lineHeight = 18.sp,
+        platformStyle = PlatformTextStyle(includeFontPadding = false),
+        lineHeightStyle = LineHeightStyle(
+            alignment = LineHeightStyle.Alignment.Center,
+            trim = LineHeightStyle.Trim.Both
+        )
+    )
+
+
     // Local text state for the editing field
     var localText by remember(bullet.id) { mutableStateOf(contentOverride ?: bullet.content) }
     var textFieldValue by remember(bullet.id) {
@@ -178,17 +193,17 @@ fun BulletRow(
         }
     }
 
-    // Request focus and bring into view when isFocused becomes true.
+    // Request focus when isFocused becomes true.
     // Always place cursor at the end of the text on focus so the user can
     // continue typing naturally regardless of tap position.
+    // Note: scrolling to the focused item is handled by the parent LazyColumn,
+    // not bringIntoView (which caused visible scroll animations on every focus change).
     LaunchedEffect(isFocused) {
         if (isFocused) {
             enterHandledForText = null
             focusRequester.requestFocus()
             val text = textFieldValue.text
             textFieldValue = textFieldValue.copy(selection = TextRange(text.length))
-            delay(50)
-            bringIntoViewRequester.bringIntoView()
         }
     }
 
@@ -207,7 +222,6 @@ fun BulletRow(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .animateContentSize()
             .graphicsLayer {
                 if (isDragging) {
                     scaleX = 1.02f
@@ -221,7 +235,7 @@ fun BulletRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .bringIntoViewRequester(bringIntoViewRequester)
-                .padding(start = indentPx, top = 6.dp, bottom = 6.dp, end = 4.dp)
+                .padding(start = indentPx, end = 4.dp)
                 .drawBehind {
                     // Draw vertical guide lines for each depth level
                     for (level in 1..depth) {
@@ -239,11 +253,11 @@ fun BulletRow(
             // Bullet dot — tap to zoom into subtree
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .width(22.dp)
                     .clickable { onBulletIconTap() },
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.TopCenter
             ) {
-                Canvas(modifier = Modifier.size(6.dp)) {
+                Canvas(modifier = Modifier.padding(top = 8.dp).size(5.dp)) {
                     drawCircle(
                         color = if (bullet.isComplete)
                             bulletDotColor.copy(alpha = 0.4f)
@@ -272,8 +286,6 @@ fun BulletRow(
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
             }
-
-            Spacer(modifier = Modifier.width(4.dp))
 
             // Content area — combinedClickable for tap (focus) + long-press (context menu)
             Box(
@@ -353,12 +365,11 @@ fun BulletRow(
                                     else -> false
                                 }
                             },
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        textStyle = tightTextStyle.copy(
                             color = if (bullet.isComplete)
                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             else
                                 MaterialTheme.colorScheme.onSurface,
-                            fontSize = 20.sp,
                             textDecoration = if (bullet.isComplete) TextDecoration.LineThrough else TextDecoration.None
                         ),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary)
@@ -380,8 +391,7 @@ fun BulletRow(
                                     append(displayContent)
                                 }
                             },
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontSize = 20.sp
+                            style = tightTextStyle
                         )
                     } else {
                         // Render content segments (chips + markdown)
@@ -390,17 +400,13 @@ fun BulletRow(
                             // Empty bullet — show placeholder
                             Text(
                                 text = "",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontSize = 20.sp,
-                                color = MaterialTheme.colorScheme.onSurface
+                                style = tightTextStyle.copy(color = MaterialTheme.colorScheme.onSurface)
                             )
                         } else if (segments.all { it is ContentSegment.TextSegment }) {
                             // All text — use markdown AnnotatedString renderer
                             Text(
                                 text = buildMarkdownAnnotatedString(displayContent),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontSize = 20.sp,
-                                color = MaterialTheme.colorScheme.onSurface
+                                style = tightTextStyle.copy(color = MaterialTheme.colorScheme.onSurface)
                             )
                         } else {
                             // Mixed text and chips — use FlowRow layout
@@ -412,9 +418,7 @@ fun BulletRow(
                                         is ContentSegment.TextSegment -> {
                                             Text(
                                                 text = buildMarkdownAnnotatedString(segment.text),
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                fontSize = 20.sp,
-                                                color = MaterialTheme.colorScheme.onSurface
+                                                style = tightTextStyle.copy(color = MaterialTheme.colorScheme.onSurface)
                                             )
                                         }
                                         is ContentSegment.ChipSegment -> {
@@ -471,18 +475,20 @@ fun BulletRow(
 
             // Collapse/expand arrow — only shown if bullet has children
             if (flatBullet.hasChildren) {
-                androidx.compose.material3.IconButton(
-                    onClick = onCollapseToggle,
-                    modifier = Modifier.size(40.dp)
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable { onCollapseToggle() },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = if (bullet.isCollapsed) Icons.Filled.ArrowRight else Icons.Filled.ArrowDropDown,
                         contentDescription = if (bullet.isCollapsed) "Expand" else "Collapse",
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             } else {
-                Spacer(modifier = Modifier.size(40.dp))
+                Spacer(modifier = Modifier.width(24.dp))
             }
         }
 
@@ -565,9 +571,16 @@ internal fun InlineChip(
     ) {
         Text(
             text = displayText,
-            style = MaterialTheme.typography.bodyLarge,
-            fontSize = 20.sp,
-            color = textColor
+            style = TextStyle(
+                fontSize = 18.sp,
+                lineHeight = 22.sp,
+                platformStyle = PlatformTextStyle(includeFontPadding = false),
+                lineHeightStyle = LineHeightStyle(
+                    alignment = LineHeightStyle.Alignment.Center,
+                    trim = LineHeightStyle.Trim.Both
+                ),
+                color = textColor
+            )
         )
     }
 }

@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -289,6 +290,161 @@ class MainViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 1) { reorderDocumentUseCase("doc-1", null) }
+    }
+
+    // -----------------------------------------------------------------------
+    // navigateToBullet (search/bookmark navigation)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `navigateToBullet sets openDocumentId to target document`() = runTest {
+        coEvery { getDocumentsUseCase() } returns Result.success(listOf(doc1, doc2))
+        coEvery { openDocumentUseCase.getLastDocId() } returns "doc-1"
+        coEvery { openDocumentUseCase(any()) } returns Unit
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        // Navigate to a bullet in doc-2
+        vm.navigateToBullet("doc-2", "bullet-42")
+        advanceUntilIdle()
+
+        val state = vm.uiState.value as MainUiState.Success
+        assertEquals("doc-2", state.openDocumentId)
+    }
+
+    @Test
+    fun `navigateToBullet sets pendingScrollToBulletId`() = runTest {
+        coEvery { getDocumentsUseCase() } returns Result.success(listOf(doc1, doc2))
+        coEvery { openDocumentUseCase.getLastDocId() } returns "doc-1"
+        coEvery { openDocumentUseCase(any()) } returns Unit
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        vm.navigateToBullet("doc-2", "bullet-42")
+        advanceUntilIdle()
+
+        val state = vm.uiState.value as MainUiState.Success
+        assertEquals("bullet-42", state.pendingScrollToBulletId)
+    }
+
+    @Test
+    fun `navigateToBullet clears showBookmarks`() = runTest {
+        coEvery { getDocumentsUseCase() } returns Result.success(listOf(doc1, doc2))
+        coEvery { openDocumentUseCase.getLastDocId() } returns "doc-1"
+        coEvery { openDocumentUseCase(any()) } returns Unit
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        // First show bookmarks
+        vm.showBookmarks()
+        val stateWithBookmarks = vm.uiState.value as MainUiState.Success
+        assertTrue(stateWithBookmarks.showBookmarks)
+
+        // Then navigate to a bullet — bookmarks should be hidden
+        vm.navigateToBullet("doc-1", "bullet-7")
+        advanceUntilIdle()
+
+        val state = vm.uiState.value as MainUiState.Success
+        assertFalse(state.showBookmarks)
+    }
+
+    @Test
+    fun `navigateToBullet clears showTags`() = runTest {
+        coEvery { getDocumentsUseCase() } returns Result.success(listOf(doc1, doc2))
+        coEvery { openDocumentUseCase.getLastDocId() } returns "doc-1"
+        coEvery { openDocumentUseCase(any()) } returns Unit
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        // First show tags
+        vm.showTags()
+        val stateWithTags = vm.uiState.value as MainUiState.Success
+        assertTrue(stateWithTags.showTags)
+
+        // Then navigate to a bullet — tags should be hidden
+        vm.navigateToBullet("doc-1", "bullet-7")
+        advanceUntilIdle()
+
+        val state = vm.uiState.value as MainUiState.Success
+        assertFalse(state.showTags)
+    }
+
+    @Test
+    fun `navigateToBullet calls openDocumentUseCase`() = runTest {
+        coEvery { getDocumentsUseCase() } returns Result.success(listOf(doc1, doc2))
+        coEvery { openDocumentUseCase.getLastDocId() } returns "doc-1"
+        coEvery { openDocumentUseCase(any()) } returns Unit
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        vm.navigateToBullet("doc-2", "bullet-42")
+        advanceUntilIdle()
+
+        // openDocumentUseCase called once for initial load (doc-1) and once for navigate (doc-2)
+        coVerify(atLeast = 1) { openDocumentUseCase("doc-2") }
+    }
+
+    @Test
+    fun `clearPendingScroll sets pendingScrollToBulletId to null`() = runTest {
+        coEvery { getDocumentsUseCase() } returns Result.success(listOf(doc1, doc2))
+        coEvery { openDocumentUseCase.getLastDocId() } returns "doc-1"
+        coEvery { openDocumentUseCase(any()) } returns Unit
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        vm.navigateToBullet("doc-2", "bullet-42")
+        advanceUntilIdle()
+
+        val stateBefore = vm.uiState.value as MainUiState.Success
+        assertEquals("bullet-42", stateBefore.pendingScrollToBulletId)
+
+        vm.clearPendingScroll()
+        advanceUntilIdle()
+
+        val stateAfter = vm.uiState.value as MainUiState.Success
+        assertNull(stateAfter.pendingScrollToBulletId)
+    }
+
+    // -----------------------------------------------------------------------
+    // showBookmarks / showTags
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `showBookmarks sets showBookmarks true and clears showTags`() = runTest {
+        coEvery { getDocumentsUseCase() } returns Result.success(listOf(doc1))
+        coEvery { openDocumentUseCase.getLastDocId() } returns null
+        coEvery { openDocumentUseCase(any()) } returns Unit
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        vm.showBookmarks()
+
+        val state = vm.uiState.value as MainUiState.Success
+        assertTrue(state.showBookmarks)
+        assertFalse(state.showTags)
+    }
+
+    @Test
+    fun `showTags sets showTags true and clears showBookmarks`() = runTest {
+        coEvery { getDocumentsUseCase() } returns Result.success(listOf(doc1))
+        coEvery { openDocumentUseCase.getLastDocId() } returns null
+        coEvery { openDocumentUseCase(any()) } returns Unit
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        vm.showTags()
+
+        val state = vm.uiState.value as MainUiState.Success
+        assertTrue(state.showTags)
+        assertFalse(state.showBookmarks)
     }
 
     @Test

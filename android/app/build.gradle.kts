@@ -127,6 +127,10 @@ dependencies {
     // Reorderable (drag-to-reorder for Compose lazy lists)
     implementation(libs.reorderable)
 
+    // Coil (image loading — configured with auth-intercepted OkHttpClient)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 

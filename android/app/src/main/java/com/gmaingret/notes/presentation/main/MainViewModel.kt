@@ -49,6 +49,9 @@ class MainViewModel @Inject constructor(
     private val _snackbarMessage = MutableSharedFlow<String>()
     val snackbarMessage: SharedFlow<String> = _snackbarMessage.asSharedFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     // -----------------------------------------------------------------------
     // Init
     // -----------------------------------------------------------------------
@@ -260,6 +263,55 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    // -----------------------------------------------------------------------
+    // Navigation helpers (Plan 03 — search + bookmarks)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Switches main content area to the Bookmarks screen.
+     * Clears tags and any pending scroll.
+     */
+    fun showBookmarks() {
+        val current = _uiState.value as? MainUiState.Success ?: return
+        _uiState.value = current.copy(showBookmarks = true, showTags = false, pendingScrollToBulletId = null)
+    }
+
+    /**
+     * Switches main content area to the Tags browser screen.
+     * Clears bookmarks and any pending scroll.
+     */
+    fun showTags() {
+        val current = _uiState.value as? MainUiState.Success ?: return
+        _uiState.value = current.copy(showTags = true, showBookmarks = false, pendingScrollToBulletId = null)
+    }
+
+    /**
+     * Navigates to a specific bullet in a document (from search or bookmark tap).
+     * Opens the document, hides bookmarks, and sets pendingScrollToBulletId so
+     * BulletTreeScreen can animate-scroll to the bullet.
+     */
+    fun navigateToBullet(documentId: String, bulletId: String) {
+        val current = _uiState.value as? MainUiState.Success ?: return
+        _uiState.value = current.copy(
+            openDocumentId = documentId,
+            showBookmarks = false,
+            showTags = false,
+            pendingScrollToBulletId = bulletId
+        )
+        viewModelScope.launch {
+            openDocumentUseCase(documentId)
+        }
+    }
+
+    /**
+     * Called by BulletTreeScreen after it has scrolled to the pending bullet.
+     * Clears the pending scroll ID to prevent re-triggering.
+     */
+    fun clearPendingScroll() {
+        val current = _uiState.value as? MainUiState.Success ?: return
+        _uiState.value = current.copy(pendingScrollToBulletId = null)
+    }
+
     /**
      * Refreshes the document list (e.g. when the drawer opens).
      * Preserves the currently open document ID; if it's no longer in the list,
@@ -267,25 +319,32 @@ class MainViewModel @Inject constructor(
      */
     fun refreshDocuments() {
         viewModelScope.launch {
+            _isRefreshing.value = true
             val current = _uiState.value as? MainUiState.Success
             val result = getDocumentsUseCase()
-            result.onSuccess { docs ->
-                if (docs.isEmpty()) {
-                    _uiState.value = MainUiState.Empty
-                    return@onSuccess
+            result.fold(
+                onSuccess = { docs ->
+                    if (docs.isEmpty()) {
+                        _uiState.value = MainUiState.Empty
+                    } else {
+                        val currentOpenId = current?.openDocumentId
+                        val newOpenId = if (currentOpenId != null && docs.any { it.id == currentOpenId }) {
+                            currentOpenId
+                        } else {
+                            docs.first().id
+                        }
+                        _uiState.value = MainUiState.Success(
+                            documents = docs,
+                            openDocumentId = newOpenId,
+                            inlineEditingDocId = current?.inlineEditingDocId
+                        )
+                    }
+                    _isRefreshing.value = false
+                },
+                onFailure = {
+                    _isRefreshing.value = false
                 }
-                val currentOpenId = current?.openDocumentId
-                val newOpenId = if (currentOpenId != null && docs.any { it.id == currentOpenId }) {
-                    currentOpenId
-                } else {
-                    docs.first().id
-                }
-                _uiState.value = MainUiState.Success(
-                    documents = docs,
-                    openDocumentId = newOpenId,
-                    inlineEditingDocId = current?.inlineEditingDocId
-                )
-            }
+            )
         }
     }
 }

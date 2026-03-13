@@ -3,6 +3,21 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Native Android Client
 status: ready_to_plan
+stopped_at: Completed 12-05-PLAN.md
+last_updated: "2026-03-12T20:35:28.639Z"
+last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
+progress:
+  total_phases: 4
+  completed_phases: 4
+  total_plans: 17
+  completed_plans: 17
+---
+
+---
+gsd_state_version: 1.0
+milestone: v2.0
+milestone_name: Native Android Client
+status: ready_to_plan
 stopped_at: Completed 11-04-PLAN.md
 last_updated: "2026-03-12T14:09:24.076Z"
 last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
@@ -75,6 +90,11 @@ Progress: [░░░░░░░░░░] 0% (v2.0)
 | Phase 11-bullet-tree P02 | 9 | 1 tasks | 3 files |
 | Phase 11-bullet-tree P03 | 13 | 2 tasks | 6 files |
 | Phase 11-bullet-tree P04 | 5 | 1 tasks | 5 files |
+| Phase 12-reactivity-and-polish P01 | 453 | 2 tasks | 25 files |
+| Phase 12-reactivity-and-polish P03 | 580 | 2 tasks | 16 files |
+| Phase 12 P02 | 35 | 2 tasks | 7 files |
+| Phase 12-reactivity-and-polish P04 | 7 | 2 tasks | 6 files |
+| Phase 12-reactivity-and-polish P05 | 2 | 2 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -124,6 +144,17 @@ Recent decisions affecting v2.0:
 - [Phase 11-04]: Cycle prevention uses flat-list position scan (not recursive tree walk) — avoids extra method since FlattenTreeUseCase produces DFS order
 - [Phase 11-04]: Note expansion state lives in BulletTreeScreen as local Set<String> — pure ephemeral UI state, no need to survive config change
 - [Phase 11-04]: showSnackbar() added to BulletTreeViewModel as public method launching in viewModelScope — allows UI to trigger snackbar without coroutine context
+- [Phase 12]: Coil 3.1.0 used (not 3.4.0) — 3.4.0 requires Kotlin 2.3+, incompatible with project Kotlin 2.1.20
+- [Phase 12]: Coil SingletonImageLoader.Factory on NotesApplication reuses auth OkHttpClient for protected attachment URLs
+- [Phase 12]: SearchViewModel uses MutableSharedFlow(replay=0)+debounce(300ms) — prevents stale queries on subscription
+- [Phase 12]: isSearchActive/searchQuery are local Compose state in MainScreen — ephemeral UI, no config-change survival needed
+- [Phase 12]: onChipClick passed as null when bullet is focused — disables chip clicks during text editing
+- [Phase 12]: pendingScrollToBulletId cleared via callback after animateScrollToItem to prevent re-triggering
+- [Phase 12]: BulletTreeViewModel refactored to AndroidViewModel for DownloadManager access; downloadAttachment() uses viewModelScope + suspend TokenStore.getAccessToken()
+- [Phase 12]: SwipeToDismissBox inside ReorderableItem (not outside) — drag gesture is outermost, swipe is inner; swipe disabled when isFocused or isDragging
+- [Phase 12]: PullToRefreshBox is in androidx.compose.material3.pulltorefresh subpackage (not material3 root) in M3 1.3.1
+- [Phase 12]: Crossfade uses contentKey string (bookmarks/doc:ID/empty) for stable transitions in MainScreen content area
+- [Phase 12-reactivity-and-polish]: Auto-approved human-verify checkpoint in auto-mode — all Phase 12 features confirmed functional
 
 ### Pending Todos
 
@@ -137,6 +168,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T14:04:58.585Z
-Stopped at: Completed 11-04-PLAN.md
+Last session: 2026-03-12T20:31:06.920Z
+Stopped at: Completed 12-05-PLAN.md
 Resume file: None

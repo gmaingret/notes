@@ -7,6 +7,7 @@ import androidx.compose.material.icons.automirrored.filled.FormatIndentDecrease
 import androidx.compose.material.icons.automirrored.filled.FormatIndentIncrease
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.Comment
 import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.Undo
@@ -49,6 +50,7 @@ fun BulletEditingToolbar(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onComment: () -> Unit,
+    onAttachment: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -133,6 +135,17 @@ fun BulletEditingToolbar(
                 Icon(
                     imageVector = if (hasNote) Icons.Filled.Comment else Icons.Outlined.Comment,
                     contentDescription = "Note"
+                )
+            }
+
+            // 8. Attachment
+            IconButton(
+                onClick = onAttachment,
+                enabled = true
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Attachment,
+                    contentDescription = "Attachments"
                 )
             }
         }

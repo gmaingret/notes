@@ -33,14 +33,14 @@ Full details: [`.planning/milestones/v1.1-ROADMAP.md`](milestones/v1.1-ROADMAP.m
 
 </details>
 
-### 🚧 v2.0 Native Android Client (In Progress)
+### v2.0 Native Android Client (In Progress)
 
 **Milestone Goal:** Native Android client in Kotlin/Jetpack Compose + Material Design 3 that talks to the existing backend API — no new backend features, focus on reactivity and polish.
 
 - [x] **Phase 9: Android Foundation and Auth** — Project scaffold with Clean Architecture, Hilt DI, OkHttp auth infrastructure, login and register screens (completed 2026-03-12)
 - [x] **Phase 10: Document Management** — ModalNavigationDrawer with full document CRUD, drag reorder, last-opened persistence (completed 2026-03-12)
 - [x] **Phase 11: Bullet Tree** — Flat LazyColumn outliner with all core editing interactions, markdown rendering, and chip syntax (completed 2026-03-12)
-- [ ] **Phase 12: Reactivity and Polish** — Swipe gestures, search, undo/redo, pull-to-refresh, animations, attachments, bookmarks
+- [x] **Phase 12: Reactivity and Polish** — Swipe gestures, search, undo/redo, pull-to-refresh, animations, attachments, bookmarks (completed 2026-03-12)
 
 ## Phase Details
 
@@ -106,7 +106,13 @@ Plans:
   3. Tapping undo in the toolbar reverts the last mutation (up to 50 levels)
   4. All screens show a loading state on first load, an error state with retry on failure, and pull-to-refresh restores current data
   5. User can view a dedicated bookmarks screen listing all bookmarked bullets
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 12-01-PLAN.md — Data layer: search/bookmark/attachment APIs, DTOs, domain models, repositories, use cases, Coil setup
+- [ ] 12-02-PLAN.md — BulletRow enhancements: swipe gestures, context menu, attachment display, bookmark indicators
+- [ ] 12-03-PLAN.md — Search UI + BookmarksScreen: ViewModels, search bar in TopAppBar, drawer entry, chip-to-search
+- [ ] 12-04-PLAN.md — Pull-to-refresh, dark theme verification, animation polish, undo/redo check, UI size increase
+- [ ] 12-05-PLAN.md — Build, deploy, and visual checkpoint
 
 ## Progress
 
@@ -124,4 +130,4 @@ Plans:
 | 9. Android Foundation and Auth | 5/5 | Complete   | 2026-03-12 | - |
 | 10. Document Management | 3/3 | Complete   | 2026-03-12 | - |
 | 11. Bullet Tree | 4/4 | Complete    | 2026-03-12 | - |
-| 12. Reactivity and Polish | v2.0 | 0/TBD | Not started | - |
+| 12. Reactivity and Polish | 5/5 | Complete    | 2026-03-12 | - |

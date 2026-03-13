@@ -220,9 +220,8 @@ fun BulletRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .defaultMinSize(minHeight = 32.dp)
                 .bringIntoViewRequester(bringIntoViewRequester)
-                .padding(start = indentPx, top = 1.dp, bottom = 1.dp, end = 4.dp)
+                .padding(start = indentPx, top = 6.dp, bottom = 6.dp, end = 4.dp)
                 .drawBehind {
                     // Draw vertical guide lines for each depth level
                     for (level in 1..depth) {
@@ -522,12 +521,22 @@ internal fun InlineChip(
     val backgroundColor = when (chip.type) {
         ChipType.TAG -> Color(0xFF1565C0).copy(alpha = 0.15f)        // blue
         ChipType.MENTION -> Color(0xFF2E7D32).copy(alpha = 0.15f)    // green
-        ChipType.DATE -> Color(0xFFE65100).copy(alpha = 0.15f)       // orange
+        ChipType.DATE -> Color(0xFFB45309).copy(alpha = 0.15f)       // amber (matches web)
     }
     val textColor = when (chip.type) {
         ChipType.TAG -> Color(0xFF1565C0)
         ChipType.MENTION -> Color(0xFF2E7D32)
-        ChipType.DATE -> Color(0xFFE65100)
+        ChipType.DATE -> Color(0xFFB45309)
+    }
+
+    // Format display text: date chips show "📅 2026-04-28" instead of raw "!![2026-04-28]"
+    val displayText = if (chip.type == ChipType.DATE) {
+        val dateValue = chip.text
+            .removePrefix("!![").removeSuffix("]")  // !![2026-04-28] → 2026-04-28
+            .removePrefix("!!")                       // !!2026-04-28 → 2026-04-28
+        "\uD83D\uDCC5 $dateValue"
+    } else {
+        chip.text
     }
 
     Box(
@@ -541,7 +550,7 @@ internal fun InlineChip(
                     )
                 }
             )
-            .padding(horizontal = 4.dp, vertical = 1.dp)
+            .padding(horizontal = 6.dp, vertical = 2.dp)
             .then(
                 if (onChipClick != null) {
                     Modifier.clickable { onChipClick(chip.text) }
@@ -551,8 +560,9 @@ internal fun InlineChip(
             )
     ) {
         Text(
-            text = chip.text,
-            style = MaterialTheme.typography.labelSmall,
+            text = displayText,
+            style = MaterialTheme.typography.bodyLarge,
+            fontSize = 20.sp,
             color = textColor
         )
     }

@@ -115,6 +115,9 @@ fun BulletTreeScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Date picker state — triggered when user types "!!" in a bullet
+    var datePickerBulletId by remember { mutableStateOf<String?>(null) }
+
     // Stable ref to the active upload bullet ID so the file picker callback sees the latest value
     var uploadTargetBulletId by remember { mutableStateOf<String?>(null) }
 
@@ -379,6 +382,10 @@ fun BulletTreeScreen(
                                             },
                                             onContentChange = { content ->
                                                 viewModel.updateContent(flatBullet.bullet.id, content)
+                                                // Trigger date picker when user just typed "!!" (content ends with it)
+                                                if (datePickerBulletId == null && content.endsWith("!!")) {
+                                                    datePickerBulletId = flatBullet.bullet.id
+                                                }
                                             },
                                             onEnterWithContent = {
                                                 // If bullet has visible children (has children and not collapsed),
@@ -681,6 +688,46 @@ fun BulletTreeScreen(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+    }
+
+    // Date picker dialog — triggered when user types "!!" in a bullet
+    if (datePickerBulletId != null) {
+        val datePickerState = androidx.compose.material3.rememberDatePickerState()
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = {
+                // Dismiss without selection — leave content as-is (keep the "!!")
+                datePickerBulletId = null
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val millis = datePickerState.selectedDateMillis
+                    if (millis != null) {
+                        val instant = java.time.Instant.ofEpochMilli(millis)
+                        val date = instant.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                        val formatted = date.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE)
+                        val bulletId = datePickerBulletId!!
+                        // Read the CURRENT content (user may have typed more while picker was open)
+                        val currentContent = contentOverrides[bulletId]
+                            ?: (uiState as? BulletTreeUiState.Success)?.bullets
+                                ?.find { it.id == bulletId }?.content ?: ""
+                        val updated = currentContent.replaceFirst("!!", "!![$formatted]")
+                        viewModel.updateContent(bulletId, updated)
+                    }
+                    datePickerBulletId = null
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    datePickerBulletId = null
+                }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            androidx.compose.material3.DatePicker(state = datePickerState)
+        }
     }
 }
 

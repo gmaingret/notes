@@ -55,9 +55,12 @@ import com.gmaingret.notes.domain.model.Document
 import com.gmaingret.notes.presentation.bookmarks.BookmarksScreen
 import com.gmaingret.notes.presentation.bookmarks.BookmarksViewModel
 import com.gmaingret.notes.presentation.bullet.BulletTreeScreen
+import com.gmaingret.notes.presentation.bullet.BulletTreeViewModel
 import com.gmaingret.notes.presentation.search.SearchResultItem
 import com.gmaingret.notes.presentation.search.SearchUiState
 import com.gmaingret.notes.presentation.search.SearchViewModel
+import com.gmaingret.notes.presentation.tags.TagBrowserScreen
+import com.gmaingret.notes.presentation.tags.TagsViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,6 +89,31 @@ fun MainScreen(
     // Bookmarks ViewModel
     val bookmarksViewModel: BookmarksViewModel = hiltViewModel()
     val bookmarksUiState by bookmarksViewModel.uiState.collectAsState()
+
+    // Refresh bookmarks whenever the bookmarks view becomes visible
+    val showBookmarks = (uiState as? MainUiState.Success)?.showBookmarks == true
+    LaunchedEffect(showBookmarks) {
+        if (showBookmarks) {
+            bookmarksViewModel.loadBookmarks()
+        }
+    }
+
+    // Tags ViewModel
+    val tagsViewModel: TagsViewModel = hiltViewModel()
+    val tagsUiState by tagsViewModel.uiState.collectAsState()
+
+    // BulletTreeViewModel — shared singleton (Activity-scoped via hiltViewModel).
+    // Used to call setScrollTarget() directly when a search result or bookmark is tapped,
+    // bypassing the Crossfade parameter path which was found unreliable across 3 user reports.
+    val bulletTreeViewModel: BulletTreeViewModel = hiltViewModel()
+
+    // Refresh tags whenever the tags view becomes visible
+    val showTags = (uiState as? MainUiState.Success)?.showTags == true
+    LaunchedEffect(showTags) {
+        if (showTags) {
+            tagsViewModel.loadTags()
+        }
+    }
 
     // Collect snackbar messages from ViewModel
     LaunchedEffect(Unit) {
@@ -120,6 +148,7 @@ fun MainScreen(
         is MainUiState.Success -> {
             when {
                 state.showBookmarks -> "Bookmarks"
+                state.showTags -> "Tags"
                 state.openDocumentId != null ->
                     state.documents.find { it.id == state.openDocumentId }?.title ?: "Notes"
                 else -> "Notes"
@@ -170,6 +199,10 @@ fun MainScreen(
                     },
                     onBookmarksClick = {
                         viewModel.showBookmarks()
+                        scope.launch { drawerState.close() }
+                    },
+                    onTagsClick = {
+                        viewModel.showTags()
                         scope.launch { drawerState.close() }
                     },
                     isRefreshing = isDrawerRefreshing,
@@ -319,9 +352,10 @@ fun MainScreen(
                         }
                     }
                     is MainUiState.Success -> {
-                        // Crossfade between bookmarks and bullet tree for smooth screen transitions
+                        // Crossfade between bookmarks, tags, and bullet tree for smooth screen transitions
                         val contentKey = when {
                             state.showBookmarks -> "bookmarks"
+                            state.showTags -> "tags"
                             state.openDocumentId != null -> "doc:${state.openDocumentId}"
                             else -> "empty"
                         }
@@ -332,8 +366,29 @@ fun MainScreen(
                                         uiState = bookmarksUiState,
                                         onBookmarkClick = { bookmark ->
                                             viewModel.navigateToBullet(bookmark.documentId, bookmark.bulletId)
+                                            // Set scroll target directly on BulletTreeViewModel
+                                            bulletTreeViewModel.setScrollTarget(bookmark.bulletId)
                                         },
                                         onRetry = { bookmarksViewModel.loadBookmarks() },
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                                key == "tags" -> {
+                                    TagBrowserScreen(
+                                        uiState = tagsUiState,
+                                        onTagClick = { chipType, value ->
+                                            // Build search query matching the chip format
+                                            val query = when (chipType) {
+                                                "tag" -> "#$value"
+                                                "mention" -> "@$value"
+                                                "date" -> "!![${value}]"
+                                                else -> value
+                                            }
+                                            isSearchActive = true
+                                            searchQuery = query
+                                            searchViewModel.onQueryChange(query)
+                                        },
+                                        onRetry = { tagsViewModel.loadTags() },
                                         modifier = Modifier.fillMaxSize()
                                     )
                                 }
@@ -440,6 +495,10 @@ fun MainScreen(
                                                         result.documentId,
                                                         result.bulletId
                                                     )
+                                                    // Set scroll target directly on BulletTreeViewModel
+                                                    // (bypasses Crossfade parameter passing which was
+                                                    // confirmed unreliable across 3 rounds of user feedback)
+                                                    bulletTreeViewModel.setScrollTarget(result.bulletId)
                                                     isSearchActive = false
                                                     searchQuery = ""
                                                     searchViewModel.reset()

@@ -7,6 +7,7 @@ import com.gmaingret.notes.data.api.BookmarkApi
 import com.gmaingret.notes.data.api.DocumentApi
 import com.gmaingret.notes.data.api.AuthInterceptor
 import com.gmaingret.notes.data.api.SearchApi
+import com.gmaingret.notes.data.api.TagApi
 import com.gmaingret.notes.data.api.TokenAuthenticator
 import com.gmaingret.notes.data.local.DataStoreCookieJar
 import dagger.Module
@@ -87,4 +88,9 @@ object NetworkModule {
     @Singleton
     fun provideAttachmentApi(retrofit: Retrofit): AttachmentApi =
         retrofit.create(AttachmentApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideTagApi(retrofit: Retrofit): TagApi =
+        retrofit.create(TagApi::class.java)
 }

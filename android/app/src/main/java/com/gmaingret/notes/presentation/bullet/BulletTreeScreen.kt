@@ -1,6 +1,9 @@
 package com.gmaingret.notes.presentation.bullet
 
+import android.net.Uri
 import android.view.HapticFeedbackConstants
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -26,8 +29,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -36,12 +41,17 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -99,8 +109,47 @@ fun BulletTreeScreen(
     val attachments by viewModel.attachments.collectAsState()
     val expandedAttachments by viewModel.expandedAttachments.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val hideCompleted by viewModel.hideCompleted.collectAsState()
+    val pendingAttachmentBulletId by viewModel.pendingAttachmentBulletId.collectAsState()
+    val vmScrollTarget by viewModel.scrollTarget.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Stable ref to the active upload bullet ID so the file picker callback sees the latest value
+    var uploadTargetBulletId by remember { mutableStateOf<String?>(null) }
+
+    // File picker launcher — opens the system file picker and uploads the chosen file
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        val bulletId = uploadTargetBulletId
+        uploadTargetBulletId = null
+        viewModel.clearPendingAttachmentBulletId()
+        if (uri != null && bulletId != null) {
+            viewModel.uploadAttachment(bulletId, uri)
+        }
+    }
+
+    // Launch file picker when ViewModel signals a pending attachment upload
+    LaunchedEffect(pendingAttachmentBulletId) {
+        val bulletId = pendingAttachmentBulletId
+        if (bulletId != null) {
+            uploadTargetBulletId = bulletId
+            filePickerLauncher.launch("*/*")
+        }
+    }
+
+    // Flush pending edits when app is backgrounded (ON_STOP)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                viewModel.flushAllPendingEdits()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     // Consume snackbar messages from ViewModel
     LaunchedEffect(viewModel) {
@@ -150,8 +199,24 @@ fun BulletTreeScreen(
                         val focusedIndex = flatList.indexOfFirst { it.bullet.id == focusedBulletId }
                         val focusedBullet = if (focusedIndex >= 0) flatList[focusedIndex] else null
                         val canIndent = focusedBullet?.let { fb ->
-                            // Can indent if there is a previous sibling
-                            focusedIndex > 0 && flatList[focusedIndex - 1].bullet.parentId == fb.bullet.parentId
+                            // Can indent if there is a previous sibling (same parentId) anywhere above in the flat list.
+                            // Must scan backwards because after outdent the immediately previous item may be
+                            // at a different depth (a child of a different parent).
+                            if (focusedIndex <= 0) false
+                            else {
+                                var found = false
+                                for (i in (focusedIndex - 1) downTo 0) {
+                                    val candidate = flatList[i]
+                                    if (candidate.bullet.parentId == fb.bullet.parentId) {
+                                        found = true
+                                        break
+                                    }
+                                    // Stop scanning if we've gone past possible siblings
+                                    // (reached a bullet at a shallower depth than the focused bullet)
+                                    if (candidate.depth < fb.depth) break
+                                }
+                                found
+                            }
                         } ?: false
                         val canOutdent = focusedBullet?.bullet?.parentId != null
                         val canMoveUp = focusedIndex > 0
@@ -163,15 +228,32 @@ fun BulletTreeScreen(
                         val lazyListState = rememberLazyListState()
                         var dragHorizontalOffset by remember { mutableFloatStateOf(0f) }
                         var draggedBulletId by remember { mutableStateOf<String?>(null) }
+                        // Index of the dragged item at the START of the drag (to detect no-move long-press)
+                        var dragStartIndex by remember { mutableStateOf(-1) }
+                        // Bullet ID for which the context menu should show (after a no-drag long-press)
+                        var contextMenuBulletId by remember { mutableStateOf<String?>(null) }
 
-                        // Scroll to bullet when pendingScrollToBulletId changes
-                        LaunchedEffect(pendingScrollToBulletId) {
-                            if (pendingScrollToBulletId != null) {
-                                val targetIndex = flatList.indexOfFirst { it.bullet.id == pendingScrollToBulletId }
+                        // Scroll to bullet when either pendingScrollToBulletId (from MainViewModel
+                        // through Crossfade parameter) or vmScrollTarget (set directly on VM by
+                        // MainScreen search/bookmark handlers) changes.
+                        // vmScrollTarget is the primary path — it bypasses Crossfade parameter
+                        // passing which was found unreliable across 3 rounds of user feedback.
+                        // Re-check on flatList size changes: when navigating to a different document
+                        // the flatList may be empty when the ID first arrives. The LaunchedEffect
+                        // re-fires once the flatList grows and we find the target bullet.
+                        val effectiveScrollTarget = pendingScrollToBulletId ?: vmScrollTarget
+                        LaunchedEffect(effectiveScrollTarget, flatList.size) {
+                            if (effectiveScrollTarget != null) {
+                                val targetIndex = flatList.indexOfFirst { it.bullet.id == effectiveScrollTarget }
                                 if (targetIndex >= 0) {
                                     lazyListState.animateScrollToItem(targetIndex)
+                                    // Focus the bullet so the user sees which one was navigated to
+                                    viewModel.setFocusedBullet(effectiveScrollTarget)
+                                    viewModel.clearScrollTarget()
+                                    onClearPendingScroll()
                                 }
-                                onClearPendingScroll()
+                                // If targetIndex < 0 the bullets haven't loaded yet;
+                                // do not clear — wait for the next recomposition when flatList grows.
                             }
                         }
 
@@ -195,12 +277,19 @@ fun BulletTreeScreen(
                                     items = flatList,
                                     key = { it.bullet.id }
                                 ) { flatBullet ->
-                                    ReorderableItem(reorderableState, key = flatBullet.bullet.id) { isDragging ->
+                                    ReorderableItem(reorderableState, key = flatBullet.bullet.id, modifier = Modifier.animateItem()) { isDragging ->
                                         val indentPerLevel = 24.dp
                                         val targetDepthDelta = if (isDragging) {
                                             val indentPx = with(density) { indentPerLevel.toPx() }
+                                            // Max depth: one level deeper than the bullet directly above.
+                                            // This replaces the old hardcoded +1 clamp that prevented
+                                            // dragging a root node directly to a deep nesting level.
+                                            val liveFl = (viewModel.uiState.value as? BulletTreeUiState.Success)?.flatList ?: flatList
+                                            val myIdx = liveFl.indexOfFirst { it.bullet.id == flatBullet.bullet.id }
+                                            val aboveDepth = if (myIdx > 0) liveFl[myIdx - 1].depth else -1
+                                            val maxDelta = (aboveDepth + 1) - flatBullet.depth
                                             (dragHorizontalOffset / indentPx).roundToInt()
-                                                .coerceIn(-flatBullet.depth, 1)
+                                                .coerceIn(-flatBullet.depth, maxDelta.coerceAtLeast(0))
                                         } else 0
 
                                         val isFocusedBullet = flatBullet.bullet.id == focusedBulletId
@@ -289,14 +378,26 @@ fun BulletTreeScreen(
                                             onFocusRequest = {
                                                 viewModel.setFocusedBullet(flatBullet.bullet.id)
                                             },
+                                            onFocusLost = {
+                                                viewModel.flushContentEdit(flatBullet.bullet.id)
+                                            },
                                             onContentChange = { content ->
                                                 viewModel.updateContent(flatBullet.bullet.id, content)
                                             },
                                             onEnterWithContent = {
-                                                viewModel.createBullet(
-                                                    afterBulletId = flatBullet.bullet.id,
-                                                    parentId = flatBullet.bullet.parentId
-                                                )
+                                                // If bullet has visible children (has children and not collapsed),
+                                                // Enter creates a new first child instead of a sibling.
+                                                if (flatBullet.hasChildren && !flatBullet.bullet.isCollapsed) {
+                                                    viewModel.createBullet(
+                                                        afterBulletId = null,
+                                                        parentId = flatBullet.bullet.id
+                                                    )
+                                                } else {
+                                                    viewModel.createBullet(
+                                                        afterBulletId = flatBullet.bullet.id,
+                                                        parentId = flatBullet.bullet.parentId
+                                                    )
+                                                }
                                             },
                                             onEnterOnEmpty = {
                                                 viewModel.enterOnEmpty(flatBullet.bullet.id)
@@ -337,13 +438,18 @@ fun BulletTreeScreen(
                                                 viewModel.downloadAttachment(attachment)
                                             },
                                             onChipClick = if (flatBullet.bullet.id != focusedBulletId) onChipClick else null,
+                                            showContextMenuExternal = contextMenuBulletId == flatBullet.bullet.id,
+                                            onContextMenuDismiss = { contextMenuBulletId = null },
                                             modifier = Modifier
-                                                .animateItem()
                                                 .draggableHandle(
                                                     onDragStarted = {
                                                         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                                                         draggedBulletId = flatBullet.bullet.id
                                                         dragHorizontalOffset = 0f
+                                                        viewModel.setDragInProgress(true)
+                                                        // Capture the index at drag start to detect no-move long-press
+                                                        val currentFlatList = (viewModel.uiState.value as? BulletTreeUiState.Success)?.flatList ?: flatList
+                                                        dragStartIndex = currentFlatList.indexOfFirst { it.bullet.id == flatBullet.bullet.id }
                                                     },
                                                     onDragStopped = {
                                                         val bullet = flatBullet.bullet
@@ -355,69 +461,100 @@ fun BulletTreeScreen(
                                                             ?: flatList
                                                         val currentIndex = liveFlatList.indexOfFirst { it.bullet.id == bullet.id }
 
-                                                        // IMPORTANT: targetDepthDelta is a local val computed from isDragging,
-                                                        // which is already false when onDragStopped fires. Recompute here
-                                                        // directly from dragHorizontalOffset (which IS state and holds the
-                                                        // accumulated horizontal displacement at drop time).
+                                                        // Detect no-drag long-press: same position AND negligible horizontal offset.
+                                                        // In this case show context menu instead of committing a move.
                                                         val indentPx = with(density) { 24.dp.toPx() }
-                                                        val currentDepth = if (currentIndex >= 0) liveFlatList[currentIndex].depth else flatBullet.depth
-                                                        val droppedDepthDelta = (dragHorizontalOffset / indentPx).roundToInt()
-                                                            .coerceIn(-currentDepth, 1)
-                                                        val targetDepth = (currentDepth + droppedDepthDelta).coerceAtLeast(0)
-
-                                                        // Find newParentId: walk up from drop position to find bullet at targetDepth-1
-                                                        var newParentId: String? = null
-                                                        if (targetDepth > 0 && currentIndex > 0) {
-                                                            for (i in (currentIndex - 1) downTo 0) {
-                                                                if (liveFlatList[i].depth == targetDepth - 1) {
-                                                                    newParentId = liveFlatList[i].bullet.id
-                                                                    break
-                                                                }
-                                                            }
-                                                        }
-
-                                                        // Cycle prevention: newParentId must NOT be a descendant of the dragged bullet
-                                                        val isDescendant = if (newParentId != null) {
-                                                            // Descendants are bullets between dragged index and the next at same-or-lower depth
-                                                            val descendantIds = mutableSetOf<String>()
-                                                            if (currentIndex >= 0) {
-                                                                val draggedDepth = currentDepth
-                                                                for (i in (currentIndex + 1) until liveFlatList.size) {
-                                                                    if (liveFlatList[i].depth > draggedDepth) {
-                                                                        descendantIds.add(liveFlatList[i].bullet.id)
-                                                                    } else {
-                                                                        break
-                                                                    }
-                                                                }
-                                                            }
-                                                            newParentId in descendantIds
-                                                        } else false
-
-                                                        if (isDescendant) {
-                                                            viewModel.showSnackbar("Cannot move bullet under its own child")
+                                                        val horizontalDeltaSteps = (dragHorizontalOffset / indentPx).roundToInt()
+                                                        val didNotMove = currentIndex == dragStartIndex && horizontalDeltaSteps == 0
+                                                        if (didNotMove) {
+                                                            // Long-press without drag — show context menu after finger lift
+                                                            contextMenuBulletId = bullet.id
+                                                            draggedBulletId = null
+                                                            dragHorizontalOffset = 0f
+                                                            dragStartIndex = -1
+                                                            viewModel.setDragInProgress(false)
                                                         } else {
-                                                            // Find afterId: previous sibling at same depth under same parent
-                                                            var afterId: String? = null
-                                                            if (currentIndex > 0) {
+                                                            // IMPORTANT: targetDepthDelta is a local val computed from isDragging,
+                                                            // which is already false when onDragStopped fires. Recompute here
+                                                            // directly from dragHorizontalOffset (which IS state and holds the
+                                                            // accumulated horizontal displacement at drop time).
+                                                            val currentDepth = if (currentIndex >= 0) liveFlatList[currentIndex].depth else flatBullet.depth
+                                                            // Max depth: one level deeper than the bullet above the drop position
+                                                            val aboveDropDepth = if (currentIndex > 0) liveFlatList[currentIndex - 1].depth else -1
+                                                            val maxDropDelta = (aboveDropDepth + 1) - currentDepth
+                                                            val droppedDepthDelta = (dragHorizontalOffset / indentPx).roundToInt()
+                                                                .coerceIn(-currentDepth, maxDropDelta.coerceAtLeast(0))
+                                                            val targetDepth = (currentDepth + droppedDepthDelta).coerceAtLeast(0)
+
+                                                            // Find newParentId: walk up from drop position to find bullet at targetDepth-1.
+                                                            // Stop if we hit a bullet shallower than targetDepth-1 — that means
+                                                            // the target depth is too deep for this position. Clamp to depth of
+                                                            // the bullet just above + 1 (making the dropped item its child).
+                                                            var newParentId: String? = null
+                                                            var effectiveTargetDepth = targetDepth
+                                                            if (effectiveTargetDepth > 0 && currentIndex > 0) {
+                                                                var found = false
                                                                 for (i in (currentIndex - 1) downTo 0) {
-                                                                    val candidate = liveFlatList[i]
-                                                                    if (candidate.bullet.parentId == newParentId && candidate.depth == targetDepth) {
-                                                                        afterId = candidate.bullet.id
+                                                                    if (liveFlatList[i].depth == effectiveTargetDepth - 1) {
+                                                                        newParentId = liveFlatList[i].bullet.id
+                                                                        found = true
                                                                         break
                                                                     }
-                                                                    if (candidate.depth < targetDepth) break
+                                                                    if (liveFlatList[i].depth < effectiveTargetDepth - 1) {
+                                                                        // Target depth too deep — clamp to child of this bullet
+                                                                        effectiveTargetDepth = liveFlatList[i].depth + 1
+                                                                        newParentId = liveFlatList[i].bullet.id
+                                                                        found = true
+                                                                        break
+                                                                    }
                                                                 }
+                                                                if (!found) newParentId = null
                                                             }
 
-                                                            viewModel.commitBulletMove(
-                                                                bulletId = bullet.id,
-                                                                newParentId = newParentId,
-                                                                afterId = afterId
-                                                            )
+                                                            // Cycle prevention: newParentId must NOT be a descendant of the dragged bullet
+                                                            val isDescendant = if (newParentId != null) {
+                                                                // Descendants are bullets between dragged index and the next at same-or-lower depth
+                                                                val descendantIds = mutableSetOf<String>()
+                                                                if (currentIndex >= 0) {
+                                                                    val draggedDepth = currentDepth
+                                                                    for (i in (currentIndex + 1) until liveFlatList.size) {
+                                                                        if (liveFlatList[i].depth > draggedDepth) {
+                                                                            descendantIds.add(liveFlatList[i].bullet.id)
+                                                                        } else {
+                                                                            break
+                                                                        }
+                                                                    }
+                                                                }
+                                                                newParentId in descendantIds
+                                                            } else false
+
+                                                            if (isDescendant) {
+                                                                viewModel.showSnackbar("Cannot move bullet under its own child")
+                                                            } else {
+                                                                // Find afterId: previous sibling at same depth under same parent
+                                                                var afterId: String? = null
+                                                                if (currentIndex > 0) {
+                                                                    for (i in (currentIndex - 1) downTo 0) {
+                                                                        val candidate = liveFlatList[i]
+                                                                        if (candidate.bullet.parentId == newParentId && candidate.depth == effectiveTargetDepth) {
+                                                                            afterId = candidate.bullet.id
+                                                                            break
+                                                                        }
+                                                                        if (candidate.depth < effectiveTargetDepth) break
+                                                                    }
+                                                                }
+
+                                                                viewModel.commitBulletMove(
+                                                                    bulletId = bullet.id,
+                                                                    newParentId = newParentId,
+                                                                    afterId = afterId
+                                                                )
+                                                            }
                                                         }
 
                                                         draggedBulletId = null
                                                         dragHorizontalOffset = 0f
+                                                        dragStartIndex = -1
                                                     },
                                                     // Use a custom DragGestureDetector wrapping LongPress so that
                                                     // we receive each drag delta to accumulate horizontal offset.
@@ -454,6 +591,31 @@ fun BulletTreeScreen(
                             }
                             } // end PullToRefreshBox
 
+                            // Completed bullets toolbar — shown when any bullet is completed
+                            val hasCompleted = state.bullets.any { it.isComplete }
+                            AnimatedVisibility(visible = hasCompleted && focusedBulletId == null) {
+                                Column {
+                                    HorizontalDivider()
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        TextButton(onClick = { viewModel.toggleHideCompleted() }) {
+                                            Text(if (hideCompleted) "Show completed" else "Hide completed")
+                                        }
+                                        TextButton(onClick = { viewModel.deleteAllCompleted() }) {
+                                            Text(
+                                                "Delete completed",
+                                                color = MaterialTheme.colorScheme.error
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
                             // Editing toolbar — animated, shown only when a bullet is focused
                             AnimatedVisibility(
                                 visible = focusedBulletId != null,
@@ -483,6 +645,9 @@ fun BulletTreeScreen(
                                             } else {
                                                 expandedNoteIds + bulletId
                                             }
+                                        },
+                                        onAttachment = {
+                                            viewModel.requestAttachmentUpload(bulletId)
                                         }
                                     )
                                 }

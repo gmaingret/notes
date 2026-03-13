@@ -19,6 +19,8 @@ sealed interface MainUiState {
         val inlineEditingDocId: String? = null,
         /** When true, renders BookmarksScreen instead of BulletTreeScreen. */
         val showBookmarks: Boolean = false,
+        /** When true, renders TagBrowserScreen instead of BulletTreeScreen. */
+        val showTags: Boolean = false,
         /** When non-null, BulletTreeScreen should scroll to this bullet ID after loading. */
         val pendingScrollToBulletId: String? = null
     ) : MainUiState

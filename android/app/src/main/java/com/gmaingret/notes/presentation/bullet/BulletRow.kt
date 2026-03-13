@@ -22,7 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowRight
 import androidx.compose.material.icons.filled.Attachment
-import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.foundation.Canvas
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StickyNote2
 import androidx.compose.material3.DropdownMenu
@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -55,6 +56,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.gmaingret.notes.domain.model.Attachment
 import com.gmaingret.notes.domain.model.FlatBullet
 import kotlinx.coroutines.delay
@@ -103,6 +105,7 @@ fun BulletRow(
     isAttachmentsExpanded: Boolean,
     attachments: List<Attachment>,
     onFocusRequest: () -> Unit,
+    onFocusLost: () -> Unit,
     onContentChange: (String) -> Unit,
     onEnterWithContent: () -> Unit,
     onEnterOnEmpty: () -> Unit,
@@ -117,6 +120,13 @@ fun BulletRow(
     onDeleteFromMenu: () -> Unit,
     onDownloadAttachment: (Attachment) -> Unit,
     onChipClick: ((String) -> Unit)? = null,
+    /**
+     * When true, the context menu is shown. Controlled externally by BulletTreeScreen
+     * which triggers it only after a long-press that did NOT result in a drag.
+     * This avoids the flicker where the menu briefly appears then disappears when dragging starts.
+     */
+    showContextMenuExternal: Boolean = false,
+    onContextMenuDismiss: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val bullet = flatBullet.bullet
@@ -127,6 +137,7 @@ fun BulletRow(
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
     val guideLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+    val bulletDotColor = MaterialTheme.colorScheme.onSurface
 
     // Local text state for the editing field
     var localText by remember(bullet.id) { mutableStateOf(contentOverride ?: bullet.content) }
@@ -139,8 +150,23 @@ fun BulletRow(
     // after textFieldValue is updated programmatically inside the callback.
     var enterHandledForText by remember(bullet.id) { mutableStateOf<String?>(null) }
 
-    // Context menu state
+    // Context menu state — driven externally (showContextMenuExternal) or internally
+    // Internal state for dismiss (DropdownMenu needs a mutable local dismissed flag)
     var showContextMenu by remember { mutableStateOf(false) }
+
+    // Sync external trigger into local state
+    LaunchedEffect(showContextMenuExternal) {
+        if (showContextMenuExternal) {
+            showContextMenu = true
+        }
+    }
+
+    // Dismiss context menu when drag starts — safety net if menu state gets out of sync
+    LaunchedEffect(isDragging) {
+        if (isDragging) {
+            showContextMenu = false
+        }
+    }
 
     // Keep in sync when content changes from outside (e.g., backspace merge)
     LaunchedEffect(contentOverride) {
@@ -193,9 +219,9 @@ fun BulletRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .defaultMinSize(minHeight = 48.dp)
+                .defaultMinSize(minHeight = 32.dp)
                 .bringIntoViewRequester(bringIntoViewRequester)
-                .padding(start = indentPx, top = 2.dp, bottom = 2.dp, end = 4.dp)
+                .padding(start = indentPx, top = 1.dp, bottom = 1.dp, end = 4.dp)
                 .drawBehind {
                     // Draw vertical guide lines for each depth level
                     for (level in 1..depth) {
@@ -210,32 +236,20 @@ fun BulletRow(
                 },
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Bullet icon
+            // Bullet dot — tap to zoom into subtree
             Box(
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier
+                    .size(32.dp)
+                    .clickable { onBulletIconTap() },
                 contentAlignment = Alignment.Center
             ) {
-                if (bullet.isComplete) {
-                    Icon(
-                        imageVector = Icons.Filled.CheckBox,
-                        contentDescription = "Completed",
-                        modifier = Modifier
-                            .size(18.dp)
-                            .clickable { onBulletIconTap() },
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                Canvas(modifier = Modifier.size(6.dp)) {
+                    drawCircle(
+                        color = if (bullet.isComplete)
+                            bulletDotColor.copy(alpha = 0.4f)
+                        else
+                            bulletDotColor
                     )
-                } else {
-                    androidx.compose.foundation.Canvas(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clickable { onBulletIconTap() }
-                    ) {
-                        drawCircle(
-                            color = Color(0xFF808080).copy(alpha = 0.6f),
-                            radius = 4.dp.toPx(),
-                            center = Offset(size.width / 2f, size.height / 2f)
-                        )
-                    }
                 }
             }
 
@@ -267,9 +281,11 @@ fun BulletRow(
                     .weight(1f)
                     .then(
                         if (!isFocused) {
+                            // Long-press is intentionally NOT handled here.
+                            // Context menu is triggered by BulletTreeScreen via showContextMenuExternal
+                            // AFTER confirming the long-press did not result in a drag gesture.
                             Modifier.combinedClickable(
-                                onClick = { onFocusRequest() },
-                                onLongClick = { showContextMenu = true }
+                                onClick = { onFocusRequest() }
                             )
                         } else {
                             Modifier
@@ -320,6 +336,11 @@ fun BulletRow(
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester)
+                            .onFocusChanged { focusState ->
+                                if (!focusState.isFocused) {
+                                    onFocusLost()
+                                }
+                            }
                             .onKeyEvent { keyEvent ->
                                 when (keyEvent.key) {
                                     Key.Backspace -> {
@@ -332,8 +353,9 @@ fun BulletRow(
                                     else -> false
                                 }
                             },
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurface
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 20.sp
                         ),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary)
                     )
@@ -354,7 +376,8 @@ fun BulletRow(
                                     append(displayContent)
                                 }
                             },
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontSize = 20.sp
                         )
                     } else {
                         // Render content segments (chips + markdown)
@@ -363,14 +386,16 @@ fun BulletRow(
                             // Empty bullet — show placeholder
                             Text(
                                 text = "",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontSize = 20.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         } else if (segments.all { it is ContentSegment.TextSegment }) {
                             // All text — use markdown AnnotatedString renderer
                             Text(
                                 text = buildMarkdownAnnotatedString(displayContent),
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontSize = 20.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         } else {
@@ -383,7 +408,8 @@ fun BulletRow(
                                         is ContentSegment.TextSegment -> {
                                             Text(
                                                 text = buildMarkdownAnnotatedString(segment.text),
-                                                style = MaterialTheme.typography.bodyMedium,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                fontSize = 20.sp,
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
                                         }
@@ -402,21 +428,30 @@ fun BulletRow(
                 }
 
                 // Context menu — anchored to the content Box
+                // Shown only when showContextMenuExternal is true (controlled by BulletTreeScreen,
+                // which triggers after a long-press that did NOT result in a drag).
                 DropdownMenu(
                     expanded = showContextMenu,
-                    onDismissRequest = { showContextMenu = false }
+                    onDismissRequest = {
+                        showContextMenu = false
+                        onContextMenuDismiss()
+                    }
                 ) {
                     DropdownMenuItem(
-                        text = { Text(if (isBookmarked) "Remove bookmark" else "Bookmark") },
-                        onClick = { onToggleBookmark(); showContextMenu = false }
+                        text = { Text(if (bullet.isComplete) "Mark incomplete" else "Mark complete") },
+                        onClick = { onToggleComplete(); showContextMenu = false; onContextMenuDismiss() }
                     )
                     DropdownMenuItem(
-                        text = { Text("Attachments") },
-                        onClick = { onToggleAttachments(); showContextMenu = false }
+                        text = { Text(if (isBookmarked) "Remove bookmark" else "Bookmark") },
+                        onClick = { onToggleBookmark(); showContextMenu = false; onContextMenuDismiss() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(if (isAttachmentsExpanded) "Hide attachments" else "Attachments") },
+                        onClick = { onToggleAttachments(); showContextMenu = false; onContextMenuDismiss() }
                     )
                     DropdownMenuItem(
                         text = { Text("Delete") },
-                        onClick = { onDeleteFromMenu(); showContextMenu = false }
+                        onClick = { onDeleteFromMenu(); showContextMenu = false; onContextMenuDismiss() }
                     )
                 }
             }
@@ -438,16 +473,16 @@ fun BulletRow(
             if (flatBullet.hasChildren) {
                 androidx.compose.material3.IconButton(
                     onClick = onCollapseToggle,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         imageVector = if (bullet.isCollapsed) Icons.Filled.ArrowRight else Icons.Filled.ArrowDropDown,
                         contentDescription = if (bullet.isCollapsed) "Expand" else "Collapse",
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             } else {
-                Spacer(modifier = Modifier.size(24.dp))
+                Spacer(modifier = Modifier.size(40.dp))
             }
         }
 
@@ -459,13 +494,22 @@ fun BulletRow(
             modifier = Modifier.padding(start = indentPx)
         )
 
-        // Inline attachment list — animated, shown when expanded and attachments exist
-        AnimatedVisibility(visible = isAttachmentsExpanded && attachments.isNotEmpty()) {
-            AttachmentList(
-                attachments = attachments,
-                onDownload = onDownloadAttachment,
-                modifier = Modifier.padding(start = indentPx)
-            )
+        // Inline attachment list — animated, shown when expanded
+        AnimatedVisibility(visible = isAttachmentsExpanded) {
+            if (attachments.isEmpty()) {
+                Text(
+                    text = "No attachments",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = indentPx, top = 4.dp, bottom = 4.dp)
+                )
+            } else {
+                AttachmentList(
+                    attachments = attachments,
+                    onDownload = onDownloadAttachment,
+                    modifier = Modifier.padding(start = indentPx)
+                )
+            }
         }
     }
 }

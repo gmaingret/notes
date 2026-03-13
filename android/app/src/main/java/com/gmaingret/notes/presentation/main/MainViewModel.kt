@@ -269,11 +269,20 @@ class MainViewModel @Inject constructor(
 
     /**
      * Switches main content area to the Bookmarks screen.
-     * Clears any pending scroll (coming from a previous search result).
+     * Clears tags and any pending scroll.
      */
     fun showBookmarks() {
         val current = _uiState.value as? MainUiState.Success ?: return
-        _uiState.value = current.copy(showBookmarks = true, pendingScrollToBulletId = null)
+        _uiState.value = current.copy(showBookmarks = true, showTags = false, pendingScrollToBulletId = null)
+    }
+
+    /**
+     * Switches main content area to the Tags browser screen.
+     * Clears bookmarks and any pending scroll.
+     */
+    fun showTags() {
+        val current = _uiState.value as? MainUiState.Success ?: return
+        _uiState.value = current.copy(showTags = true, showBookmarks = false, pendingScrollToBulletId = null)
     }
 
     /**
@@ -286,6 +295,7 @@ class MainViewModel @Inject constructor(
         _uiState.value = current.copy(
             openDocumentId = documentId,
             showBookmarks = false,
+            showTags = false,
             pendingScrollToBulletId = bulletId
         )
         viewModelScope.launch {

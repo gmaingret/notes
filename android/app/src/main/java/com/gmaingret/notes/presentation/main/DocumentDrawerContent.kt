@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -54,6 +55,7 @@ fun DocumentDrawerContent(
     onCommitReorder: (String) -> Unit,
     onRetry: () -> Unit,
     onBookmarksClick: () -> Unit = {},
+    onTagsClick: () -> Unit = {},
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {}
 ) {
@@ -74,6 +76,15 @@ fun DocumentDrawerContent(
             icon = { Icon(Icons.Default.Star, contentDescription = "Bookmarks") },
             selected = false,
             onClick = onBookmarksClick,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+
+        // Tags entry — below Bookmarks
+        NavigationDrawerItem(
+            label = { Text("Tags") },
+            icon = { Icon(Icons.AutoMirrored.Filled.Label, contentDescription = "Tags") },
+            selected = false,
+            onClick = onTagsClick,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
         HorizontalDivider()

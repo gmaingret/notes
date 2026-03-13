@@ -1,9 +1,12 @@
 package com.gmaingret.notes.presentation.bullet
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -11,12 +14,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,6 +33,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import com.gmaingret.notes.domain.model.Attachment
 
@@ -33,7 +44,7 @@ import com.gmaingret.notes.domain.model.Attachment
  * For image attachments (mimeType starting with "image/"):
  *   - Renders a thumbnail via Coil [AsyncImage] with crossfade and gray placeholder
  *   - Max height 200.dp, fills max width, 8.dp rounded corners
- *   - Tapping triggers [onDownload]
+ *   - Tapping opens a fullscreen lightbox Dialog
  *
  * For non-image attachments:
  *   - Renders a Row with file-type icon, filename, and size (KB/MB)
@@ -45,6 +56,9 @@ fun AttachmentList(
     onDownload: (Attachment) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Track which image (if any) is open in the lightbox
+    var lightboxAttachment by remember { mutableStateOf<Attachment?>(null) }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -63,7 +77,7 @@ fun AttachmentList(
                         .height(200.dp)
                         .padding(vertical = 2.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { onDownload(attachment) },
+                        .clickable { lightboxAttachment = attachment },
                 )
             } else {
                 Row(
@@ -98,6 +112,82 @@ fun AttachmentList(
                     )
                 }
             }
+        }
+    }
+
+    // Fullscreen lightbox Dialog — shown when an image thumbnail is tapped
+    lightboxAttachment?.let { attachment ->
+        ImageLightboxDialog(
+            attachment = attachment,
+            onDismiss = { lightboxAttachment = null }
+        )
+    }
+}
+
+/**
+ * Fullscreen image lightbox shown when the user taps an image attachment thumbnail.
+ *
+ * Renders the full image via Coil [AsyncImage] with the auth-intercepted OkHttpClient.
+ * A close button (X) in the top-right corner dismisses the dialog.
+ * Tapping the background also dismisses.
+ */
+@Composable
+private fun ImageLightboxDialog(
+    attachment: Attachment,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.92f))
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = attachment.downloadUrl,
+                contentDescription = attachment.filename,
+                contentScale = ContentScale.Fit,
+                placeholder = ColorPainter(Color(0xFF333333)),
+                error = ColorPainter(Color(0xFF333333)),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    // Consume clicks on the image itself so they don't also dismiss the dialog
+                    .clickable(onClick = {})
+            )
+
+            // Close button — top-right corner
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Close",
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            // Filename label — bottom center
+            Text(
+                text = attachment.filename,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            )
         }
     }
 }

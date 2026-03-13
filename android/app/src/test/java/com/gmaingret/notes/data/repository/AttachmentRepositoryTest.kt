@@ -1,5 +1,6 @@
 package com.gmaingret.notes.data.repository
 
+import android.content.Context
 import com.gmaingret.notes.data.api.AttachmentApi
 import com.gmaingret.notes.data.model.AttachmentDto
 import io.mockk.coEvery
@@ -18,12 +19,14 @@ import java.io.IOException
 class AttachmentRepositoryTest {
 
     private lateinit var api: AttachmentApi
+    private lateinit var context: Context
     private lateinit var repo: AttachmentRepositoryImpl
 
     @Before
     fun setUp() {
         api = mockk()
-        repo = AttachmentRepositoryImpl(api)
+        context = mockk(relaxed = true)
+        repo = AttachmentRepositoryImpl(api, context)
     }
 
     @Test

@@ -67,9 +67,9 @@ bulletsRouter.post('/', async (req, res) => {
 // BULL-03/11/12/13/CMT-03: Patch bullet (content, isComplete, isCollapsed, note)
 // PATCH /api/bullets/:id
 const patchBulletSchema = z.object({
-  content: z.string().optional(),
-  isComplete: z.boolean().optional(),
-  isCollapsed: z.boolean().optional(),
+  content: z.string().nullable().optional(),
+  isComplete: z.boolean().nullable().optional(),
+  isCollapsed: z.boolean().nullable().optional(),
   note: z.string().nullable().optional(),
 });
 
@@ -83,19 +83,19 @@ bulletsRouter.patch('/:id', async (req, res) => {
   const { content, isComplete, isCollapsed, note } = result.data;
 
   try {
-    if (isCollapsed !== undefined) {
+    if (isCollapsed != null) {
       const bullet = await setCollapsed(user.id, req.params.id, isCollapsed);
       if (!bullet) return res.status(404).json({ error: 'Not found' });
       return res.json(bullet);
     }
 
-    if (isComplete !== undefined) {
+    if (isComplete != null) {
       const bullet = await markComplete(user.id, req.params.id, isComplete);
       if (!bullet) return res.status(404).json({ error: 'Not found' });
       return res.json(bullet);
     }
 
-    if (content !== undefined) {
+    if (content != null) {
       // Direct DB update for content — no undo recording at route level
       // (content undo handled via POST /:id/undo-checkpoint after debounce)
       const rows = await db

@@ -518,15 +518,19 @@ internal fun InlineChip(
     chip: ContentSegment.ChipSegment,
     onChipClick: ((String) -> Unit)? = null
 ) {
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+
+    // Light theme: deeper colors (700-800 level) for good contrast on light backgrounds
+    // Dark theme: lighter colors (300 level) for WCAG AA on dark surfaces (≥ 4.5:1)
     val backgroundColor = when (chip.type) {
-        ChipType.TAG -> Color(0xFF1565C0).copy(alpha = 0.15f)        // blue
-        ChipType.MENTION -> Color(0xFF2E7D32).copy(alpha = 0.15f)    // green
-        ChipType.DATE -> Color(0xFFB45309).copy(alpha = 0.15f)       // amber (matches web)
+        ChipType.TAG -> (if (isDark) Color(0xFF64B5F6) else Color(0xFF1565C0)).copy(alpha = 0.15f)
+        ChipType.MENTION -> (if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32)).copy(alpha = 0.15f)
+        ChipType.DATE -> (if (isDark) Color(0xFFFFB74D) else Color(0xFFB45309)).copy(alpha = 0.15f)
     }
     val textColor = when (chip.type) {
-        ChipType.TAG -> Color(0xFF1565C0)
-        ChipType.MENTION -> Color(0xFF2E7D32)
-        ChipType.DATE -> Color(0xFFB45309)
+        ChipType.TAG -> if (isDark) Color(0xFF64B5F6) else Color(0xFF1565C0)         // Blue 300 / 800
+        ChipType.MENTION -> if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32)     // Green 300 / 800
+        ChipType.DATE -> if (isDark) Color(0xFFFFB74D) else Color(0xFFB45309)        // Amber 300 / 700
     }
 
     // Format display text: date chips show "📅 2026-04-28" instead of raw "!![2026-04-28]"

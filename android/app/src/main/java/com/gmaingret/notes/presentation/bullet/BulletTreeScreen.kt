@@ -244,16 +244,12 @@ fun BulletTreeScreen(
                         val effectiveScrollTarget = pendingScrollToBulletId ?: vmScrollTarget
                         LaunchedEffect(effectiveScrollTarget, flatList.size) {
                             if (effectiveScrollTarget != null) {
-                                val targetIndex = flatList.indexOfFirst { it.bullet.id == effectiveScrollTarget }
-                                if (targetIndex >= 0) {
-                                    lazyListState.animateScrollToItem(targetIndex)
-                                    // Focus the bullet so the user sees which one was navigated to
-                                    viewModel.setFocusedBullet(effectiveScrollTarget)
-                                    viewModel.clearScrollTarget()
-                                    onClearPendingScroll()
-                                }
-                                // If targetIndex < 0 the bullets haven't loaded yet;
-                                // do not clear — wait for the next recomposition when flatList grows.
+                                // Zoom into the target bullet — shows it in the breadcrumb
+                                // with its children below.
+                                viewModel.zoomTo(effectiveScrollTarget)
+                                viewModel.clearScrollTarget()
+                                onClearPendingScroll()
+                                lazyListState.scrollToItem(0)
                             }
                         }
 
@@ -323,8 +319,8 @@ fun BulletTreeScreen(
 
                                         SwipeToDismissBox(
                                             state = dismissState,
-                                            enableDismissFromStartToEnd = !isFocusedBullet && !isDragging,
-                                            enableDismissFromEndToStart = !isFocusedBullet && !isDragging,
+                                            enableDismissFromStartToEnd = !isDragging,
+                                            enableDismissFromEndToStart = !isDragging,
                                             backgroundContent = {
                                                 val direction = dismissState.dismissDirection
                                                 val progress = dismissState.progress.coerceIn(0f, 1f)
@@ -436,6 +432,9 @@ fun BulletTreeScreen(
                                             },
                                             onDownloadAttachment = { attachment ->
                                                 viewModel.downloadAttachment(attachment)
+                                            },
+                                            onDeleteAttachment = { attachment ->
+                                                viewModel.deleteAttachment(attachment)
                                             },
                                             onChipClick = if (flatBullet.bullet.id != focusedBulletId) onChipClick else null,
                                             showContextMenuExternal = contextMenuBulletId == flatBullet.bullet.id,

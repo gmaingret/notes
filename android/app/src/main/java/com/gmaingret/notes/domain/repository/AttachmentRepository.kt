@@ -9,4 +9,5 @@ import com.gmaingret.notes.domain.model.Attachment
 interface AttachmentRepository {
     suspend fun getAttachments(bulletId: String): Result<List<Attachment>>
     suspend fun uploadAttachment(bulletId: String, uri: Uri, filename: String, mimeType: String): Result<Attachment>
+    suspend fun deleteAttachment(attachmentId: String): Result<Unit>
 }

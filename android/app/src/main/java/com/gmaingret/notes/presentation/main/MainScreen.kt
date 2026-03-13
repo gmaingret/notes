@@ -495,9 +495,6 @@ fun MainScreen(
                                                         result.documentId,
                                                         result.bulletId
                                                     )
-                                                    // Set scroll target directly on BulletTreeViewModel
-                                                    // (bypasses Crossfade parameter passing which was
-                                                    // confirmed unreliable across 3 rounds of user feedback)
                                                     bulletTreeViewModel.setScrollTarget(result.bulletId)
                                                     isSearchActive = false
                                                     searchQuery = ""

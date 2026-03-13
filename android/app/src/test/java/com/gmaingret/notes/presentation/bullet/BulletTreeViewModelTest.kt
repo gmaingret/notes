@@ -5,6 +5,7 @@ import com.gmaingret.notes.data.local.TokenStore
 import com.gmaingret.notes.data.model.CreateBulletRequest
 import com.gmaingret.notes.data.model.MoveBulletRequest
 import com.gmaingret.notes.data.model.PatchBulletRequest
+import com.gmaingret.notes.domain.model.Attachment
 import com.gmaingret.notes.domain.model.Bullet
 import com.gmaingret.notes.domain.model.FlatBullet
 import com.gmaingret.notes.domain.model.UndoStatus
@@ -12,6 +13,7 @@ import com.gmaingret.notes.domain.usecase.AddBookmarkUseCase
 import com.gmaingret.notes.domain.usecase.CreateBulletUseCase
 import com.gmaingret.notes.domain.usecase.DeleteBulletUseCase
 import com.gmaingret.notes.domain.usecase.FlattenTreeUseCase
+import com.gmaingret.notes.domain.usecase.DeleteAttachmentUseCase
 import com.gmaingret.notes.domain.usecase.GetAttachmentsUseCase
 import com.gmaingret.notes.domain.usecase.UploadAttachmentUseCase
 import com.gmaingret.notes.domain.usecase.GetBookmarksUseCase
@@ -66,6 +68,7 @@ class BulletTreeViewModelTest {
     private lateinit var removeBookmarkUseCase: RemoveBookmarkUseCase
     private lateinit var getAttachmentsUseCase: GetAttachmentsUseCase
     private lateinit var uploadAttachmentUseCase: UploadAttachmentUseCase
+    private lateinit var deleteAttachmentUseCase: DeleteAttachmentUseCase
     private lateinit var tokenStore: TokenStore
     private val flattenTreeUseCase = FlattenTreeUseCase()
     private val application: Application = mockk(relaxed = true)
@@ -111,10 +114,12 @@ class BulletTreeViewModelTest {
         removeBookmarkUseCase = mockk()
         getAttachmentsUseCase = mockk()
         uploadAttachmentUseCase = mockk()
+        deleteAttachmentUseCase = mockk()
         tokenStore = mockk(relaxed = true)
 
         coEvery { getUndoStatusUseCase() } returns Result.success(undoStatusNone)
         coEvery { getBookmarksUseCase() } returns Result.success(emptyList())
+        coEvery { getAttachmentsUseCase(any()) } returns Result.success(emptyList())
     }
 
     @After
@@ -140,6 +145,7 @@ class BulletTreeViewModelTest {
         removeBookmarkUseCase = removeBookmarkUseCase,
         getAttachmentsUseCase = getAttachmentsUseCase,
         uploadAttachmentUseCase = uploadAttachmentUseCase,
+        deleteAttachmentUseCase = deleteAttachmentUseCase,
         tokenStore = tokenStore
     )
 
@@ -613,6 +619,24 @@ class BulletTreeViewModelTest {
     }
 
     @Test
+    fun `setScrollTarget sets target without affecting zoom`() = runTest {
+        // setScrollTarget only sets the scroll target — zoom is handled by BulletTreeScreen
+        val vm = loadedViewModel(listOf(bullet1, bullet2, bullet3))
+        advanceUntilIdle()
+
+        vm.zoomTo("b1")
+        advanceUntilIdle()
+        assertEquals("b1", vm.zoomRootId.value)
+
+        vm.setScrollTarget("b2")
+        advanceUntilIdle()
+
+        // Zoom root unchanged — BulletTreeScreen's LaunchedEffect handles zoomTo
+        assertEquals("b1", vm.zoomRootId.value)
+        assertEquals("b2", vm.scrollTarget.value)
+    }
+
+    @Test
     fun `setScrollTarget to bullet that exists in flatList is valid navigation`() = runTest {
         // Verifies the integration: after setScrollTarget, the target IS findable in flatList
         // This is what BulletTreeScreen's LaunchedEffect uses to scroll: indexOfFirst { it.id == target }
@@ -672,10 +696,9 @@ class BulletTreeViewModelTest {
     }
 
     @Test
-    fun `swipe gestures disabled for focused bullet - canSwipe logic`() = runTest {
-        // Verifies that the swipe disable logic (isFocusedBullet check in BulletTreeScreen) is
-        // consistent with ViewModel state: focused bullet should not be accidentally deleted.
-        // We test the underlying ViewModel invariant: setFocusedBullet doesn't delete bullets.
+    fun `focused bullet remains in list and swipe actions still work`() = runTest {
+        // Swipe is now enabled even when a bullet is focused (only disabled during drag).
+        // This test verifies the ViewModel invariant: focusing + swiping works correctly.
         val vm = loadedViewModel(listOf(bullet1, bullet2))
         advanceUntilIdle()
 
@@ -684,8 +707,17 @@ class BulletTreeViewModelTest {
 
         val state = vm.uiState.value as BulletTreeUiState.Success
         assertEquals("b1", state.focusedBulletId)
-        // b1 is still in the list — focused bullets are never auto-deleted
+        // b1 is still in the list — focusing doesn't delete bullets
         assertTrue(state.flatList.any { it.bullet.id == "b1" })
+
+        // Swipe-to-complete on focused bullet should work
+        coEvery { patchBulletUseCase("b1", any()) } returns Result.success(bullet1.copy(isComplete = true))
+        vm.toggleComplete("b1")
+        advanceUntilIdle()
+
+        val stateAfter = vm.uiState.value as BulletTreeUiState.Success
+        assertTrue("Focused bullet can be completed via swipe",
+            stateAfter.flatList.first { it.bullet.id == "b1" }.bullet.isComplete)
     }
 
     // -----------------------------------------------------------------------
@@ -1176,6 +1208,73 @@ class BulletTreeViewModelTest {
         // New bullet should still be in the flat list (inserted locally)
         val state = vm.uiState.value as BulletTreeUiState.Success
         assertTrue(state.flatList.any { it.bullet.id == "b-new" })
+    }
+
+    // -----------------------------------------------------------------------
+    // deleteAttachment
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `deleteAttachment removes attachment optimistically and calls API`() = runTest {
+        val attachment = Attachment(
+            id = "att-1",
+            bulletId = "b1",
+            filename = "photo.jpg",
+            mimeType = "image/jpeg",
+            size = 12345L,
+            downloadUrl = "https://example.com/photo.jpg"
+        )
+
+        // Set up mock BEFORE loadBullets so auto-load finds the attachment
+        coEvery { getAttachmentsUseCase("b1") } returns Result.success(listOf(attachment))
+        val vm = loadedViewModel()
+        advanceUntilIdle()
+        assertEquals(1, vm.attachments.value["b1"]?.size)
+
+        // Mock successful delete
+        coEvery { deleteAttachmentUseCase("att-1") } returns Result.success(Unit)
+
+        vm.deleteAttachment(attachment)
+        // Optimistic: attachment removed immediately (before coroutine completes)
+        assertTrue("Attachment should be optimistically removed",
+            vm.attachments.value["b1"]?.isEmpty() ?: true)
+
+        advanceUntilIdle()
+        coVerify(exactly = 1) { deleteAttachmentUseCase("att-1") }
+    }
+
+    @Test
+    fun `deleteAttachment reverts on failure and shows snackbar`() = runTest {
+        val attachment = Attachment(
+            id = "att-1",
+            bulletId = "b1",
+            filename = "photo.jpg",
+            mimeType = "image/jpeg",
+            size = 12345L,
+            downloadUrl = "https://example.com/photo.jpg"
+        )
+
+        // Set up mock BEFORE loadBullets so auto-load finds the attachment
+        coEvery { getAttachmentsUseCase("b1") } returns Result.success(listOf(attachment))
+        val vm = loadedViewModel()
+        advanceUntilIdle()
+
+        // Mock failed delete, then revert re-fetches
+        coEvery { deleteAttachmentUseCase("att-1") } returns Result.failure(RuntimeException("Network error"))
+        coEvery { getAttachmentsUseCase("b1") } returns Result.success(listOf(attachment))
+
+        val snackbarMessages = mutableListOf<String>()
+        val collectJob = launch { vm.snackbarMessage.collect { snackbarMessages.add(it) } }
+
+        vm.deleteAttachment(attachment)
+        advanceUntilIdle()
+
+        // Attachment is reverted back
+        assertEquals(1, vm.attachments.value["b1"]?.size)
+        // Snackbar was shown
+        assertTrue(snackbarMessages.any { it.contains("Failed to remove attachment") })
+
+        collectJob.cancel()
     }
 
     @Test

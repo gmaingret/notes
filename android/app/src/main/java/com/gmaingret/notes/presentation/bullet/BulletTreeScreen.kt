@@ -283,14 +283,14 @@ fun BulletTreeScreen(
                             LazyColumn(
                                 state = lazyListState,
                                 modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                verticalArrangement = Arrangement.spacedBy(7.dp)
                             ) {
                                 items(
                                     items = flatList,
                                     key = { viewModel.stableKeyFor(it.bullet.id) }
                                 ) { flatBullet ->
                                     ReorderableItem(reorderableState, key = viewModel.stableKeyFor(flatBullet.bullet.id)) { isDragging ->
-                                        val indentPerLevel = 24.dp
+                                        val indentPerLevel = 28.dp
                                         val targetDepthDelta = if (isDragging) {
                                             val indentPx = with(density) { indentPerLevel.toPx() }
                                             // Max depth: one level deeper than the bullet directly above.
@@ -482,7 +482,7 @@ fun BulletTreeScreen(
 
                                                         // Detect no-drag long-press: same position AND negligible horizontal offset.
                                                         // In this case show context menu instead of committing a move.
-                                                        val indentPx = with(density) { 24.dp.toPx() }
+                                                        val indentPx = with(density) { 28.dp.toPx() }
                                                         val horizontalDeltaSteps = (dragHorizontalOffset / indentPx).roundToInt()
                                                         val didNotMove = currentIndex == dragStartIndex && horizontalDeltaSteps == 0
                                                         if (didNotMove) {
@@ -766,34 +766,34 @@ private fun ShimmerBulletRows() {
 
     val indentLevels = listOf(0, 1, 2, 1, 0) // varying depths for visual interest
 
-    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
         indentLevels.forEach { indent ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
-                        start = (indent * 24).dp,
-                        top = 6.dp,
-                        bottom = 6.dp
+                        start = (indent * 28).dp,
+                        top = 7.dp,
+                        bottom = 7.dp
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Bullet circle placeholder
                 Box(
                     modifier = Modifier
-                        .width(8.dp)
-                        .height(8.dp)
+                        .width(10.dp)
+                        .height(10.dp)
                         .background(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
                             shape = androidx.compose.foundation.shape.CircleShape
                         )
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 // Text line placeholder
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.6f + indent * 0.1f)
-                        .height(14.dp)
+                        .height(17.dp)
                         .background(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha * 0.5f),
                             shape = MaterialTheme.shapes.small

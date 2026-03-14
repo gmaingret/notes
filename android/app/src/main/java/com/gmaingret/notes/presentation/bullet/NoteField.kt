@@ -50,9 +50,9 @@ fun NoteField(
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 4.dp, end = 4.dp, top = 2.dp, bottom = 4.dp)
+                .padding(start = 5.dp, end = 5.dp, top = 2.dp, bottom = 5.dp)
         ) {
-            Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+            Box(modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)) {
                 val currentNote = note ?: ""
 
                 BasicTextField(

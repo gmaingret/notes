@@ -46,6 +46,12 @@
             </intent-filter>
         </activity>
 
+        <!-- Overlay activity for adding bullets directly from the widget -->
+        <activity
+            android:name=".widget.add.AddBulletActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Notes.Overlay" />
+
         <!-- Disable the default WorkManager auto-initializer so we can wire HiltWorkerFactory
              via Configuration.Provider in NotesApplication. Without this, WorkManager would
              initialize itself with a default factory that cannot inject Hilt dependencies. -->

@@ -4,6 +4,7 @@ import com.gmaingret.notes.data.local.DataStoreCookieJar
 import com.gmaingret.notes.data.local.TokenStore
 import com.gmaingret.notes.domain.repository.BulletRepository
 import com.gmaingret.notes.domain.repository.DocumentRepository
+import com.gmaingret.notes.domain.usecase.CreateBulletUseCase
 import com.gmaingret.notes.domain.usecase.DeleteBulletUseCase
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -28,4 +29,5 @@ interface WidgetEntryPoint {
     fun tokenStore(): TokenStore
     fun dataStoreCookieJar(): DataStoreCookieJar
     fun deleteBulletUseCase(): DeleteBulletUseCase
+    fun createBulletUseCase(): CreateBulletUseCase
 }

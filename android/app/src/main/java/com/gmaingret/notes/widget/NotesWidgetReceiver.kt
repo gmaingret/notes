@@ -2,6 +2,7 @@ package com.gmaingret.notes.widget
 
 import android.content.Context
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.work.WorkManager
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -18,17 +19,18 @@ class NotesWidgetReceiver : GlanceAppWidgetReceiver() {
     /**
      * Called when the user removes one or more widget instances from the home screen.
      *
-     * Clears each widget's document ID from WidgetStateStore to prevent stale entries
-     * from accumulating. Uses runBlocking because BroadcastReceiver.onReceive() runs
-     * on the main thread and cannot be suspended.
+     * Cancels the periodic WorkManager sync job and clears all WidgetStateStore data
+     * (document IDs, bullet cache, display state). Uses runBlocking because
+     * BroadcastReceiver.onReceive() runs on the main thread and cannot be suspended.
      */
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         super.onDeleted(context, appWidgetIds)
+        // Cancel the periodic background sync — no widget means no need to keep syncing
+        WorkManager.getInstance(context).cancelUniqueWork("widget_sync")
+        // Clear all persisted data (doc IDs, bullet cache, display state)
         val store = WidgetStateStore.getInstance(context)
         runBlocking {
-            for (id in appWidgetIds) {
-                store.clearDocumentId(id)
-            }
+            store.clearAll()
         }
     }
 }

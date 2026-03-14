@@ -53,12 +53,20 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.gmaingret.notes.domain.model.Document
 import com.gmaingret.notes.domain.usecase.GoogleSignInUseCase
 import com.gmaingret.notes.presentation.theme.NotesTheme
 import com.gmaingret.notes.widget.NotesWidget
+import com.gmaingret.notes.widget.sync.WidgetSyncWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
@@ -110,9 +118,33 @@ class WidgetConfigActivity : ComponentActivity() {
                 // Collect one-shot DocumentSelected event to finalize RESULT_OK
                 LaunchedEffect(Unit) {
                     viewModel.documentSelectedEvent.collect { docId ->
-                        // Write docId into Glance widget preferences — this triggers
-                        // provideContent recomposition via currentState<Preferences>()
+                        // Write docId into Glance widget preferences — triggers provideGlance
+                        // to re-run and read from WidgetStateStore cache
                         NotesWidget.setDocumentId(this@WidgetConfigActivity, appWidgetId, docId)
+
+                        // Enqueue periodic 15-min background sync (keep existing if already running)
+                        val constraints = Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build()
+                        val periodicRequest = PeriodicWorkRequestBuilder<WidgetSyncWorker>(
+                            15, TimeUnit.MINUTES
+                        )
+                            .setConstraints(constraints)
+                            .build()
+                        WorkManager.getInstance(this@WidgetConfigActivity)
+                            .enqueueUniquePeriodicWork(
+                                "widget_sync",
+                                ExistingPeriodicWorkPolicy.KEEP,
+                                periodicRequest
+                            )
+
+                        // Enqueue an immediate one-time sync to populate the cache right away
+                        // so the widget shows content before the first 15-min tick
+                        val immediateRequest = OneTimeWorkRequestBuilder<WidgetSyncWorker>()
+                            .setConstraints(constraints)
+                            .build()
+                        WorkManager.getInstance(this@WidgetConfigActivity).enqueue(immediateRequest)
+
                         setResult(
                             RESULT_OK,
                             Intent().putExtra(EXTRA_APPWIDGET_ID, appWidgetId)

@@ -3,7 +3,6 @@ package com.gmaingret.notes.widget
 import android.content.Context
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceTheme
@@ -12,7 +11,6 @@ import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.updateAppWidgetState
-import androidx.glance.currentState
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -24,9 +22,10 @@ import retrofit2.HttpException
  * Uses SizeMode.Responsive with 3 breakpoints so Glance re-renders at each
  * size instead of stretching a single layout.
  *
- * Document ID is stored in Glance widget preferences (via updateAppWidgetState)
- * so that provideContent can read it with currentState() and recompose when
- * the config activity writes a new value.
+ * Document ID is stored in both Glance widget preferences (for the update() trigger)
+ * and in WidgetStateStore. provideGlance reads exclusively from WidgetStateStore cache
+ * — no live API calls happen inside provideGlance. All data fetching is delegated to
+ * WidgetSyncWorker (periodic) or triggerWidgetRefreshIfNeeded (in-app mutation trigger).
  */
 class NotesWidget : GlanceAppWidget() {
 
@@ -45,6 +44,10 @@ class NotesWidget : GlanceAppWidget() {
         /**
          * Writes the document ID into Glance widget preferences and triggers
          * a widget update. Call from the config activity after saving to WidgetStateStore.
+         *
+         * Note: provideGlance no longer reads DOC_ID_KEY from Glance preferences —
+         * it reads from WidgetStateStore instead. The update() call here triggers
+         * provideGlance to re-run and refresh from cache.
          */
         suspend fun setDocumentId(context: Context, appWidgetId: Int, docId: String) {
             val glanceId = GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId)
@@ -57,33 +60,37 @@ class NotesWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Responsive(setOf(SMALL, MEDIUM, LARGE))
 
+    /**
+     * Reads the cached display state and bullets from WidgetStateStore and renders them.
+     *
+     * No live API calls happen here. All I/O runs with withContext(Dispatchers.IO) before
+     * provideContent{} per the architecture rule that I/O must not happen inside the
+     * provideContent lambda.
+     *
+     * The cache is populated by:
+     * - WidgetSyncWorker (periodic 15-min background sync)
+     * - triggerWidgetRefreshIfNeeded() in BulletTreeViewModel (after every bullet mutation)
+     * - Immediate one-shot sync enqueued by WidgetConfigActivity after document selection
+     */
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val entryPoint = EntryPointAccessors.fromApplication(
-            context.applicationContext,
-            WidgetEntryPoint::class.java
-        )
+        val store = WidgetStateStore.getInstance(context)
+        val displayState = withContext(Dispatchers.IO) { store.getDisplayState() }
+        val cachedBullets = withContext(Dispatchers.IO) { store.getBullets() }
+        val docId = withContext(Dispatchers.IO) { store.getFirstDocumentId() }
+
+        val uiState = when (displayState) {
+            DisplayState.CONTENT -> WidgetUiState.Content(docId ?: "", "", cachedBullets)
+            DisplayState.EMPTY -> WidgetUiState.Empty
+            DisplayState.SESSION_EXPIRED -> WidgetUiState.SessionExpired
+            DisplayState.DOCUMENT_NOT_FOUND -> WidgetUiState.DocumentNotFound
+            DisplayState.ERROR -> WidgetUiState.Error("Sync failed")
+            DisplayState.LOADING -> WidgetUiState.Loading
+            DisplayState.NOT_CONFIGURED -> WidgetUiState.NotConfigured
+        }
 
         provideContent {
-            val prefs = currentState<Preferences>()
-            val docId = prefs[DOC_ID_KEY]
-
-            // Fetch data based on docId — this runs on every recomposition
-            // triggered by Glance state changes (e.g., after config activity writes DOC_ID_KEY)
-            val uiState = androidx.compose.runtime.produceState<WidgetUiState>(
-                initialValue = if (docId == null) WidgetUiState.NotConfigured else WidgetUiState.Loading,
-                key1 = docId
-            ) {
-                if (docId == null) {
-                    value = WidgetUiState.NotConfigured
-                } else {
-                    value = withContext(Dispatchers.IO) {
-                        fetchWidgetData(entryPoint, docId)
-                    }
-                }
-            }
-
             GlanceTheme(colors = NotesWidgetColorScheme.colors) {
-                WidgetContent(uiState = uiState.value, context = context)
+                WidgetContent(uiState = uiState, context = context)
             }
         }
     }

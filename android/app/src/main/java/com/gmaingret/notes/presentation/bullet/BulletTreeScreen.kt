@@ -59,9 +59,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerInputScope
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -241,6 +245,8 @@ fun BulletTreeScreen(
                         // Drag state for reparenting
                         val view = LocalView.current
                         val density = LocalDensity.current
+                        val keyboardController = LocalSoftwareKeyboardController.current
+                        val focusManager = LocalFocusManager.current
                         var dragHorizontalOffset by remember { mutableFloatStateOf(0f) }
                         var draggedBulletId by remember { mutableStateOf<String?>(null) }
                         // Index of the dragged item at the START of the drag (to detect no-move long-press)
@@ -606,6 +612,21 @@ fun BulletTreeScreen(
                                         )
                                         } // end SwipeToDismissBox content
                                     }
+                                }
+                                // Tappable empty zone below bullets — clears focus and hides keyboard
+                                item(key = "__empty_zone__") {
+                                    Spacer(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(800.dp)
+                                            .pointerInput(Unit) {
+                                                detectTapGestures {
+                                                    viewModel.setFocusedBullet(null)
+                                                    keyboardController?.hide()
+                                                    focusManager.clearFocus()
+                                                }
+                                            }
+                                    )
                                 }
                             }
                             } // end PullToRefreshBox

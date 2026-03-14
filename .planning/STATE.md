@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Android Home Screen Widget
 status: roadmap_ready
-stopped_at: Phase 15 context gathered
-last_updated: "2026-03-14T10:40:47.882Z"
+stopped_at: Completed 13-01-PLAN.md
+last_updated: "2026-03-14T11:21:52.953Z"
 last_activity: 2026-03-14 — Roadmap created for v2.1 (Phases 13-15)
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
 ---
 
 ---
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 0% (v2.1: 0/3 phases)
 | 15. Interactive Actions | TBD | Not started |
 
 *Updated after each plan completion*
+| Phase 13-widget-foundation P01 | 10 | 3 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,9 @@ Decisions affecting v2.1 (from research):
 - v2.1 arch: NotesApplication must implement Configuration.Provider + inject HiltWorkerFactory; disable default WorkManager auto-initializer in AndroidManifest.xml via tools:node="remove"
 - v2.1 arch: SizeMode.Responsive with 2-3 predefined DpSize breakpoints (not SizeMode.Exact)
 - v2.1 arch: WidgetConfigActivity must set RESULT_CANCELED at start; switch to RESULT_OK only on user confirmation — omitting this causes launcher to silently discard widget placement
+- [Phase 13-widget-foundation]: WidgetStateStore createForTest() factory enables Robolectric testing with mock Aead — avoids Android Keystore dependency in JVM tests
+- [Phase 13-widget-foundation]: fetchWidgetData accepts WidgetEntryPoint parameter (not Context) — enables pure Kotlin unit testing without Robolectric for all business logic
+- [Phase 13-widget-foundation]: EncryptedDataStoreFactory.getWidgetStateAead() uses isolated widget_state_keyset separate from auth/cookie keysets for domain separation
 
 ### Research Flags
 
@@ -96,6 +100,6 @@ None at roadmap stage. Phase 14 auth strategy flagged for design review during p
 
 ## Session Continuity
 
-Last session: 2026-03-14T10:40:47.879Z
-Stopped at: Phase 15 context gathered
-Resume file: .planning/phases/15-interactive-actions/15-CONTEXT.md
+Last session: 2026-03-14T11:21:52.950Z
+Stopped at: Completed 13-01-PLAN.md
+Resume file: None

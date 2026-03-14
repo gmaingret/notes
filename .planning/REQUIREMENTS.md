@@ -7,7 +7,7 @@
 
 ### Widget Setup
 
-- [ ] **SETUP-01**: User can add the Notes widget to their Android home screen
+- [x] **SETUP-01**: User can add the Notes widget to their Android home screen
 - [ ] **SETUP-02**: User is presented with a document picker when adding the widget
 
 ### Widget Display
@@ -15,8 +15,8 @@
 - [ ] **DISP-01**: Widget shows the document title in a header row
 - [ ] **DISP-02**: Widget shows root-level bullets as a scrollable flat list
 - [ ] **DISP-03**: Widget shows an empty state when the document has no bullets
-- [ ] **DISP-04**: Widget shows loading and error states appropriately
-- [ ] **DISP-05**: Widget uses Material 3 theming consistent with the app
+- [x] **DISP-04**: Widget shows loading and error states appropriately
+- [x] **DISP-05**: Widget uses Material 3 theming consistent with the app
 
 ### Widget Actions
 
@@ -114,13 +114,13 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SETUP-01 | Phase 13 | Pending |
+| SETUP-01 | Phase 13 | Complete |
 | SETUP-02 | Phase 13 | Pending |
 | DISP-01 | Phase 13 | Pending |
 | DISP-02 | Phase 13 | Pending |
 | DISP-03 | Phase 13 | Pending |
-| DISP-04 | Phase 13 | Pending |
-| DISP-05 | Phase 13 | Pending |
+| DISP-04 | Phase 13 | Complete |
+| DISP-05 | Phase 13 | Complete |
 | ACT-01 | Phase 15 | Pending |
 | ACT-02 | Phase 15 | Pending |
 | SYNC-01 | Phase 14 | Pending |

@@ -49,7 +49,7 @@ Full details: [`.planning/milestones/v2.0-ROADMAP.md`](milestones/v2.0-ROADMAP.m
 ### v2.1 Android Home Screen Widget
 
 - [x] **Phase 13: Widget Foundation** — Placeable widget with document picker, correct Glance/Hilt wiring, and full display state rendering (completed 2026-03-14)
-- [ ] **Phase 14: Background Sync and Auth** — WorkManager periodic refresh, independent widget auth via refresh cookie, and in-app broadcast update
+- [x] **Phase 14: Background Sync and Auth** — WorkManager periodic refresh, independent widget auth via refresh cookie, and in-app broadcast update (completed 2026-03-14)
 - [ ] **Phase 15: Interactive Actions** — Delete bullet from widget and add bullet via overlay Activity
 
 ## Phase Details
@@ -111,5 +111,5 @@ Plans:
 | 11. Bullet Tree | v2.0 | 4/4 | Complete | 2026-03-12 |
 | 12. Reactivity and Polish | v2.0 | 5/5 | Complete | 2026-03-12 |
 | 13. Widget Foundation | v2.1 | 4/4 | Complete | 2026-03-14 |
-| 14. Background Sync and Auth | 1/2 | In Progress|  | - |
+| 14. Background Sync and Auth | 2/2 | Complete   | 2026-03-14 | - |
 | 15. Interactive Actions | v2.1 | 0/? | Not started | - |

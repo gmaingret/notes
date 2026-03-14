@@ -25,7 +25,7 @@
 
 ### Widget Sync
 
-- [ ] **SYNC-01**: Widget refreshes automatically when bullets are changed in the Android app
+- [x] **SYNC-01**: Widget refreshes automatically when bullets are changed in the Android app
 - [x] **SYNC-02**: Widget refreshes periodically in the background via WorkManager (15-min interval)
 - [x] **SYNC-03**: Widget authenticates independently using the persisted refresh token
 
@@ -123,7 +123,7 @@
 | DISP-05 | Phase 13 | Complete |
 | ACT-01 | Phase 15 | Pending |
 | ACT-02 | Phase 15 | Pending |
-| SYNC-01 | Phase 14 | Pending |
+| SYNC-01 | Phase 14 | Complete |
 | SYNC-02 | Phase 14 | Complete |
 | SYNC-03 | Phase 14 | Complete |
 

@@ -56,7 +56,7 @@ fun BreadcrumbRow(
 
     LazyRow(
         state = listState,
-        modifier = modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        modifier = modifier.padding(horizontal = 10.dp, vertical = 5.dp),
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -71,7 +71,7 @@ fun BreadcrumbRow(
                 Icon(
                     imageVector = Icons.Filled.Home,
                     contentDescription = "Home",
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(19.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -86,7 +86,7 @@ fun BreadcrumbRow(
                 Icon(
                     imageVector = Icons.Filled.ChevronRight,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(19.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 

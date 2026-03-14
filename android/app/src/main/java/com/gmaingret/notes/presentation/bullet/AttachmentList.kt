@@ -64,7 +64,7 @@ fun AttachmentList(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp, horizontal = 28.dp) // indented to match bullet content
+            .padding(vertical = 5.dp, horizontal = 34.dp) // indented to match bullet content
     ) {
         attachments.forEach { attachment ->
             if (attachment.mimeType.startsWith("image/")) {
@@ -82,7 +82,7 @@ fun AttachmentList(
                         error = ColorPainter(Color(0xFFE0E0E0)),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
+                            .height(240.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .clickable { lightboxAttachment = attachment },
                     )
@@ -92,13 +92,13 @@ fun AttachmentList(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(4.dp)
-                            .size(28.dp)
+                            .size(34.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Close,
                             contentDescription = "Remove attachment",
                             tint = Color.White,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(19.dp)
                         )
                     }
                 }
@@ -118,7 +118,7 @@ fun AttachmentList(
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(24.dp),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -136,12 +136,12 @@ fun AttachmentList(
                     // Remove button
                     IconButton(
                         onClick = { onDelete(attachment) },
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(38.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Close,
                             contentDescription = "Remove attachment",
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(19.dp),
                             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                     }

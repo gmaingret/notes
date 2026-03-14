@@ -115,4 +115,4 @@ Plans:
 | 12. Reactivity and Polish | v2.0 | 5/5 | Complete | 2026-03-12 |
 | 13. Widget Foundation | v2.1 | 4/4 | Complete | 2026-03-14 |
 | 14. Background Sync and Auth | 2/2 | Complete    | 2026-03-14 | - |
-| 15. Interactive Actions | 2/2 | Complete   | 2026-03-14 | - |
+| 15. Interactive Actions | 2/2 | Complete    | 2026-03-14 | - |

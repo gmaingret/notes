@@ -4,7 +4,7 @@ milestone: v2.1
 milestone_name: Android Home Screen Widget
 status: roadmap_ready
 stopped_at: Completed 15-02-PLAN.md
-last_updated: "2026-03-14T15:40:25.318Z"
+last_updated: "2026-03-14T15:43:48.960Z"
 last_activity: 2026-03-14 — Roadmap created for v2.1 (Phases 13-15)
 progress:
   total_phases: 3

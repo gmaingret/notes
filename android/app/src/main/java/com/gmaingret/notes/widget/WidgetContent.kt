@@ -126,7 +126,7 @@ fun HeaderRow(title: String, documentId: String, context: Context) {
                 text = title,
                 maxLines = 1,
                 style = TextStyle(
-                    fontSize = 16.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Medium,
                     color = GlanceTheme.colors.onSurface
                 ),
@@ -142,7 +142,7 @@ fun HeaderRow(title: String, documentId: String, context: Context) {
             Text(
                 text = "+",
                 style = TextStyle(
-                    fontSize = 18.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Medium,
                     color = GlanceTheme.colors.primary
                 ),
@@ -185,7 +185,7 @@ fun BulletRow(bullet: WidgetBullet, context: Context, documentId: String) {
     Row(
         modifier = GlanceModifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .padding(horizontal = 12.dp, vertical = 0.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Inner row: dot + text — tapping opens the document in the app
@@ -198,8 +198,8 @@ fun BulletRow(bullet: WidgetBullet, context: Context, documentId: String) {
             // Bullet dot
             Box(
                 modifier = GlanceModifier
-                    .size(6.dp)
-                    .cornerRadius(3.dp)
+                    .size(10.dp)
+                    .cornerRadius(5.dp)
                     .background(dotColor)
             ) {}
             Spacer(GlanceModifier.width(8.dp))
@@ -207,7 +207,7 @@ fun BulletRow(bullet: WidgetBullet, context: Context, documentId: String) {
                 text = bullet.content,
                 maxLines = 1,
                 style = TextStyle(
-                    fontSize = 14.sp,
+                    fontSize = 18.sp,
                     color = textColor,
                     textDecoration = textDecoration
                 ),
@@ -231,7 +231,7 @@ fun BulletRow(bullet: WidgetBullet, context: Context, documentId: String) {
             Text(
                 text = "\u00D7",
                 style = TextStyle(
-                    fontSize = 14.sp,
+                    fontSize = 22.sp,
                     color = textColor
                 )
             )

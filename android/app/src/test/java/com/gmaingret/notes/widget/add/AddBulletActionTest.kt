@@ -1,15 +1,20 @@
 package com.gmaingret.notes.widget.add
 
+import android.content.Context
 import com.gmaingret.notes.data.model.CreateBulletRequest
 import com.gmaingret.notes.domain.model.Bullet
 import com.gmaingret.notes.domain.usecase.CreateBulletUseCase
 import com.gmaingret.notes.widget.DisplayState
+import com.gmaingret.notes.widget.NotesWidget
 import com.gmaingret.notes.widget.WidgetBullet
 import com.gmaingret.notes.widget.WidgetStateStore
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -27,6 +32,7 @@ class AddBulletActionTest {
 
     private lateinit var store: WidgetStateStore
     private lateinit var createBulletUseCase: CreateBulletUseCase
+    private lateinit var context: Context
 
     private val existingBullet1 = WidgetBullet(id = "b1", content = "Existing 1", isComplete = false)
     private val existingBullet2 = WidgetBullet(id = "b2", content = "Existing 2", isComplete = false)
@@ -46,6 +52,15 @@ class AddBulletActionTest {
     fun setUp() {
         store = mockk(relaxed = true)
         createBulletUseCase = mockk()
+        context = mockk(relaxed = true)
+        mockkObject(NotesWidget.Companion)
+        coEvery { NotesWidget.pushStateToGlance(any()) } returns Unit
+        coEvery { NotesWidget.pushToGlanceDirect(any(), any(), any(), any(), any()) } returns Unit
+    }
+
+    @After
+    fun tearDown() {
+        unmockkObject(NotesWidget.Companion)
     }
 
     // -------------------------------------------------------------------------
@@ -62,6 +77,7 @@ class AddBulletActionTest {
             docId = "doc-1",
             content = "New bullet",
             store = store,
+            context = context,
             createBulletUseCase = createBulletUseCase
         )
 
@@ -93,6 +109,7 @@ class AddBulletActionTest {
                 docId = "doc-1",
                 content = "My new bullet",
                 store = store,
+                context = context,
                 createBulletUseCase = createBulletUseCase
             )
 
@@ -125,6 +142,7 @@ class AddBulletActionTest {
                 docId = "doc-1",
                 content = "New bullet",
                 store = store,
+                context = context,
                 createBulletUseCase = createBulletUseCase
             )
 
@@ -154,6 +172,7 @@ class AddBulletActionTest {
             docId = "doc-1",
             content = "New bullet",
             store = store,
+            context = context,
             createBulletUseCase = createBulletUseCase
         )
 
@@ -178,6 +197,7 @@ class AddBulletActionTest {
             docId = "doc-1",
             content = "New bullet",
             store = store,
+            context = context,
             createBulletUseCase = createBulletUseCase
         )
 
@@ -209,6 +229,7 @@ class AddBulletActionTest {
                 docId = "doc-1",
                 content = "First bullet",
                 store = store,
+                context = context,
                 createBulletUseCase = createBulletUseCase
             )
 
@@ -217,4 +238,26 @@ class AddBulletActionTest {
                 store.saveDisplayState(DisplayState.CONTENT)
             }
         }
+
+    // -------------------------------------------------------------------------
+    // Test 7: pushStateToGlance called immediately after optimistic insert
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `pushStateToGlance is called immediately after optimistic insert`() = runTest {
+        coEvery { store.getBullets() } returns listOf(existingBullet1)
+        coEvery { createBulletUseCase.invoke(any()) } returns
+            Result.success(makeServerBullet("server-id", "New bullet"))
+
+        performAddBullet(
+            docId = "doc-1",
+            content = "New bullet",
+            store = store,
+            context = context,
+            createBulletUseCase = createBulletUseCase
+        )
+
+        // pushToGlanceDirect called for optimistic insert, pushStateToGlance for API result
+        coVerify(atLeast = 1) { NotesWidget.pushToGlanceDirect(context, any(), any(), any(), any()) }
+    }
 }

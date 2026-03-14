@@ -8,8 +8,6 @@ import androidx.glance.GlanceTheme
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
-import androidx.glance.text.Text
-import com.gmaingret.notes.domain.repository.BulletRepository
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -31,14 +29,6 @@ class NotesWidget : GlanceAppWidget() {
     companion object {
         /** Maximum number of root bullets to load into the widget. */
         const val MAX_BULLETS = 50
-
-        /** Regex to strip metadata syntax from bullet text before display. */
-        private val STRIP_REGEX = Regex(
-            "#[\\w/]+" +           // #tag or #tag/subtag
-            "|@[\\w.]+" +          // @mention
-            "|!![\\d\\-T:Z]+" +    // !!date
-            "|!!\\{[^}]*\\}"        // !!{date object}
-        )
 
         // Responsive breakpoints
         private val SMALL = DpSize(200.dp, 100.dp)
@@ -65,18 +55,7 @@ class NotesWidget : GlanceAppWidget() {
 
         provideContent {
             GlanceTheme(colors = NotesWidgetColorScheme.colors) {
-                // Placeholder content — full UI rendering is implemented in Plan 03.
-                Text(
-                    text = when (uiState) {
-                        is WidgetUiState.Content -> uiState.documentTitle
-                        is WidgetUiState.NotConfigured -> "Tap to configure"
-                        is WidgetUiState.Loading -> "Loading…"
-                        is WidgetUiState.Empty -> "No bullets yet"
-                        is WidgetUiState.DocumentNotFound -> "Document not found"
-                        is WidgetUiState.SessionExpired -> "Session expired"
-                        is WidgetUiState.Error -> "Error: ${uiState.message}"
-                    }
-                )
+                WidgetContent(uiState = uiState, context = context)
             }
         }
     }
@@ -147,7 +126,7 @@ class NotesWidget : GlanceAppWidget() {
             .map { bullet ->
                 WidgetBullet(
                     id = bullet.id,
-                    content = stripMetadataSyntax(bullet.content),
+                    content = stripMarkdownSyntax(bullet.content),
                     isComplete = bullet.isComplete
                 )
             }
@@ -173,11 +152,4 @@ class NotesWidget : GlanceAppWidget() {
         val msg = e.message?.lowercase() ?: ""
         return msg.contains("401") || msg.contains("unauthorized") || msg.contains("unauthenticated")
     }
-
-    /**
-     * Strips #tags, @mentions, and !!date syntax from bullet content
-     * before displaying in the widget, where these chip decorations can't render.
-     */
-    private fun stripMetadataSyntax(content: String): String =
-        content.replace(STRIP_REGEX, "").trim()
 }

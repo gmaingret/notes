@@ -31,6 +31,11 @@ import com.gmaingret.notes.domain.usecase.PatchBulletUseCase
 import com.gmaingret.notes.domain.usecase.RedoUseCase
 import com.gmaingret.notes.domain.usecase.RemoveBookmarkUseCase
 import com.gmaingret.notes.domain.usecase.UndoUseCase
+import androidx.glance.appwidget.updateAll
+import com.gmaingret.notes.widget.NotesWidget
+import com.gmaingret.notes.widget.WidgetEntryPoint
+import com.gmaingret.notes.widget.sync.refreshWidgetIfDocMatches
+import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -229,6 +234,7 @@ class BulletTreeViewModel @Inject constructor(
                             }
                             contentOverridesMap.remove(bulletId)
                             _contentOverrides.value = contentOverridesMap.toMap()
+                            triggerWidgetRefreshIfNeeded()
                         }
                 }
         }
@@ -450,6 +456,7 @@ class BulletTreeViewModel @Inject constructor(
                         _contentOverrides.value = contentOverridesMap.toMap()
                         contentEditFlow.tryEmit(newBullet.id to migratedContent)
                     }
+                    triggerWidgetRefreshIfNeeded()
                 },
                 onFailure = {
                     // Remove temp bullet on failure
@@ -472,10 +479,12 @@ class BulletTreeViewModel @Inject constructor(
         updateState(optimisticBullets)
 
         enqueue {
-            deleteBulletUseCase(bulletId).onFailure {
-                _snackbarMessage.emit("Failed to delete bullet")
-                reloadFromServer()
-            }
+            deleteBulletUseCase(bulletId)
+                .onSuccess { triggerWidgetRefreshIfNeeded() }
+                .onFailure {
+                    _snackbarMessage.emit("Failed to delete bullet")
+                    reloadFromServer()
+                }
         }
     }
 
@@ -516,6 +525,7 @@ class BulletTreeViewModel @Inject constructor(
                         if (b.id == bulletId) updatedBullet else b
                     }
                     updateState(updatedBullets, focusedBulletId = bulletId)
+                    triggerWidgetRefreshIfNeeded()
                 },
                 onFailure = {
                     _snackbarMessage.emit("Failed to indent bullet")
@@ -556,6 +566,7 @@ class BulletTreeViewModel @Inject constructor(
                         if (b.id == bulletId) updatedBullet else b
                     }
                     updateState(updatedBullets, focusedBulletId = bulletId)
+                    triggerWidgetRefreshIfNeeded()
                 },
                 onFailure = {
                     _snackbarMessage.emit("Failed to outdent bullet")
@@ -700,6 +711,7 @@ class BulletTreeViewModel @Inject constructor(
 
         enqueue {
             patchBulletUseCase(bulletId, PatchBulletRequest.updateIsComplete(newComplete))
+                .onSuccess { triggerWidgetRefreshIfNeeded() }
                 .onFailure {
                     _snackbarMessage.emit("Failed to update bullet")
                     reloadFromServer()
@@ -992,6 +1004,7 @@ class BulletTreeViewModel @Inject constructor(
                     _canUndo.value = status.canUndo
                     _canRedo.value = status.canRedo
                     reloadFromServer()
+                    triggerWidgetRefreshIfNeeded()
                 },
                 onFailure = {
                     _snackbarMessage.emit("Undo failed")
@@ -1011,6 +1024,7 @@ class BulletTreeViewModel @Inject constructor(
                     _canUndo.value = status.canUndo
                     _canRedo.value = status.canRedo
                     reloadFromServer()
+                    triggerWidgetRefreshIfNeeded()
                 },
                 onFailure = {
                     _snackbarMessage.emit("Redo failed")
@@ -1144,6 +1158,7 @@ class BulletTreeViewModel @Inject constructor(
                     getBulletsUseCase(docId).onSuccess { bullets ->
                         updateState(bullets, forceRebuild = true)
                     }
+                    triggerWidgetRefreshIfNeeded()
                 },
                 onFailure = {
                     _isDragInProgress.value = false
@@ -1173,6 +1188,41 @@ class BulletTreeViewModel @Inject constructor(
         contentOverridesMap.clear()
         _contentOverrides.value = emptyMap()
         noteOverrides.clear()
+    }
+
+    // -----------------------------------------------------------------------
+    // Widget refresh trigger
+    // -----------------------------------------------------------------------
+
+    /**
+     * Conditionally refreshes the home screen widget after a bullet mutation.
+     *
+     * Checks if the currently open document is the one pinned to the widget.
+     * If so, fetches fresh widget data and writes it to WidgetStateStore cache,
+     * then calls updateAll() so provideGlance re-renders from the new cache.
+     *
+     * Uses [refreshWidgetIfDocMatches] from WidgetRefreshHelper so the logic
+     * can be unit-tested in isolation without a real Android environment.
+     *
+     * Silent on failure — the widget will catch up on the next WorkManager sync.
+     */
+    private fun triggerWidgetRefreshIfNeeded() {
+        val docId = currentDocumentId ?: return
+        viewModelScope.launch {
+            try {
+                val store = com.gmaingret.notes.widget.WidgetStateStore.getInstance(getApplication())
+                val entryPoint = EntryPointAccessors.fromApplication(
+                    getApplication<Application>(),
+                    WidgetEntryPoint::class.java
+                )
+                val refreshed = refreshWidgetIfDocMatches(docId, store, entryPoint)
+                if (refreshed) {
+                    NotesWidget().updateAll(getApplication())
+                }
+            } catch (_: Exception) {
+                // Silent failure — widget will catch up on next WorkManager sync
+            }
+        }
     }
 
     override fun onCleared() {

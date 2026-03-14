@@ -12,9 +12,9 @@
 
 ### Widget Display
 
-- [ ] **DISP-01**: Widget shows the document title in a header row
-- [ ] **DISP-02**: Widget shows root-level bullets as a scrollable flat list
-- [ ] **DISP-03**: Widget shows an empty state when the document has no bullets
+- [x] **DISP-01**: Widget shows the document title in a header row
+- [x] **DISP-02**: Widget shows root-level bullets as a scrollable flat list
+- [x] **DISP-03**: Widget shows an empty state when the document has no bullets
 - [x] **DISP-04**: Widget shows loading and error states appropriately
 - [x] **DISP-05**: Widget uses Material 3 theming consistent with the app
 
@@ -116,9 +116,9 @@
 |-------------|-------|--------|
 | SETUP-01 | Phase 13 | Complete |
 | SETUP-02 | Phase 13 | Complete |
-| DISP-01 | Phase 13 | Pending |
-| DISP-02 | Phase 13 | Pending |
-| DISP-03 | Phase 13 | Pending |
+| DISP-01 | Phase 13 | Complete |
+| DISP-02 | Phase 13 | Complete |
+| DISP-03 | Phase 13 | Complete |
 | DISP-04 | Phase 13 | Complete |
 | DISP-05 | Phase 13 | Complete |
 | ACT-01 | Phase 15 | Pending |

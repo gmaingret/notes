@@ -1,9 +1,35 @@
-# Requirements: Notes v2.0 — Native Android Client
+# Requirements: Notes v2.1 — Android Home Screen Widget
 
-**Defined:** 2026-03-12
+**Defined:** 2026-03-14
 **Core Value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
 
-## v2.0 Requirements
+## v2.1 Requirements
+
+### Widget Setup
+
+- [ ] **SETUP-01**: User can add the Notes widget to their Android home screen
+- [ ] **SETUP-02**: User is presented with a document picker when adding the widget
+
+### Widget Display
+
+- [ ] **DISP-01**: Widget shows the document title in a header row
+- [ ] **DISP-02**: Widget shows root-level bullets as a scrollable flat list
+- [ ] **DISP-03**: Widget shows an empty state when the document has no bullets
+- [ ] **DISP-04**: Widget shows loading and error states appropriately
+- [ ] **DISP-05**: Widget uses Material 3 theming consistent with the app
+
+### Widget Actions
+
+- [ ] **ACT-01**: User can tap a "+" button to add a new bullet via an overlay dialog
+- [ ] **ACT-02**: User can tap a delete icon on any bullet to remove it
+
+### Widget Sync
+
+- [ ] **SYNC-01**: Widget refreshes automatically when bullets are changed in the Android app
+- [ ] **SYNC-02**: Widget refreshes periodically in the background via WorkManager (15-min interval)
+- [ ] **SYNC-03**: Widget authenticates independently using the persisted refresh token
+
+## v2.0 Requirements (Complete)
 
 ### Authentication & Network
 
@@ -55,11 +81,19 @@
 - [x] **POLL-07**: Material 3 dark theme
 - [x] **POLL-08**: Material 3 animations (AnimatedVisibility, animateItemPlacement, Crossfade)
 
-## v2.1 Requirements
+## Future Requirements
 
-### Deferred
+### Widget Enhancements
 
-- **TREE-11**: User can upload attachments from Android (view/download only in v2.0)
+- **WIDG-01**: Multiple widget instances pointing to different documents
+- **WIDG-02**: Manual refresh button in widget header
+- **WIDG-03**: Swipe-to-delete gesture on widget items
+- **WIDG-04**: Completion checkbox / clear-completed in widget
+- **WIDG-05**: Widget appearance customization (color, font size)
+
+### Android App Enhancements
+
+- **TREE-12**: User can upload attachments from Android (view/download only in v2.0)
 - **CONT-05**: Inline image rendering in bullets
 - **CONT-06**: Tag browser sidebar
 - **POLL-09**: Physical keyboard shortcuts (Tab, Ctrl+arrows)
@@ -69,56 +103,35 @@
 
 | Feature | Reason |
 |---------|--------|
-| Offline mode / Room database | No offline by design — always connected to server |
+| Nested bullet display in widget | Root level only — keeps widget simple and readable |
+| Drag-to-reorder in widget | Glance LazyColumn backed by ListView, no drag support |
+| Offline/local-only mode | No Room database; server is source of truth |
+| iOS widget | Android only |
+| Widget notification on document changes | No push notification infrastructure |
 | Dynamic color (Material You wallpaper) | Custom theme tokens for brand consistency |
-| PWA features | Native app replaces PWA on Android |
-| Firebase / Play Services | Not required — Credential Manager API handles Google SSO directly |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 9 | Complete |
-| AUTH-02 | Phase 9 | Complete |
-| AUTH-03 | Phase 9 | Complete |
-| AUTH-04 | Phase 9 | Complete |
-| AUTH-05 | Phase 9 | Complete |
-| AUTH-06 | Phase 9 | Complete |
-| DOCM-01 | Phase 10 | Complete |
-| DOCM-02 | Phase 10 | Complete |
-| DOCM-03 | Phase 10 | Complete |
-| DOCM-04 | Phase 10 | Complete |
-| DOCM-05 | Phase 10 | Complete |
-| DOCM-06 | Phase 10 | Complete |
-| TREE-01 | Phase 11 | Complete |
-| TREE-02 | Phase 11 | Complete |
-| TREE-03 | Phase 11 | Complete |
-| TREE-04 | Phase 11 | Complete |
-| TREE-05 | Phase 11 | Complete |
-| TREE-06 | Phase 11 | Complete |
-| TREE-07 | Phase 11 | Complete |
-| TREE-08 | Phase 11 | Complete |
-| TREE-09 | Phase 11 | Complete |
-| TREE-10 | Phase 11 | Complete |
-| CONT-01 | Phase 11 | Complete |
-| CONT-02 | Phase 11 | Complete |
-| TREE-11 | Phase 11 | Complete |
-| CONT-03 | Phase 12 | Complete |
-| CONT-04 | Phase 12 | Complete |
-| POLL-01 | Phase 12 | Complete |
-| POLL-02 | Phase 12 | Complete |
-| POLL-03 | Phase 12 | Complete |
-| POLL-04 | Phase 12 | Complete |
-| POLL-05 | Phase 12 | Complete |
-| POLL-06 | Phase 12 | Complete |
-| POLL-07 | Phase 12 | Complete |
-| POLL-08 | Phase 12 | Complete |
+| SETUP-01 | — | Pending |
+| SETUP-02 | — | Pending |
+| DISP-01 | — | Pending |
+| DISP-02 | — | Pending |
+| DISP-03 | — | Pending |
+| DISP-04 | — | Pending |
+| DISP-05 | — | Pending |
+| ACT-01 | — | Pending |
+| ACT-02 | — | Pending |
+| SYNC-01 | — | Pending |
+| SYNC-02 | — | Pending |
+| SYNC-03 | — | Pending |
 
 **Coverage:**
-- v2.0 requirements: 35 total
-- Mapped to phases: 35
-- Unmapped: 0
+- v2.1 requirements: 11 total
+- Mapped to phases: 0
+- Unmapped: 11
 
 ---
-*Requirements defined: 2026-03-12*
-*Last updated: 2026-03-12 — added TREE-11 comments, refined TREE-02 Enter behavior*
+*Requirements defined: 2026-03-14*
+*Last updated: 2026-03-14 after initial definition*

@@ -115,6 +115,6 @@ Plans:
 | 10. Document Management | v2.0 | 3/3 | Complete | 2026-03-12 |
 | 11. Bullet Tree | v2.0 | 4/4 | Complete | 2026-03-12 |
 | 12. Reactivity and Polish | v2.0 | 5/5 | Complete | 2026-03-12 |
-| 13. Widget Foundation | 4/4 | Complete   | 2026-03-14 | - |
+| 13. Widget Foundation | 4/4 | Complete    | 2026-03-14 | - |
 | 14. Background Sync and Auth | v2.1 | 0/? | Not started | - |
 | 15. Interactive Actions | v2.1 | 0/? | Not started | - |

@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
@@ -173,31 +174,63 @@ fun BulletRow(bullet: WidgetBullet, context: Context, documentId: String) {
     }
     val textDecoration = if (bullet.isComplete) TextDecoration.LineThrough else TextDecoration.None
 
+    // Outer row: no row-level clickable so the x icon's own clickable is not overridden.
+    // Dot + text are wrapped in an inner row with their own clickable (opens app).
+    // The x icon has its own clickable (triggers delete callback).
     Row(
         modifier = GlanceModifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-            .clickable(actionStartActivity(openAppIntent)),
+            .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Bullet dot
+        // Inner row: dot + text — tapping opens the document in the app
+        Row(
+            modifier = GlanceModifier
+                .defaultWeight()
+                .clickable(actionStartActivity(openAppIntent)),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Bullet dot
+            Box(
+                modifier = GlanceModifier
+                    .size(6.dp)
+                    .cornerRadius(3.dp)
+                    .background(dotColor)
+            ) {}
+            Spacer(GlanceModifier.width(8.dp))
+            Text(
+                text = bullet.content,
+                maxLines = 1,
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    color = textColor,
+                    textDecoration = textDecoration
+                ),
+                modifier = GlanceModifier.defaultWeight()
+            )
+        }
+        Spacer(GlanceModifier.width(4.dp))
+        // Delete icon — always visible, bare x, same color as bullet text
         Box(
             modifier = GlanceModifier
-                .size(6.dp)
-                .cornerRadius(3.dp)
-                .background(dotColor)
-        ) {}
-        Spacer(GlanceModifier.width(8.dp))
-        Text(
-            text = bullet.content,
-            maxLines = 1,
-            style = TextStyle(
-                fontSize = 14.sp,
-                color = textColor,
-                textDecoration = textDecoration
-            ),
-            modifier = GlanceModifier.defaultWeight()
-        )
+                .padding(8.dp)
+                .clickable(
+                    actionRunCallback<DeleteBulletActionCallback>(
+                        actionParametersOf(
+                            DeleteBulletActionCallback.BULLET_ID_PARAM to bullet.id
+                        )
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "\u00D7",
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    color = textColor
+                )
+            )
+        }
     }
 }
 

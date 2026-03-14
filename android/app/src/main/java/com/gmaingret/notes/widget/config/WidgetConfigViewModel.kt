@@ -152,6 +152,33 @@ class WidgetConfigViewModel @Inject constructor(
     // ---------------------------------------------------------------------------
 
     /**
+     * Re-runs the auth-check-and-load flow. Called from the error state retry button
+     * and after external auth (e.g., Google SSO handled by the Activity).
+     */
+    fun retry() {
+        checkAuthAndLoad()
+    }
+
+    /**
+     * Called by the Activity after Google SSO completes successfully to reload documents.
+     * The Activity handles the Credential Manager flow (requires Activity context);
+     * the ViewModel handles loading documents once auth is confirmed.
+     */
+    fun reloadDocuments() {
+        viewModelScope.launch {
+            _uiState.value = ConfigUiState.Loading
+            loadDocuments()
+        }
+    }
+
+    /**
+     * Surfaces an error emitted by the Activity (e.g., Google SSO failure).
+     */
+    fun setError(message: String) {
+        _uiState.value = ConfigUiState.Error(message)
+    }
+
+    /**
      * Persists the selected document for the given widget and emits a
      * [documentSelectedEvent] so the Activity can finalize the result.
      *

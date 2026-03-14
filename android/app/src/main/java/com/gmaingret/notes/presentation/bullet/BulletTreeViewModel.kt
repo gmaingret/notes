@@ -866,14 +866,31 @@ class BulletTreeViewModel @Inject constructor(
     /**
      * Refreshes bullets from server, setting [_isRefreshing] appropriately.
      * Used by pull-to-refresh (Plan 04).
+     *
+     * Flushes any pending local edits first so the server has the latest content,
+     * then clears overrides so the UI shows the freshly-fetched server state.
      */
     fun refresh() {
         val docId = currentDocumentId ?: return
         _isRefreshing.value = true
         viewModelScope.launch {
             try {
+                // Flush pending edits so the server has our latest content
+                val pendingContent = contentOverridesMap.toMap()
+                val pendingNotes = noteOverrides.toMap()
+                pendingContent.forEach { (bulletId, content) ->
+                    patchBulletUseCase(bulletId, PatchBulletRequest.updateContent(content))
+                }
+                pendingNotes.forEach { (bulletId, note) ->
+                    patchBulletUseCase(bulletId, PatchBulletRequest.updateNote(note))
+                }
+                // Clear overrides so the UI shows server-authoritative content
+                contentOverridesMap.clear()
+                _contentOverrides.value = emptyMap()
+                noteOverrides.clear()
+
                 getBulletsUseCase(docId).onSuccess { bullets ->
-                    updateState(bullets)
+                    updateState(bullets, forceRebuild = true)
                     getBookmarksUseCase().onSuccess { bookmarks ->
                         _bookmarkedBulletIds.value = bookmarks.map { it.bulletId }.toSet()
                     }

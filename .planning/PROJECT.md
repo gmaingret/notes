@@ -12,6 +12,7 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 
 ### Validated
 
+- ✓ Native Android client with full feature parity (auth, documents, bullets, search, bookmarks, attachments) — v2.0
 - ✓ User authentication via email/password and Google SSO — v1.0
 - ✓ User can create, rename, reorder, and delete documents (flat list, no folders) — v1.0
 - ✓ User can create/edit/delete bullets with unlimited nesting — v1.0
@@ -41,13 +42,7 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 
 ### Active
 
-- [ ] Native Android client in Kotlin/Jetpack Compose + Material Design 3
-- [ ] Android app talks to existing backend API (no new backend features)
-- [ ] Auth: JWT bearer tokens with refresh via httpOnly cookie, EncryptedSharedPreferences
-- [ ] Document management: list, CRUD, drag reorder, last-opened persistence
-- [ ] Bullet tree: nested bullets, tree flattening, indent/outdent, collapse/expand, complete, drag-drop
-- [ ] Reactivity: optimistic updates, pull-to-refresh, swipe gestures, search, undo/redo
-- [ ] Material Design 3 theme with dark mode, smooth animations
+(No active requirements — next milestone not yet defined)
 
 ### Deferred
 
@@ -57,7 +52,7 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 
 ### Out of Scope
 
-- ~~Native mobile apps~~ — reversed in v2.0: Android client now in scope
+- ~~Native mobile apps~~ — delivered in v2.0: Android client shipped
 - Offline mode — requires service worker complexity, defer
 - Shared documents / collaboration — deliberately no sharing, privacy-first design
 - Folders — flat document list by design (Dynalist/Workflowy pattern)
@@ -71,20 +66,14 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - AI features — out of scope for focused outliner clone
 - Real-time sync / collaboration — privacy-first means no sync
 
-## Current Milestone: v2.0 Native Android Client
+## Current State
 
-**Goal:** Build a native Android client in Kotlin/Jetpack Compose + Material Design 3 that talks to the existing backend API — no new features, focus on reactivity and polish.
-
-**Target features:**
-- Project scaffolding with Clean Architecture + MVVM, Hilt DI, Retrofit + OkHttp
-- Login/Register with JWT auth (token refresh via httpOnly cookie)
-- Document management in ModalNavigationDrawer with CRUD and drag reorder
-- Bullet tree outliner: nested bullets, tree flattening, indent/outdent, collapse/expand, drag-drop
-- Reactivity & polish: optimistic updates, pull-to-refresh, swipe gestures, search, undo/redo, dark theme, Material 3 animations
+**Shipped:** v2.0 Native Android Client (2026-03-14) — 4 phases, 17 plans, 12,200 LOC Kotlin
+**Live at:** https://notes.gregorymaingret.fr (web) + Android debug APK on device
 
 ## Context
 
-- **Shipped:** v1.1 (2026-03-11) — two milestones complete; ~44k+ LOC
+- **Shipped:** v2.0 (2026-03-14) — three milestones complete; ~56k+ LOC (44k web + 12k Android)
 - **Live at:** https://notes.gregorymaingret.fr
 - **Tech stack:** React + Vite + TypeScript (client), Express + Drizzle ORM + PostgreSQL (server), Docker (deployment), Nginx reverse proxy
 - **UI libraries:** lucide-react (icons), @fontsource-variable/inter + jetbrains-mono (fonts), @dnd-kit (drag-and-drop), zustand (state)
@@ -128,4 +117,4 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 | Inter Variable + JetBrains Mono via @fontsource (no Google Fonts) | Self-hosted fonts maintain privacy-first approach | ✓ Good — no external dependencies, fast load from same server |
 
 ---
-*Last updated: 2026-03-12 after v2.0 milestone started*
+*Last updated: 2026-03-14 after v2.0 milestone completed*

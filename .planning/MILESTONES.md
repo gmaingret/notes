@@ -1,4 +1,24 @@
 # Milestones
+## v2.0 Native Android Client (Shipped: 2026-03-14)
+
+**Phases completed:** 4 phases (9-12), 17 plans, ~35 tasks
+**Timeline:** 2026-03-12 → 2026-03-14 (3 days)
+**Files changed:** 156 | Lines added: 13,086 | Kotlin LOC: 12,200
+
+**Key accomplishments:**
+1. Native Android app with Clean Architecture (MVVM + Use Cases), Hilt DI, Retrofit + OkHttp with JWT auth, Google SSO via Credential Manager, Tink-encrypted token storage
+2. Document management in ModalNavigationDrawer with full CRUD, drag-reorder via Reorderable library, last-opened persistence across cold starts
+3. Infinite nested bullet outliner in flat LazyColumn with FlattenTreeUseCase DFS, all editing interactions (Enter/Backspace/indent/outdent), markdown rendering, #tag/@mention/!!date chips
+4. Swipe-to-complete (green) and swipe-to-delete (red) with proportional reveal and haptic feedback, long-press context menu
+5. Inline search with 300ms debounce, bookmarks screen, attachment viewer with Coil image loading, pull-to-refresh on all screens
+6. Material 3 dark theme, smooth animations (AnimatedVisibility, Crossfade, animateContentSize), 48dp touch targets
+
+**Known tech debt:** refreshToken cookie not cleared on logout (DataStoreCookieJar.clearAll never called); TagApi.getBulletsByTag defined but unused
+
+**Archive:** `.planning/milestones/v2.0-ROADMAP.md` | `.planning/milestones/v2.0-REQUIREMENTS.md`
+
+---
+
 ## v1.1 Mobile & UI Polish (Shipped: 2026-03-11)
 
 **Phases completed:** 5 phases (5, 6, 7, 7.1, 8), 23 plans

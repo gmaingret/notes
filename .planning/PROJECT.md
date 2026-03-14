@@ -45,7 +45,7 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 <!-- v2.1 Android Home Screen Widget -->
 - [ ] User can add a Notes widget to their Android home screen and choose which document it shows
 - [ ] User can see root-level bullet items of the selected document at a glance
-- [ ] User can add a new bullet from the widget via a lightweight overlay dialog
+- [ ] User can add a new bullet at the top of the list from the widget via a lightweight overlay dialog
 - [ ] User can delete a bullet directly from the widget
 - [ ] Widget auto-refreshes when changes are made in the Android app
 - [ ] User can manually refresh the widget to pull in changes from other devices

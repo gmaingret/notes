@@ -20,7 +20,7 @@
 
 ### Widget Actions
 
-- [ ] **ACT-01**: User can tap a "+" button to add a new bullet via an overlay dialog
+- [ ] **ACT-01**: User can tap a "+" button to add a new bullet at the top of the list via a lightweight overlay dialog with pre-focused text field
 - [ ] **ACT-02**: User can tap a delete icon on any bullet to remove it
 
 ### Widget Sync
@@ -114,24 +114,24 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SETUP-01 | — | Pending |
-| SETUP-02 | — | Pending |
-| DISP-01 | — | Pending |
-| DISP-02 | — | Pending |
-| DISP-03 | — | Pending |
-| DISP-04 | — | Pending |
-| DISP-05 | — | Pending |
-| ACT-01 | — | Pending |
-| ACT-02 | — | Pending |
-| SYNC-01 | — | Pending |
-| SYNC-02 | — | Pending |
-| SYNC-03 | — | Pending |
+| SETUP-01 | Phase 13 | Pending |
+| SETUP-02 | Phase 13 | Pending |
+| DISP-01 | Phase 13 | Pending |
+| DISP-02 | Phase 13 | Pending |
+| DISP-03 | Phase 13 | Pending |
+| DISP-04 | Phase 13 | Pending |
+| DISP-05 | Phase 13 | Pending |
+| ACT-01 | Phase 15 | Pending |
+| ACT-02 | Phase 15 | Pending |
+| SYNC-01 | Phase 14 | Pending |
+| SYNC-02 | Phase 14 | Pending |
+| SYNC-03 | Phase 14 | Pending |
 
 **Coverage:**
-- v2.1 requirements: 11 total
-- Mapped to phases: 0
-- Unmapped: 11
+- v2.1 requirements: 12 total (note: original count of 11 was incorrect; SYNC-03 brings total to 12)
+- Mapped to phases: 12
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-14*
-*Last updated: 2026-03-14 after initial definition*
+*Last updated: 2026-03-14 after roadmap creation — traceability complete*

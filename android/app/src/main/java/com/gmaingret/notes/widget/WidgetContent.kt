@@ -35,6 +35,7 @@ import androidx.glance.text.TextDecoration
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.gmaingret.notes.MainActivity
+import com.gmaingret.notes.widget.add.AddBulletActivity
 
 // Intent extra key for opening a specific document from the widget
 const val OPEN_DOCUMENT_ID = "OPEN_DOCUMENT_ID"
@@ -134,6 +135,10 @@ fun HeaderRow(title: String, documentId: String, context: Context) {
                     .clickable(actionStartActivity(openAppIntent))
             )
             Spacer(GlanceModifier.width(4.dp))
+            val addIntent = Intent(context, AddBulletActivity::class.java).apply {
+                flags = FLAG_ACTIVITY_NEW_TASK
+                putExtra("doc_id", documentId)
+            }
             Text(
                 text = "+",
                 style = TextStyle(
@@ -143,7 +148,7 @@ fun HeaderRow(title: String, documentId: String, context: Context) {
                 ),
                 modifier = GlanceModifier
                     .padding(8.dp)
-                    .clickable(actionStartActivity(openAppIntent))
+                    .clickable(actionStartActivity(addIntent))
             )
         }
         // Thin divider

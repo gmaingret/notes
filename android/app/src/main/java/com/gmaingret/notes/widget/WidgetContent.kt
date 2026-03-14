@@ -77,7 +77,7 @@ fun WidgetContent(uiState: WidgetUiState, context: Context) {
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(GlanceTheme.colors.surface)
+            .background(ColorProvider(Color(0xBF000000)))
             .cornerRadius(16.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -119,14 +119,14 @@ fun HeaderRow(title: String, documentId: String, context: Context) {
         Row(
             modifier = GlanceModifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = title,
                 maxLines = 1,
                 style = TextStyle(
-                    fontSize = 20.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = GlanceTheme.colors.onSurface
                 ),
@@ -142,12 +142,12 @@ fun HeaderRow(title: String, documentId: String, context: Context) {
             Text(
                 text = "+",
                 style = TextStyle(
-                    fontSize = 26.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Medium,
                     color = GlanceTheme.colors.primary
                 ),
                 modifier = GlanceModifier
-                    .padding(8.dp)
+                    .padding(2.dp)
                     .clickable(actionStartActivity(addIntent))
             )
         }

@@ -12,6 +12,7 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 
 ### Validated
 
+- ✓ Native Android client with full feature parity (auth, documents, bullets, search, bookmarks, attachments) — v2.0
 - ✓ User authentication via email/password and Google SSO — v1.0
 - ✓ User can create, rename, reorder, and delete documents (flat list, no folders) — v1.0
 - ✓ User can create/edit/delete bullets with unlimited nesting — v1.0
@@ -41,13 +42,14 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 
 ### Active
 
-- [ ] Native Android client in Kotlin/Jetpack Compose + Material Design 3
-- [ ] Android app talks to existing backend API (no new backend features)
-- [ ] Auth: JWT bearer tokens with refresh via httpOnly cookie, EncryptedSharedPreferences
-- [ ] Document management: list, CRUD, drag reorder, last-opened persistence
-- [ ] Bullet tree: nested bullets, tree flattening, indent/outdent, collapse/expand, complete, drag-drop
-- [ ] Reactivity: optimistic updates, pull-to-refresh, swipe gestures, search, undo/redo
-- [ ] Material Design 3 theme with dark mode, smooth animations
+<!-- v2.1 Android Home Screen Widget -->
+- [ ] User can add a Notes widget to their Android home screen and choose which document it shows
+- [ ] User can see root-level bullet items of the selected document at a glance
+- [ ] User can add a new bullet at the top of the list from the widget via a lightweight overlay dialog
+- [ ] User can delete a bullet directly from the widget
+- [ ] Widget auto-refreshes when changes are made in the Android app
+- [ ] User can manually refresh the widget to pull in changes from other devices
+- [ ] Each widget instance can point to a different document
 
 ### Deferred
 
@@ -57,7 +59,7 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 
 ### Out of Scope
 
-- ~~Native mobile apps~~ — reversed in v2.0: Android client now in scope
+- ~~Native mobile apps~~ — delivered in v2.0: Android client shipped
 - Offline mode — requires service worker complexity, defer
 - Shared documents / collaboration — deliberately no sharing, privacy-first design
 - Folders — flat document list by design (Dynalist/Workflowy pattern)
@@ -71,20 +73,25 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - AI features — out of scope for focused outliner clone
 - Real-time sync / collaboration — privacy-first means no sync
 
-## Current Milestone: v2.0 Native Android Client
+## Current Milestone: v2.1 Android Home Screen Widget
 
-**Goal:** Build a native Android client in Kotlin/Jetpack Compose + Material Design 3 that talks to the existing backend API — no new features, focus on reactivity and polish.
+**Goal:** Add a resizable Android home screen widget that displays root-level bullets of a chosen document with inline add/delete — ideal for grocery lists, shopping lists, or quick task lists.
 
 **Target features:**
-- Project scaffolding with Clean Architecture + MVVM, Hilt DI, Retrofit + OkHttp
-- Login/Register with JWT auth (token refresh via httpOnly cookie)
-- Document management in ModalNavigationDrawer with CRUD and drag reorder
-- Bullet tree outliner: nested bullets, tree flattening, indent/outdent, collapse/expand, drag-drop
-- Reactivity & polish: optimistic updates, pull-to-refresh, swipe gestures, search, undo/redo, dark theme, Material 3 animations
+- Pin any document as a home screen widget (Jetpack Glance)
+- Show root-level bullets as a flat scrollable list
+- Add new bullet via lightweight overlay dialog
+- Delete bullet directly from widget
+- Auto-sync with in-app changes + manual refresh + 15-min WorkManager periodic sync
+
+## Current State
+
+**Shipped:** v2.0 Native Android Client (2026-03-14) — 4 phases, 17 plans, 12,200 LOC Kotlin
+**Live at:** https://notes.gregorymaingret.fr (web) + Android debug APK on device
 
 ## Context
 
-- **Shipped:** v1.1 (2026-03-11) — two milestones complete; ~44k+ LOC
+- **Shipped:** v2.0 (2026-03-14) — three milestones complete; ~56k+ LOC (44k web + 12k Android)
 - **Live at:** https://notes.gregorymaingret.fr
 - **Tech stack:** React + Vite + TypeScript (client), Express + Drizzle ORM + PostgreSQL (server), Docker (deployment), Nginx reverse proxy
 - **UI libraries:** lucide-react (icons), @fontsource-variable/inter + jetbrains-mono (fonts), @dnd-kit (drag-and-drop), zustand (state)
@@ -128,4 +135,4 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 | Inter Variable + JetBrains Mono via @fontsource (no Google Fonts) | Self-hosted fonts maintain privacy-first approach | ✓ Good — no external dependencies, fast load from same server |
 
 ---
-*Last updated: 2026-03-12 after v2.0 milestone started*
+*Last updated: 2026-03-14 after v2.1 milestone started*

@@ -1,8 +1,179 @@
 # Stack Research
 
 **Domain:** Self-hosted multi-user outliner / PKM web app (Dynalist/Workflowy clone)
-**Researched:** 2026-03-09 (v1.0) | Updated: 2026-03-10 (v1.1 additions) | Updated: 2026-03-12 (v2.0 Android)
-**Confidence:** HIGH (all new package versions verified against official sources 2026-03-12)
+**Researched:** 2026-03-09 (v1.0) | Updated: 2026-03-10 (v1.1 additions) | Updated: 2026-03-12 (v2.0 Android) | Updated: 2026-03-14 (v2.1 Widget)
+**Confidence:** HIGH (all new package versions verified against official sources 2026-03-14)
+
+---
+
+## v2.1 Android Home Screen Widget
+
+This section documents ONLY the new dependencies required for the widget milestone. The existing Android app stack (Kotlin 2.1.20, Compose BOM 2025.02.00, Material 3, Hilt 2.56.1, Retrofit 3.0.0 + OkHttp 4.12.0, DataStore 1.2.1 + Tink 1.8.0, Navigation3 1.0.1, Coil 3.1.0, AGP 8.9.1, compileSdk 36, minSdk 26, Java 21) is validated and unchanged.
+
+### New Dependencies to Add
+
+#### Version Catalog Entries (`android/gradle/libs.versions.toml`)
+
+```toml
+[versions]
+# Add these — all others already exist
+glance = "1.1.1"
+workManager = "2.11.1"
+hiltWork = "1.3.0"         # androidx.hilt group — distinct from com.google.dagger:hilt 2.56.1
+
+[libraries]
+# Add these
+glance-appwidget       = { group = "androidx.glance", name = "glance-appwidget",  version.ref = "glance" }
+glance-material3       = { group = "androidx.glance", name = "glance-material3",  version.ref = "glance" }
+work-runtime-ktx       = { group = "androidx.work",   name = "work-runtime-ktx",  version.ref = "workManager" }
+hilt-work              = { group = "androidx.hilt",    name = "hilt-work",         version.ref = "hiltWork" }
+hilt-work-compiler     = { group = "androidx.hilt",    name = "hilt-compiler",     version.ref = "hiltWork" }
+```
+
+Note: `hilt-work-compiler` uses `androidx.hilt:hilt-compiler`, not to be confused with the existing `hilt-android-compiler` entry (`com.google.dagger:hilt-android-compiler`). Both must be present.
+
+#### `android/app/build.gradle.kts` Additions
+
+```kotlin
+dependencies {
+    // Widget (Jetpack Glance)
+    implementation(libs.glance.appwidget)
+    implementation(libs.glance.material3)
+
+    // Periodic background refresh
+    implementation(libs.work.runtime.ktx)
+
+    // Hilt-WorkManager bridge (@HiltWorker + HiltWorkerFactory)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.work.compiler)
+}
+```
+
+### Core Widget Technologies
+
+| Technology | Version | Artifact | Purpose | Why |
+|------------|---------|----------|---------|-----|
+| Glance AppWidget | 1.1.1 | `androidx.glance:glance-appwidget` | Widget rendering via Compose | Official Jetpack widget framework. Pulls in `glance` core transitively — do not add `glance` separately. 1.1.1 includes the protobuf security fix (CVE-2024-7254). |
+| Glance Material 3 | 1.1.1 | `androidx.glance:glance-material3` | Map app's M3 color scheme into widget | Provides `GlanceMaterialTheme`. Without it, the widget ignores the app's Material 3 theme tokens and renders with default colors. |
+| WorkManager KTX | 2.11.1 | `androidx.work:work-runtime-ktx` | 15-min periodic background refresh | Standard Jetpack background scheduler. `CoroutineWorker` from the KTX variant fits Kotlin suspend-based code; minSdk raised to 23 in 2.11.0 — no conflict with project minSdk 26. |
+| Hilt Work | 1.3.0 | `androidx.hilt:hilt-work` | Inject repositories into CoroutineWorker | `@HiltWorker` + `@AssistedInject` eliminates manual WorkerFactory wiring. Same Hilt version (2.56.1 Dagger) already in the project. |
+| Hilt Work Compiler | 1.3.0 | `androidx.hilt:hilt-compiler` | KSP annotation processing for hilt-work | Required companion to `hilt-work`. Must use `ksp(...)` — project already uses KSP, no kapt involved. |
+
+### Integration Requirements
+
+#### 1. Hilt + WorkManager (Application Class Change)
+
+`hilt-work` requires WorkManager to use `HiltWorkerFactory`. Two changes needed:
+
+**Application class** — create or update to implement `Configuration.Provider`:
+
+```kotlin
+@HiltAndroidApp
+class NotesApplication : Application(), Configuration.Provider {
+    @Inject lateinit var workerFactory: HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
+}
+```
+
+**AndroidManifest.xml** — disable the default WorkManager auto-initializer:
+
+```xml
+<provider
+    android:name="androidx.startup.InitializationProvider"
+    android:authorities="${applicationId}.androidx-startup"
+    android:exported="false"
+    tools:node="merge">
+    <meta-data
+        android:name="androidx.work.WorkManagerInitializer"
+        android:value="androidx.startup"
+        tools:node="remove" />
+</provider>
+```
+
+If the app does not yet have a custom `Application` class, one must be created and declared in the manifest `android:name=".NotesApplication"`.
+
+#### 2. Hilt + GlanceAppWidget (EntryPoint Pattern)
+
+`@AndroidEntryPoint` does NOT work on `GlanceAppWidget` — Glance constructs it via reflection with no constructor injection hook. Use `@EntryPoint` + `EntryPointAccessors` inside `provideGlance` instead:
+
+```kotlin
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface WidgetEntryPoint {
+    fun bulletsRepository(): BulletsRepository
+    fun tokenStorage(): TokenStorage
+}
+
+class NotesWidget : GlanceAppWidget() {
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val entryPoint = EntryPointAccessors
+            .fromApplication(context.applicationContext, WidgetEntryPoint::class.java)
+        val repo = entryPoint.bulletsRepository()
+        // fetch data, then provideContent { ... }
+    }
+}
+```
+
+`@AndroidEntryPoint` CAN be applied to `GlanceAppWidgetReceiver` (it is a standard BroadcastReceiver), but the widget class itself requires the EntryPoint workaround.
+
+#### 3. Widget Refresh Strategy
+
+| Trigger | Mechanism | Notes |
+|---------|-----------|-------|
+| App makes a change (add/delete bullet) | `NotesWidget().updateAll(context)` from ViewModel after successful API mutation | Suspend function — launch from `viewModelScope` |
+| Periodic background (15-min) | `PeriodicWorkRequest` with `CoroutineWorker` annotated `@HiltWorker` | 15 minutes is WorkManager's minimum interval |
+| Manual widget refresh action | Same as app change — call `updateAll` from the action `lambda` | Widget actions must be enqueued via `actionRunCallback` |
+
+`updateAll` is a suspend function — never call it from the main thread directly.
+
+### Alternatives Considered
+
+| Recommended | Alternative | Why Not |
+|-------------|-------------|---------|
+| Glance 1.1.1 (stable) | Glance 1.2.0-rc01 | RC since December 2025, no stable promotion yet as of March 2026. The preview API in 1.2.0 is not needed for this milestone. Stable is the correct choice for production. |
+| `glance-material3` artifact | Custom manual colors in widget | `GlanceMaterialTheme` handles the M3 `ColorScheme` → widget surface color mapping automatically. Rolling it manually requires understanding how Glance maps `ColorProviders` to `RemoteViews` — significant boilerplate with no benefit. |
+| `hilt-work` with `@HiltWorker` | Manual `WorkerFactory` subclass | Manual factory requires a boilerplate class and a binding registration. `@HiltWorker` is the Jetpack-endorsed pattern for Hilt projects and generates the factory via KSP. |
+| `work-runtime-ktx` | `work-runtime` (Java flavor) | KTX provides `CoroutineWorker` natively. The project is Kotlin-first throughout; using the Java `ListenableWorker` base class would be a regression. |
+| `@EntryPoint` in GlanceAppWidget | Constructor injection | Not possible — Glance calls the no-arg constructor via reflection. The EntryPoint pattern is the official workaround (confirmed in the Glance issue tracker). |
+
+### What NOT to Add
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| `androidx.glance:glance` (core) separately | Already pulled in transitively by `glance-appwidget` | Just add `glance-appwidget` |
+| `androidx.glance:glance-material` (Material 2) | App uses Material 3 throughout | `glance-material3` |
+| `kapt` for `hilt-work-compiler` | Project already uses KSP; mixing kapt + KSP causes build time penalties and occasional conflicts | `ksp(libs.hilt.work.compiler)` |
+| `work-multiprocess` | Widget runs in the same process as the app; multiprocess support is for isolated-process widgets | Not needed |
+| `hilt-navigation-compose` (again) | Already declared in existing `libs.versions.toml` as `hiltNavigationCompose = "1.2.0"` | Use existing entry |
+| `androidx.glance:glance-wear-tiles` | Wear OS only; this is a phone home screen widget | Not applicable |
+| FCM / push for widget refresh | Explicitly out of scope in PROJECT.md; adds Play Services dependency | WorkManager periodic pull is sufficient |
+
+### Version Compatibility
+
+| Package | Version | Compatible With | Notes |
+|---------|---------|-----------------|-------|
+| `glance-appwidget:1.1.1` | Compose BOM 2025.02.00 | Compatible | Glance 1.x is not BOM-managed; self-versioned at 1.1.1 |
+| `glance-material3:1.1.1` | `material3` from BOM 2025.02.00 | Compatible | Reads M3 `ColorScheme` tokens; must match `glance-appwidget` version |
+| `work-runtime-ktx:2.11.1` | minSdk 26 | Compatible | 2.11.0 raised minSdk to 23; project minSdk is 26 — no conflict |
+| `hilt-work:1.3.0` | Hilt (Dagger) 2.56.1 | Compatible | `androidx.hilt` is a separate group from `com.google.dagger`; they cooperate via the same Hilt runtime |
+| `hilt-work:1.3.0` | KSP 2.1.20-1.0.31 | Compatible | Uses the KSP processor already in the project |
+| `hilt-work:1.3.0` | `work-runtime-ktx:2.11.1` | Compatible | Standard combination; `HiltWorkerFactory` delegates to WorkManager's built-in factory |
+
+### Sources
+
+- [Glance release notes](https://developer.android.com/jetpack/androidx/releases/glance) — confirmed 1.1.1 latest stable (October 2024); 1.2.0-rc01 as latest RC (December 2025); no stable 1.2.0 yet (HIGH confidence)
+- [Glance setup guide](https://developer.android.com/develop/ui/compose/glance/setup) — confirmed `glance-appwidget` + `glance-material3` as the two required artifacts (HIGH confidence)
+- [MVN Repository glance-material3](https://mvnrepository.com/artifact/androidx.glance/glance-material3/1.1.1) — confirmed separate `glance-material3` artifact exists at 1.1.1 (HIGH confidence)
+- [WorkManager release notes](https://developer.android.com/jetpack/androidx/releases/work) — confirmed 2.11.1 stable (January 28, 2026); minSdk 23 since 2.11.0 (HIGH confidence)
+- [Hilt Jetpack releases](https://developer.android.com/jetpack/androidx/releases/hilt) — confirmed `androidx.hilt:hilt-work` + `hilt-compiler` at 1.3.0 stable (September 2025) (HIGH confidence)
+- [Hilt with Jetpack guide](https://developer.android.com/training/dependency-injection/hilt-jetpack) — confirmed `@HiltWorker` + `HiltWorkerFactory` + `Configuration.Provider` pattern (HIGH confidence)
+- [Glance create-app-widget guide](https://developer.android.com/develop/ui/compose/glance/create-app-widget) — confirmed GlanceAppWidgetReceiver + GlanceAppWidget structure (HIGH confidence)
+- [Glance issue tracker #218520083](https://issuetracker.google.com/issues/218520083) — confirmed no native `@AndroidEntryPoint` support on `GlanceAppWidget`; EntryPoint workaround is the official recommendation (HIGH confidence)
+- [Medium — Glance with Hilt](https://medium.com/@debuggingisfun/android-jetpack-glance-with-hilt-6dce38cc9ff6) — EntryPoint pattern implementation example (MEDIUM confidence, consistent with issue tracker)
 
 ---
 
@@ -186,7 +357,6 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 | LiveData | Predates Coroutines/Flow; Compose integrates with StateFlow natively via `collectAsStateWithLifecycle()` | StateFlow + lifecycle-runtime-compose |
 | Navigation 2 (`navigation-compose:2.9.7`) | String-based routes are runtime-error-prone; Nav3 is stable and Compose-first | Navigation3 1.0.1 |
 | Koin | Simpler to set up but lacks compile-time DI verification; errors surface at runtime | Hilt (compile-time safe) |
-| WorkManager | No background sync in scope; app is online-only | Not needed |
 | Push notifications (FCM) | Explicitly out of scope in PROJECT.md | Not needed |
 | OkHttp 5.x | Retrofit 3.0 depends on OkHttp 4.12; OkHttp 5.x support in Retrofit is pending | OkHttp 4.12.0 |
 
@@ -253,7 +423,7 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 ---
 
 *Stack research for: self-hosted multi-user outliner (Dynalist/Workflowy clone)*
-*v1.0 researched: 2026-03-09 | v1.1 additions researched: 2026-03-10 | v2.0 Android researched: 2026-03-12*
+*v1.0 researched: 2026-03-09 | v1.1 additions researched: 2026-03-10 | v2.0 Android researched: 2026-03-12 | v2.1 Widget researched: 2026-03-14*
 
 ---
 
@@ -283,7 +453,7 @@ The v1.0 foundation stack (Express, Drizzle, React, TanStack Query, Zustand, dnd
 | CSS custom properties (built-in) | n/a | Dark mode token system | Zero dependency; define `--bg-primary`, `--text-primary`, etc. on `:root`, override inside `@media (prefers-color-scheme: dark)`; add `color-scheme: light dark` on `<html>` so browser chrome (scrollbars, form inputs) also themes; WCAG AA requires 4.5:1 contrast ratio for normal text — achievable with CSS tokens |
 | vite-plugin-pwa | ^1.2.0 | Generate PWA manifest + optional service worker | Zero-config Vite plugin; v1.0.1+ required for Vite 7 (project uses Vite 7.3.1); v1.2.0 is current; generates `manifest.webmanifest`, injects `<link rel="manifest">`, handles icon array; Workbox under the hood for optional precaching |
 | cmdk | ^1.1.1 | Quick-open Ctrl+K command palette | Headless and unstyled — styles are 100% yours, matches project's existing plain-CSS approach; built-in fuzzy search via command-score library; ARIA-compliant out of the box (role="combobox", aria-activedescendant, focus trap); React 19 compatible; used by Vercel, Linear, Raycast; actively maintained (kbar alternative last updated 2022) |
-| @fontsource-variable/inter | ^5.2.8 | Body/UI font, self-hosted | Variable font = single file covers all weights (400–900); self-hosting eliminates Google Fonts network request — correct for a privacy-first self-hosted app; Fontsource recommends variable over static packages for multi-weight use |
+| @fontsource-variable/inter | ^5.2.8 | Body/UI font, self-hosted | Variable font = single file covers all weights (400–900); self-hosting eliminates Google Fonts network request — correct for a privacy-first self-hosted app where all assets should be self-served |
 | @fontsource-variable/jetbrains-mono | ^5.2.8 | Monospace font for code/tags/chips | Self-hosted variable font; single file for all weights; used for inline code spans, tag chips (`#tag`), and `@mention` chips to distinguish semantic content visually |
 
 ### Optional: Swipe Animation Polish
@@ -606,4 +776,4 @@ The original v1.0 stack research below remains valid. No changes to the backend,
 ---
 
 *Stack research for: self-hosted multi-user outliner (Dynalist/Workflowy clone)*
-*v1.0 researched: 2026-03-09 | v1.1 additions researched: 2026-03-10 | v2.0 Android researched: 2026-03-12*
+*v1.0 researched: 2026-03-09 | v1.1 additions researched: 2026-03-10 | v2.0 Android researched: 2026-03-12 | v2.1 Widget researched: 2026-03-14*

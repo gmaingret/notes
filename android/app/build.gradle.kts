@@ -140,6 +140,9 @@ dependencies {
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
 
+    // Vosk (offline speech recognition)
+    implementation(libs.vosk.android)
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 

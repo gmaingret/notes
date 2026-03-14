@@ -10,6 +10,7 @@ import { bookmarksRouter } from './routes/bookmarks.js';
 import { tagsRouter } from './routes/tags.js';
 import { searchRouter } from './routes/search.js';
 import { attachmentsRouter } from './routes/attachments.js';
+import { voiceRouter } from './routes/voice.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
@@ -28,6 +29,7 @@ app.use('/api/bookmarks', bookmarksRouter);
 app.use('/api/tags', tagsRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/attachments', attachmentsRouter);
+app.use('/api/voice', voiceRouter);
 
 // Serve React static files in production
 if (process.env.NODE_ENV === 'production') {

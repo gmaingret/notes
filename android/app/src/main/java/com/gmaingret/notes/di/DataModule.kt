@@ -7,6 +7,7 @@ import com.gmaingret.notes.data.repository.BulletRepositoryImpl
 import com.gmaingret.notes.data.repository.DocumentRepositoryImpl
 import com.gmaingret.notes.data.repository.SearchRepositoryImpl
 import com.gmaingret.notes.data.repository.TagRepositoryImpl
+import com.gmaingret.notes.data.repository.VoiceRepositoryImpl
 import com.gmaingret.notes.domain.repository.AttachmentRepository
 import com.gmaingret.notes.domain.repository.AuthRepository
 import com.gmaingret.notes.domain.repository.BookmarkRepository
@@ -14,6 +15,7 @@ import com.gmaingret.notes.domain.repository.BulletRepository
 import com.gmaingret.notes.domain.repository.DocumentRepository
 import com.gmaingret.notes.domain.repository.SearchRepository
 import com.gmaingret.notes.domain.repository.TagRepository
+import com.gmaingret.notes.domain.repository.VoiceRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -59,4 +61,8 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindTagRepository(impl: TagRepositoryImpl): TagRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindVoiceRepository(impl: VoiceRepositoryImpl): VoiceRepository
 }

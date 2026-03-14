@@ -1,6 +1,8 @@
 package com.gmaingret.notes.presentation.main
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -63,6 +65,10 @@ import com.gmaingret.notes.presentation.search.SearchUiState
 import com.gmaingret.notes.presentation.search.SearchViewModel
 import com.gmaingret.notes.presentation.tags.TagBrowserScreen
 import com.gmaingret.notes.presentation.tags.TagsViewModel
+import com.gmaingret.notes.voice.VoiceCommandService
+import com.gmaingret.notes.voice.VoicePermissionHelper
+import com.gmaingret.notes.voice.VoicePreferences
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,6 +86,22 @@ fun MainScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var menuExpanded by remember { mutableStateOf(false) }
     var deleteConfirmation by remember { mutableStateOf<Document?>(null) }
+
+    // Voice state
+    val context = LocalContext.current
+    val voicePreferences = remember { VoicePreferences(context.applicationContext) }
+    val isVoiceEnabled by voicePreferences.isVoiceEnabled.collectAsState(initial = false)
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.values.all { it }
+        if (allGranted) {
+            scope.launch {
+                voicePreferences.setVoiceEnabled(true)
+                VoiceCommandService.start(context)
+            }
+        }
+    }
 
     // Search state
     val searchViewModel: SearchViewModel = hiltViewModel()
@@ -127,7 +149,7 @@ fun MainScreen(
     // Consume a pending widget deep-link document ID and navigate to the document.
     // Keyed on Unit so it runs once when MainScreen enters the composition.
     // consumeWidgetDocumentId() returns-and-clears the pending ID atomically.
-    val activity = LocalContext.current as? MainActivity
+    val activity = context as? MainActivity
     LaunchedEffect(Unit) {
         activity?.consumeWidgetDocumentId()?.let { docId ->
             viewModel.openDocument(docId)
@@ -138,6 +160,14 @@ fun MainScreen(
     LaunchedEffect(drawerState.isOpen) {
         if (drawerState.isOpen) {
             viewModel.refreshDocuments()
+        }
+    }
+
+    // Auto-start voice service if previously enabled
+    LaunchedEffect(Unit) {
+        val wasEnabled = voicePreferences.isVoiceEnabled.first()
+        if (wasEnabled && VoicePermissionHelper.hasAllPermissions(context)) {
+            VoiceCommandService.start(context)
         }
     }
 
@@ -218,7 +248,25 @@ fun MainScreen(
                         scope.launch { drawerState.close() }
                     },
                     isRefreshing = isDrawerRefreshing,
-                    onRefresh = { viewModel.refreshDocuments() }
+                    onRefresh = { viewModel.refreshDocuments() },
+                    isVoiceEnabled = isVoiceEnabled,
+                    onVoiceToggle = { enabled ->
+                        scope.launch {
+                            if (enabled) {
+                                if (VoicePermissionHelper.hasAllPermissions(context)) {
+                                    voicePreferences.setVoiceEnabled(true)
+                                    VoiceCommandService.start(context)
+                                } else {
+                                    permissionLauncher.launch(
+                                        VoicePermissionHelper.getRequiredPermissions().toTypedArray()
+                                    )
+                                }
+                            } else {
+                                voicePreferences.setVoiceEnabled(false)
+                                VoiceCommandService.stop(context)
+                            }
+                        }
+                    }
                 )
             }
         }

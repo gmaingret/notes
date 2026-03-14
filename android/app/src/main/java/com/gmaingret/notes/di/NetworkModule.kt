@@ -8,6 +8,7 @@ import com.gmaingret.notes.data.api.DocumentApi
 import com.gmaingret.notes.data.api.AuthInterceptor
 import com.gmaingret.notes.data.api.SearchApi
 import com.gmaingret.notes.data.api.TagApi
+import com.gmaingret.notes.data.api.VoiceApi
 import com.gmaingret.notes.data.api.TokenAuthenticator
 import com.gmaingret.notes.data.local.DataStoreCookieJar
 import dagger.Module
@@ -93,4 +94,9 @@ object NetworkModule {
     @Singleton
     fun provideTagApi(retrofit: Retrofit): TagApi =
         retrofit.create(TagApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideVoiceApi(retrofit: Retrofit): VoiceApi =
+        retrofit.create(VoiceApi::class.java)
 }

@@ -3,6 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name=".NotesApplication"
@@ -51,6 +56,12 @@
             android:name=".widget.add.AddBulletActivity"
             android:exported="false"
             android:theme="@style/Theme.Notes.Overlay" />
+
+        <!-- Voice command foreground service for wake word detection -->
+        <service
+            android:name=".voice.VoiceCommandService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
 
         <!-- Disable the default WorkManager auto-initializer so we can wire HiltWorkerFactory
              via Configuration.Provider in NotesApplication. Without this, WorkManager would

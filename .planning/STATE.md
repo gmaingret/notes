@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Android Home Screen Widget
 status: roadmap_ready
-stopped_at: Completed 15-01-PLAN.md
-last_updated: "2026-03-14T15:28:57.731Z"
+stopped_at: Completed 15-02-PLAN.md
+last_updated: "2026-03-14T15:40:25.318Z"
 last_activity: 2026-03-14 — Roadmap created for v2.1 (Phases 13-15)
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 ---
@@ -67,6 +67,7 @@ Progress: [░░░░░░░░░░] 0% (v2.1: 0/3 phases)
 | Phase 14-background-sync-and-auth P01 | 14 | 2 tasks | 8 files |
 | Phase 14-background-sync-and-auth P02 | 525623 | 2 tasks | 8 files |
 | Phase 15-interactive-actions P01 | 9 | 2 tasks | 4 files |
+| Phase 15-interactive-actions P02 | 20 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,9 @@ Decisions affecting v2.1 (from research):
 - [Phase 14-background-sync-and-auth]: MainViewModel injects @ApplicationContext + WidgetStateStore to write SESSION_EXPIRED on logout without AndroidViewModel
 - [Phase 15-interactive-actions]: performDelete() extracted as internal suspend fun for pure JVM unit testability without Robolectric
 - [Phase 15-interactive-actions]: Two-layer clickable in BulletRow: inner Row (dot+text) with actionStartActivity, x Box with actionRunCallback — innermost clickable wins in Glance
+- [Phase 15-interactive-actions]: AddBulletActivity uses @AndroidEntryPoint (not @EntryPoint) — Activity context works with Hilt direct injection
+- [Phase 15-interactive-actions]: performAddBullet returns sealed AddBulletResult instead of nullable String for exhaustive when handling
+- [Phase 15-interactive-actions]: [+] button only appears in ContentView HeaderRow — non-Content states have no doc_id to pass
 
 ### Research Flags
 
@@ -120,6 +124,6 @@ None at roadmap stage. Phase 14 auth strategy flagged for design review during p
 
 ## Session Continuity
 
-Last session: 2026-03-14T15:28:57.728Z
-Stopped at: Completed 15-01-PLAN.md
+Last session: 2026-03-14T15:40:13.929Z
+Stopped at: Completed 15-02-PLAN.md
 Resume file: None

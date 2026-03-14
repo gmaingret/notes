@@ -50,7 +50,7 @@ Full details: [`.planning/milestones/v2.0-ROADMAP.md`](milestones/v2.0-ROADMAP.m
 
 - [x] **Phase 13: Widget Foundation** — Placeable widget with document picker, correct Glance/Hilt wiring, and full display state rendering (completed 2026-03-14)
 - [x] **Phase 14: Background Sync and Auth** — WorkManager periodic refresh, independent widget auth via refresh cookie, and in-app broadcast update (completed 2026-03-14)
-- [ ] **Phase 15: Interactive Actions** — Delete bullet from widget and add bullet via overlay Activity
+- [x] **Phase 15: Interactive Actions** — Delete bullet from widget and add bullet via overlay Activity (completed 2026-03-14)
 
 ## Phase Details
 
@@ -115,4 +115,4 @@ Plans:
 | 12. Reactivity and Polish | v2.0 | 5/5 | Complete | 2026-03-12 |
 | 13. Widget Foundation | v2.1 | 4/4 | Complete | 2026-03-14 |
 | 14. Background Sync and Auth | 2/2 | Complete    | 2026-03-14 | - |
-| 15. Interactive Actions | 1/2 | In Progress|  | - |
+| 15. Interactive Actions | 2/2 | Complete   | 2026-03-14 | - |

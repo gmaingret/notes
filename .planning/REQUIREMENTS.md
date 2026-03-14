@@ -21,7 +21,7 @@
 ### Widget Actions
 
 - [ ] **ACT-01**: User can tap a "+" button to add a new bullet at the top of the list via a lightweight overlay dialog with pre-focused text field
-- [ ] **ACT-02**: User can tap a delete icon on any bullet to remove it
+- [x] **ACT-02**: User can tap a delete icon on any bullet to remove it
 
 ### Widget Sync
 
@@ -122,7 +122,7 @@
 | DISP-04 | Phase 13 | Complete |
 | DISP-05 | Phase 13 | Complete |
 | ACT-01 | Phase 15 | Pending |
-| ACT-02 | Phase 15 | Pending |
+| ACT-02 | Phase 15 | Complete |
 | SYNC-01 | Phase 14 | Complete |
 | SYNC-02 | Phase 14 | Complete |
 | SYNC-03 | Phase 14 | Complete |

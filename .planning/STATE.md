@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Android Home Screen Widget
 status: roadmap_ready
-stopped_at: Completed 14-02-PLAN.md
-last_updated: "2026-03-14T14:22:03.871Z"
+stopped_at: Completed 15-01-PLAN.md
+last_updated: "2026-03-14T15:28:57.731Z"
 last_activity: 2026-03-14 — Roadmap created for v2.1 (Phases 13-15)
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 8
+  completed_plans: 7
 ---
 
 ---
@@ -66,6 +66,7 @@ Progress: [░░░░░░░░░░] 0% (v2.1: 0/3 phases)
 | Phase 13-widget-foundation PP04 | 20 | 2 tasks | 7 files |
 | Phase 14-background-sync-and-auth P01 | 14 | 2 tasks | 8 files |
 | Phase 14-background-sync-and-auth P02 | 525623 | 2 tasks | 8 files |
+| Phase 15-interactive-actions P01 | 9 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,8 @@ Decisions affecting v2.1 (from research):
 - [Phase 14-background-sync-and-auth]: triggerWidgetRefreshIfNeeded() logic extracted to WidgetRefreshHelper.kt as internal suspend fun for unit testability
 - [Phase 14-background-sync-and-auth]: NotesWidget.provideGlance reads exclusively from WidgetStateStore cache — no live API calls in widget renderer
 - [Phase 14-background-sync-and-auth]: MainViewModel injects @ApplicationContext + WidgetStateStore to write SESSION_EXPIRED on logout without AndroidViewModel
+- [Phase 15-interactive-actions]: performDelete() extracted as internal suspend fun for pure JVM unit testability without Robolectric
+- [Phase 15-interactive-actions]: Two-layer clickable in BulletRow: inner Row (dot+text) with actionStartActivity, x Box with actionRunCallback — innermost clickable wins in Glance
 
 ### Research Flags
 
@@ -117,6 +120,6 @@ None at roadmap stage. Phase 14 auth strategy flagged for design review during p
 
 ## Session Continuity
 
-Last session: 2026-03-14T14:18:27.104Z
-Stopped at: Completed 14-02-PLAN.md
+Last session: 2026-03-14T15:28:57.728Z
+Stopped at: Completed 15-01-PLAN.md
 Resume file: None

@@ -206,12 +206,37 @@ fun BulletTreeScreen(
                         val focusedBulletId = state.focusedBulletId
                         val flatList = state.flatList
 
-                        // Scroll to focused bullet instantly (no animation) when it changes
+                        // Scroll to focused bullet instantly (no animation) when it changes.
+                        // Only scrolls when the item is not already fully visible.
+                        // When the item is below the viewport (Enter key case), scrolls so the item
+                        // appears at the bottom, keeping the previous bullet visible above it.
+                        // When the item is above the viewport, scrolls it to the top (standard nav).
                         LaunchedEffect(focusedBulletId) {
                             if (focusedBulletId != null) {
                                 val idx = flatList.indexOfFirst { it.bullet.id == focusedBulletId }
                                 if (idx >= 0) {
-                                    lazyListState.scrollToItem(idx)
+                                    val layoutInfo = lazyListState.layoutInfo
+                                    val visibleItems = layoutInfo.visibleItemsInfo
+                                    val alreadyFullyVisible = visibleItems.any { itemInfo ->
+                                        itemInfo.index == idx &&
+                                            itemInfo.offset >= 0 &&
+                                            (itemInfo.offset + itemInfo.size) <= layoutInfo.viewportEndOffset
+                                    }
+                                    if (!alreadyFullyVisible) {
+                                        // Check if item is below the viewport (Enter key case)
+                                        // or above the viewport (other navigation case)
+                                        val isBelow = visibleItems.isEmpty() || idx > visibleItems.last().index
+                                        if (isBelow) {
+                                            // Scroll so the item appears at the bottom of the viewport,
+                                            // keeping the previous bullet visible above it.
+                                            val visibleCount = visibleItems.size
+                                            val targetFirstVisible = maxOf(0, idx - visibleCount + 1)
+                                            lazyListState.scrollToItem(targetFirstVisible)
+                                        } else {
+                                            // Item is above viewport — scroll to show it at the top
+                                            lazyListState.scrollToItem(idx)
+                                        }
+                                    }
                                 }
                             }
                         }

@@ -64,11 +64,12 @@ Full details: [`.planning/milestones/v2.0-ROADMAP.md`](milestones/v2.0-ROADMAP.m
   3. The widget header shows the selected document's title
   4. The widget body shows root-level bullets as a scrollable flat list, and shows a clear empty state when the document has no bullets
   5. The widget shows distinct loading and error states with readable messages; the widget visual style matches the app's Material 3 theme
-**Plans**: 3 plans
+**Plans**: 4 plans
 Plans:
-- [ ] 13-01-PLAN.md — Glance infrastructure, type contracts, WidgetStateStore, manifest registration
-- [ ] 13-02-PLAN.md — Document picker config activity with auth gate
-- [ ] 13-03-PLAN.md — Widget UI composables and all display states
+- [x] 13-01-PLAN.md — Glance infrastructure, type contracts, WidgetStateStore, manifest registration
+- [x] 13-02-PLAN.md — Document picker config activity with auth gate
+- [x] 13-03-PLAN.md — Widget UI composables and all display states
+- [ ] 13-04-PLAN.md — Gap closure: wire documentId through widget tap intents and add onDeleted test
 
 ### Phase 14: Background Sync and Auth
 **Goal**: The widget stays current across device sessions, app restarts, and process death without requiring the user to manually intervene
@@ -114,6 +115,6 @@ Plans:
 | 10. Document Management | v2.0 | 3/3 | Complete | 2026-03-12 |
 | 11. Bullet Tree | v2.0 | 4/4 | Complete | 2026-03-12 |
 | 12. Reactivity and Polish | v2.0 | 5/5 | Complete | 2026-03-12 |
-| 13. Widget Foundation | 3/3 | Complete   | 2026-03-14 | - |
+| 13. Widget Foundation | v2.1 | 3/4 | In progress | - |
 | 14. Background Sync and Auth | v2.1 | 0/? | Not started | - |
 | 15. Interactive Actions | v2.1 | 0/? | Not started | - |

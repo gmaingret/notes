@@ -21,8 +21,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -246,6 +250,30 @@ fun BulletTreeScreen(
                             }
                         }
 
+                        // When IME (keyboard) opens, scroll to keep focused bullet visible.
+                        // With adjustNothing the LazyColumn doesn't resize, so we
+                        // must manually ensure the focused item isn't behind the keyboard.
+                        val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
+                        LaunchedEffect(imeBottom) {
+                            if (imeBottom > 0 && focusedBulletId != null) {
+                                val idx = flatList.indexOfFirst { it.bullet.id == focusedBulletId }
+                                if (idx >= 0) {
+                                    val layoutInfo = lazyListState.layoutInfo
+                                    val visibleItems = layoutInfo.visibleItemsInfo
+                                    val itemInfo = visibleItems.find { it.index == idx }
+                                    // Check if item is behind the keyboard
+                                    val visibleEnd = layoutInfo.viewportEndOffset - imeBottom
+                                    val clipped = itemInfo == null ||
+                                        (itemInfo.offset + itemInfo.size) > visibleEnd
+                                    if (clipped && idx > 0) {
+                                        lazyListState.animateScrollToItem(idx - 1)
+                                    } else if (clipped) {
+                                        lazyListState.animateScrollToItem(0)
+                                    }
+                                }
+                            }
+                        }
+
                         // Compute toolbar enabled states
                         val focusedIndex = flatList.indexOfFirst { it.bullet.id == focusedBulletId }
                         val focusedBullet = if (focusedIndex >= 0) flatList[focusedIndex] else null
@@ -309,7 +337,7 @@ fun BulletTreeScreen(
                             viewModel.moveBulletLocally(from.index, to.index)
                         }
 
-                        Column(modifier = Modifier.fillMaxSize().imePadding()) {
+                        Column(modifier = Modifier.fillMaxSize()) {
                             PullToRefreshBox(
                                 isRefreshing = isRefreshing,
                                 onRefresh = { viewModel.refresh() },
@@ -320,7 +348,8 @@ fun BulletTreeScreen(
                             LazyColumn(
                                 state = lazyListState,
                                 modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.spacedBy(7.dp)
+                                verticalArrangement = Arrangement.spacedBy(7.dp),
+                                contentPadding = WindowInsets.ime.asPaddingValues()
                             ) {
                                 items(
                                     items = flatList,
@@ -707,6 +736,7 @@ fun BulletTreeScreen(
                             // Editing toolbar — animated, shown only when a bullet is focused
                             AnimatedVisibility(
                                 visible = focusedBulletId != null,
+                                modifier = Modifier.imePadding(),
                                 enter = slideInVertically { it },
                                 exit = slideOutVertically { it }
                             ) {

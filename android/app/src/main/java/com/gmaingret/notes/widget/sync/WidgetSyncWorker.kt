@@ -122,7 +122,8 @@ class WidgetSyncWorker @AssistedInject constructor(
                 )
             }
 
-        // Step 6: Persist bullets and display state
+        // Step 6: Persist title, bullets, and display state
+        widgetStateStore.saveDocumentTitle(document.title)
         widgetStateStore.saveBullets(rootBullets)
         widgetStateStore.saveDisplayState(
             if (rootBullets.isEmpty()) DisplayState.EMPTY else DisplayState.CONTENT

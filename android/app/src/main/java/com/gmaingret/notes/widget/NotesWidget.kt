@@ -34,6 +34,7 @@ class NotesWidget : GlanceAppWidget() {
 
         /** Glance preferences keys. */
         val DOC_ID_KEY = stringPreferencesKey("doc_id")
+        val DOC_TITLE_KEY = stringPreferencesKey("doc_title")
         val DISPLAY_STATE_KEY = stringPreferencesKey("display_state")
         val BULLETS_JSON_KEY = stringPreferencesKey("bullets_json")
 
@@ -58,6 +59,7 @@ class NotesWidget : GlanceAppWidget() {
             // Fetch data inline so the widget shows content immediately
             var displayState = DisplayState.LOADING
             var bullets: List<WidgetBullet> = emptyList()
+            var docTitle = ""
             try {
                 val entryPoint = EntryPointAccessors.fromApplication(
                     context.applicationContext, WidgetEntryPoint::class.java
@@ -67,6 +69,7 @@ class NotesWidget : GlanceAppWidget() {
                     is WidgetUiState.Content -> {
                         displayState = DisplayState.CONTENT
                         bullets = result.bullets
+                        docTitle = result.documentTitle
                     }
                     is WidgetUiState.Empty -> {
                         displayState = DisplayState.EMPTY
@@ -83,11 +86,13 @@ class NotesWidget : GlanceAppWidget() {
             // Persist to durable cache (for WorkManager / post-reboot)
             store.saveBullets(bullets)
             store.saveDisplayState(displayState)
+            if (docTitle.isNotEmpty()) store.saveDocumentTitle(docTitle)
 
             // Write to Glance preferences — triggers recomposition of provideContent
             val glanceId = GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId)
             updateAppWidgetState(context, glanceId) { prefs ->
                 prefs[DOC_ID_KEY] = docId
+                prefs[DOC_TITLE_KEY] = docTitle
                 prefs[DISPLAY_STATE_KEY] = displayState.name
                 prefs[BULLETS_JSON_KEY] = gson.toJson(bullets)
             }
@@ -103,7 +108,22 @@ class NotesWidget : GlanceAppWidget() {
             val displayState = store.getDisplayState()
             val bullets = store.getBullets()
             val docId = store.getFirstDocumentId()
+            val docTitle = store.getDocumentTitle()
+            pushToGlanceDirect(context, displayState, bullets, docId, docTitle)
+        }
 
+        /**
+         * Fast path: writes pre-computed data directly to Glance preferences
+         * without reading from the encrypted DataStore. Used for optimistic
+         * UI updates where the caller already has the data in memory.
+         */
+        suspend fun pushToGlanceDirect(
+            context: Context,
+            displayState: DisplayState,
+            bullets: List<WidgetBullet>,
+            docId: String? = null,
+            docTitle: String? = null
+        ) {
             val manager = GlanceAppWidgetManager(context)
             val glanceIds = manager.getGlanceIds(NotesWidget::class.java)
             val widget = NotesWidget()
@@ -112,9 +132,8 @@ class NotesWidget : GlanceAppWidget() {
                     prefs[DISPLAY_STATE_KEY] = displayState.name
                     prefs[BULLETS_JSON_KEY] = gson.toJson(bullets)
                     if (docId != null) prefs[DOC_ID_KEY] = docId
+                    if (docTitle != null) prefs[DOC_TITLE_KEY] = docTitle
                 }
-                // update() triggers Glance to re-run provideGlance which reads
-                // the freshly written preferences via currentState<Preferences>()
                 widget.update(context, id)
             }
         }
@@ -134,6 +153,7 @@ class NotesWidget : GlanceAppWidget() {
             val displayStateName = prefs[DISPLAY_STATE_KEY]
             val bulletsJson = prefs[BULLETS_JSON_KEY]
             val docId = prefs[DOC_ID_KEY]
+            val docTitle = prefs[DOC_TITLE_KEY] ?: ""
 
             val displayState = displayStateName?.let {
                 try { DisplayState.valueOf(it) } catch (_: Exception) { null }
@@ -144,7 +164,7 @@ class NotesWidget : GlanceAppWidget() {
             } ?: emptyList()
 
             val uiState = when (displayState) {
-                DisplayState.CONTENT -> WidgetUiState.Content(docId ?: "", "", bullets)
+                DisplayState.CONTENT -> WidgetUiState.Content(docId ?: "", docTitle, bullets)
                 DisplayState.EMPTY -> WidgetUiState.Empty
                 DisplayState.SESSION_EXPIRED -> WidgetUiState.SessionExpired
                 DisplayState.DOCUMENT_NOT_FOUND -> WidgetUiState.DocumentNotFound

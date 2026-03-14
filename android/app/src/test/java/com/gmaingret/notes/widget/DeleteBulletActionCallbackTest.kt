@@ -7,6 +7,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -15,9 +16,8 @@ import retrofit2.HttpException
 /**
  * Unit tests for [performDelete] — the testable core of DeleteBulletActionCallback.
  *
- * Tests target the extracted [performDelete] function directly, which avoids
- * any dependency on Glance's GlanceId or Android Toast (not testable on JVM).
- * Focus: state mutations in WidgetStateStore and interactions with DeleteBulletUseCase.
+ * The optimistic store update is now done by the caller (onAction), so these tests
+ * focus on the API call and rollback behaviour only.
  */
 class DeleteBulletActionCallbackTest {
 
@@ -35,42 +35,36 @@ class DeleteBulletActionCallbackTest {
     }
 
     // -------------------------------------------------------------------------
-    // Test 1: Optimistic removal from store
+    // Test 1: Successful delete — no rollback, returns null
     // -------------------------------------------------------------------------
 
     @Test
-    fun `onAction with valid bulletId removes that bullet from WidgetStateStore optimistically`() =
-        runTest {
-            coEvery { store.getBullets() } returns listOf(bullet1, bullet2, bullet3)
-            coEvery { deleteBulletUseCase.invoke("b2") } returns Result.success(Unit)
+    fun `on successful delete, returns null (no toast) and does not rollback`() = runTest {
+        val original = listOf(bullet1, bullet2, bullet3)
+        coEvery { deleteBulletUseCase.invoke("b2") } returns Result.success(Unit)
 
-            performDelete(
-                bulletId = "b2",
-                store = store,
-                deleteBulletUseCase = deleteBulletUseCase
-            )
+        val toastMessage = performDelete(
+            bulletId = "b2",
+            originalBullets = original,
+            store = store,
+            deleteBulletUseCase = deleteBulletUseCase
+        )
 
-            coVerify {
-                store.saveBullets(
-                    withArg { saved ->
-                        assertFalse(saved.any { it.id == "b2" })
-                        assertEquals(2, saved.size)
-                    }
-                )
-            }
-        }
+        assertNull(toastMessage)
+        coVerify(exactly = 0) { store.saveBullets(any()) }
+    }
 
     // -------------------------------------------------------------------------
     // Test 2: Calls DeleteBulletUseCase with correct bulletId
     // -------------------------------------------------------------------------
 
     @Test
-    fun `onAction calls DeleteBulletUseCase with the correct bulletId`() = runTest {
-        coEvery { store.getBullets() } returns listOf(bullet1, bullet2)
+    fun `calls DeleteBulletUseCase with the correct bulletId`() = runTest {
         coEvery { deleteBulletUseCase.invoke("b1") } returns Result.success(Unit)
 
         performDelete(
             bulletId = "b1",
+            originalBullets = listOf(bullet1, bullet2),
             store = store,
             deleteBulletUseCase = deleteBulletUseCase
         )
@@ -86,22 +80,19 @@ class DeleteBulletActionCallbackTest {
     fun `on DeleteBulletUseCase failure, original bullet list is restored to WidgetStateStore`() =
         runTest {
             val original = listOf(bullet1, bullet2, bullet3)
-            coEvery { store.getBullets() } returns original
             coEvery { deleteBulletUseCase.invoke("b1") } returns
                 Result.failure(RuntimeException("Network error"))
 
-            performDelete(
+            val toastMessage = performDelete(
                 bulletId = "b1",
+                originalBullets = original,
                 store = store,
                 deleteBulletUseCase = deleteBulletUseCase
             )
 
-            // First saveBullets call is optimistic (filtered list)
-            // Second saveBullets call is rollback (original list)
-            coVerify(atLeast = 2) { store.saveBullets(any()) }
-            coVerify {
-                store.saveBullets(original)
-            }
+            assertEquals("Couldn't delete", toastMessage)
+            coVerify { store.saveBullets(original) }
+            coVerify { store.saveDisplayState(DisplayState.CONTENT) }
         }
 
     // -------------------------------------------------------------------------
@@ -115,18 +106,18 @@ class DeleteBulletActionCallbackTest {
                 retrofit2.Response.error<Any>(401, it)
             }
         )
-        coEvery { store.getBullets() } returns listOf(bullet1)
+        val original = listOf(bullet1)
         coEvery { deleteBulletUseCase.invoke("b1") } returns Result.failure(authException)
 
-        performDelete(
+        val toastMessage = performDelete(
             bulletId = "b1",
+            originalBullets = original,
             store = store,
             deleteBulletUseCase = deleteBulletUseCase
         )
 
-        coVerify {
-            store.saveDisplayState(DisplayState.SESSION_EXPIRED)
-        }
+        assertEquals("Session expired", toastMessage)
+        coVerify { store.saveDisplayState(DisplayState.SESSION_EXPIRED) }
     }
 
     // -------------------------------------------------------------------------
@@ -134,43 +125,16 @@ class DeleteBulletActionCallbackTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `onAction with missing bulletId parameter returns without side effects`() = runTest {
-        performDelete(
+    fun `with null bulletId returns null without side effects`() = runTest {
+        val toastMessage = performDelete(
             bulletId = null,
+            originalBullets = emptyList(),
             store = store,
             deleteBulletUseCase = deleteBulletUseCase
         )
 
-        coVerify(exactly = 0) { store.getBullets() }
+        assertNull(toastMessage)
         coVerify(exactly = 0) { store.saveBullets(any()) }
         coVerify(exactly = 0) { deleteBulletUseCase.invoke(any()) }
     }
-
-    // -------------------------------------------------------------------------
-    // Test 6: After successful delete, bullet not in store
-    // -------------------------------------------------------------------------
-
-    @Test
-    fun `after successful delete, bullet list in store does not contain the deleted bullet`() =
-        runTest {
-            coEvery { store.getBullets() } returns listOf(bullet1, bullet2, bullet3)
-            coEvery { deleteBulletUseCase.invoke("b3") } returns Result.success(Unit)
-
-            performDelete(
-                bulletId = "b3",
-                store = store,
-                deleteBulletUseCase = deleteBulletUseCase
-            )
-
-            // Verify exactly one saveBullets call (no rollback) and it excludes b3
-            coVerify(exactly = 1) {
-                store.saveBullets(
-                    withArg { saved ->
-                        assertFalse(saved.any { it.id == "b3" })
-                        assertTrue(saved.any { it.id == "b1" })
-                        assertTrue(saved.any { it.id == "b2" })
-                    }
-                )
-            }
-        }
 }

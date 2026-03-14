@@ -55,6 +55,7 @@ class WidgetStateStore private constructor(
     companion object {
         private val DISPLAY_STATE_KEY = stringPreferencesKey("display_state")
         private val BULLETS_KEY = stringPreferencesKey("bullets_json")
+        private val DOC_TITLE_KEY = stringPreferencesKey("doc_title")
 
         @Volatile
         private var instance: WidgetStateStore? = null
@@ -145,6 +146,23 @@ class WidgetStateStore private constructor(
             }
         }
         return null
+    }
+
+    // ---------------------------------------------------------------------------
+    // Document title (shared across all widget instances)
+    // ---------------------------------------------------------------------------
+
+    suspend fun saveDocumentTitle(title: String) {
+        val encrypted = EncryptedDataStoreFactory.encrypt(aead, title, "doc_title")
+        context.widgetStateDataStore.edit { prefs ->
+            prefs[DOC_TITLE_KEY] = encrypted
+        }
+    }
+
+    suspend fun getDocumentTitle(): String? {
+        val encrypted = context.widgetStateDataStore.data.firstOrNull()
+            ?.get(DOC_TITLE_KEY) ?: return null
+        return EncryptedDataStoreFactory.decrypt(aead, encrypted, "doc_title")
     }
 
     // ---------------------------------------------------------------------------

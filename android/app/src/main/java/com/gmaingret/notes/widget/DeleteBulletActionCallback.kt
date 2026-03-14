@@ -44,15 +44,29 @@ class DeleteBulletActionCallback : ActionCallback {
             WidgetEntryPoint::class.java
         )
 
+        // Optimistic: read current bullets, compute filtered list
+        val originalBullets = store.getBullets()
+        val filtered = originalBullets.filter { it.id != bulletId }
+        val newDisplayState = if (filtered.isEmpty()) DisplayState.EMPTY else DisplayState.CONTENT
+
+        // Fast path: push directly to Glance (no store round-trip) for instant UI
+        NotesWidget.pushToGlanceDirect(context, newDisplayState, filtered)
+
+        // Persist to durable store in parallel (doesn't block UI)
+        store.saveBullets(filtered)
+        store.saveDisplayState(newDisplayState)
+
+        // Now call the API
         val toastMessage = performDelete(
             bulletId = bulletId,
+            originalBullets = originalBullets,
             store = store,
             deleteBulletUseCase = entryPoint.deleteBulletUseCase()
         )
 
-        NotesWidget.pushStateToGlance(context)
-
+        // Push again only if rollback occurred
         if (toastMessage != null) {
+            NotesWidget.pushStateToGlance(context)
             Toast.makeText(context.applicationContext, toastMessage, Toast.LENGTH_SHORT).show()
         }
     }
@@ -61,25 +75,24 @@ class DeleteBulletActionCallback : ActionCallback {
 /**
  * Core delete logic extracted for unit testability.
  *
+ * The optimistic store update and Glance push are done by the caller before
+ * this function runs, so the widget UI updates instantly. This function only
+ * handles the API call and rollback on failure.
+ *
  * Returns a toast message string if one should be shown to the user, or null on success.
  *
  * @param bulletId The id of the bullet to delete. Null means no-op (returns null).
- * @param store    The WidgetStateStore to read from and write to.
+ * @param originalBullets The bullet list before the optimistic removal (for rollback).
+ * @param store    The WidgetStateStore to write rollback state to on failure.
  * @param deleteBulletUseCase Use case that calls the server delete API.
  */
 internal suspend fun performDelete(
     bulletId: String?,
+    originalBullets: List<WidgetBullet>,
     store: WidgetStateStore,
     deleteBulletUseCase: DeleteBulletUseCase
 ): String? {
     if (bulletId == null) return null
-
-    val originalBullets = store.getBullets()
-    val filtered = originalBullets.filter { it.id != bulletId }
-
-    // Optimistic update
-    store.saveBullets(filtered)
-    store.saveDisplayState(if (filtered.isEmpty()) DisplayState.EMPTY else DisplayState.CONTENT)
 
     // API call
     val result = deleteBulletUseCase.invoke(bulletId)

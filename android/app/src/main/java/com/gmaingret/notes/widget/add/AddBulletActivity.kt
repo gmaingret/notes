@@ -1,17 +1,26 @@
 package com.gmaingret.notes.widget.add
 
+import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,7 +29,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -77,16 +88,13 @@ class AddBulletActivity : ComponentActivity() {
                         lifecycleScope.launch {
                             val store = WidgetStateStore.getInstance(applicationContext)
 
-                            // Optimistic insert: add temp bullet at top, push to widget
                             val result = performAddBullet(
                                 docId = docId,
                                 content = text,
                                 store = store,
+                                context = applicationContext,
                                 createBulletUseCase = createBulletUseCase
                             )
-
-                            // Push updated state to widget after each mutation
-                            NotesWidget.pushStateToGlance(applicationContext)
 
                             when (result) {
                                 is AddBulletResult.Success -> finish()
@@ -144,11 +152,12 @@ internal fun AddBulletDialog(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-        tonalElevation = 4.dp
+            .padding(horizontal = 16.dp),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
@@ -168,11 +177,26 @@ internal fun AddBulletDialog(
                     .focusRequester(focusRequester)
             )
 
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.padding(top = 4.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End
             ) {
-                Text("Cancel")
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
+                Button(
+                    onClick = {
+                        val trimmed = text.trim()
+                        if (trimmed.isNotBlank()) {
+                            onConfirm(trimmed)
+                        }
+                    },
+                    enabled = text.isNotBlank()
+                ) {
+                    Text("OK")
+                }
             }
         }
     }
@@ -196,9 +220,10 @@ sealed class AddBulletResult {
 // ---------------------------------------------------------------------------
 
 /**
- * Core add logic extracted for pure JVM unit testability.
+ * Core add logic extracted for unit testability.
  *
- * Performs optimistic insert at the top of the list, calls the API, then:
+ * Performs optimistic insert at the top of the list and pushes to Glance
+ * immediately so the widget updates instantly. Then calls the API:
  * - On success: replaces the temp bullet with the server-assigned ID.
  * - On failure: rolls back to the original list.
  * - On auth error: additionally sets SESSION_EXPIRED display state.
@@ -206,12 +231,14 @@ sealed class AddBulletResult {
  * @param docId The document to add the bullet to.
  * @param content The raw user-typed content (may contain markdown syntax).
  * @param store The WidgetStateStore to read from and write to.
+ * @param context Application context for pushing state to Glance.
  * @param createBulletUseCase Use case that calls the server create API.
  */
 internal suspend fun performAddBullet(
     docId: String,
     content: String,
     store: WidgetStateStore,
+    context: Context,
     createBulletUseCase: CreateBulletUseCase
 ): AddBulletResult {
     val original = store.getBullets()
@@ -223,7 +250,13 @@ internal suspend fun performAddBullet(
     )
 
     // Optimistic insert at position 0 (top of list)
-    store.saveBullets(listOf(tempBullet) + original)
+    val optimisticList = listOf(tempBullet) + original
+
+    // Fast path: push directly to Glance for instant UI update
+    NotesWidget.pushToGlanceDirect(context, DisplayState.CONTENT, optimisticList)
+
+    // Persist to durable store (doesn't block UI)
+    store.saveBullets(optimisticList)
     store.saveDisplayState(DisplayState.CONTENT)
 
     // API call
@@ -246,18 +279,21 @@ internal suspend fun performAddBullet(
         // Replace temp bullet with real server bullet at the top
         store.saveBullets(listOf(realBullet) + original)
         store.saveDisplayState(DisplayState.CONTENT)
+        NotesWidget.pushStateToGlance(context)
         AddBulletResult.Success
     } else {
         val ex = result.exceptionOrNull()
         if (isAuthError(ex)) {
             store.saveBullets(original)
             store.saveDisplayState(DisplayState.SESSION_EXPIRED)
+            NotesWidget.pushStateToGlance(context)
             AddBulletResult.AuthError
         } else {
             store.saveBullets(original)
             store.saveDisplayState(
                 if (original.isEmpty()) DisplayState.EMPTY else DisplayState.CONTENT
             )
+            NotesWidget.pushStateToGlance(context)
             AddBulletResult.Failure("Couldn't add bullet")
         }
     }

@@ -3,6 +3,7 @@ package com.gmaingret.notes.widget
 import android.content.Context
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceTheme
@@ -11,9 +12,8 @@ import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.currentState
 import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 
 /**
@@ -22,10 +22,9 @@ import retrofit2.HttpException
  * Uses SizeMode.Responsive with 3 breakpoints so Glance re-renders at each
  * size instead of stretching a single layout.
  *
- * Document ID is stored in both Glance widget preferences (for the update() trigger)
- * and in WidgetStateStore. provideGlance reads exclusively from WidgetStateStore cache
- * — no live API calls happen inside provideGlance. All data fetching is delegated to
- * WidgetSyncWorker (periodic) or triggerWidgetRefreshIfNeeded (in-app mutation trigger).
+ * Widget state is stored in Glance preferences (read via currentState inside
+ * provideContent) so the composition auto-recomposes when state changes.
+ * WidgetStateStore is used as a durable cache for the WorkManager background sync.
  */
 class NotesWidget : GlanceAppWidget() {
 
@@ -33,62 +32,127 @@ class NotesWidget : GlanceAppWidget() {
         /** Maximum number of root bullets to load into the widget. */
         const val MAX_BULLETS = 50
 
-        /** Glance preferences key for the selected document ID. */
+        /** Glance preferences keys. */
         val DOC_ID_KEY = stringPreferencesKey("doc_id")
+        val DISPLAY_STATE_KEY = stringPreferencesKey("display_state")
+        val BULLETS_JSON_KEY = stringPreferencesKey("bullets_json")
 
         // Responsive breakpoints
         private val SMALL = DpSize(200.dp, 100.dp)
         private val MEDIUM = DpSize(276.dp, 220.dp)
         private val LARGE = DpSize(276.dp, 380.dp)
 
+        private val gson = com.google.gson.Gson()
+        private val bulletListType = object : com.google.gson.reflect.TypeToken<List<WidgetBullet>>() {}.type
+
         /**
-         * Writes the document ID into Glance widget preferences and triggers
-         * a widget update. Call from the config activity after saving to WidgetStateStore.
+         * Writes the document ID and fetched data into Glance widget preferences.
+         * Glance observes its own preferences — the composition recomposes automatically.
          *
-         * Note: provideGlance no longer reads DOC_ID_KEY from Glance preferences —
-         * it reads from WidgetStateStore instead. The update() call here triggers
-         * provideGlance to re-run and refresh from cache.
+         * Also writes to WidgetStateStore for durable caching (WorkManager reads from there).
          */
         suspend fun setDocumentId(context: Context, appWidgetId: Int, docId: String) {
+            val store = WidgetStateStore.getInstance(context)
+            store.saveDocumentId(appWidgetId, docId)
+
+            // Fetch data inline so the widget shows content immediately
+            var displayState = DisplayState.LOADING
+            var bullets: List<WidgetBullet> = emptyList()
+            try {
+                val entryPoint = EntryPointAccessors.fromApplication(
+                    context.applicationContext, WidgetEntryPoint::class.java
+                )
+                val widget = NotesWidget()
+                when (val result = widget.fetchWidgetData(entryPoint, docId)) {
+                    is WidgetUiState.Content -> {
+                        displayState = DisplayState.CONTENT
+                        bullets = result.bullets
+                    }
+                    is WidgetUiState.Empty -> {
+                        displayState = DisplayState.EMPTY
+                    }
+                    is WidgetUiState.SessionExpired -> displayState = DisplayState.SESSION_EXPIRED
+                    is WidgetUiState.DocumentNotFound -> displayState = DisplayState.DOCUMENT_NOT_FOUND
+                    is WidgetUiState.Error -> displayState = DisplayState.ERROR
+                    else -> {}
+                }
+            } catch (_: Exception) {
+                // One-shot WorkManager sync will retry later
+            }
+
+            // Persist to durable cache (for WorkManager / post-reboot)
+            store.saveBullets(bullets)
+            store.saveDisplayState(displayState)
+
+            // Write to Glance preferences — triggers recomposition of provideContent
             val glanceId = GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId)
             updateAppWidgetState(context, glanceId) { prefs ->
                 prefs[DOC_ID_KEY] = docId
+                prefs[DISPLAY_STATE_KEY] = displayState.name
+                prefs[BULLETS_JSON_KEY] = gson.toJson(bullets)
             }
-            NotesWidget().update(context, glanceId)
+        }
+
+        /**
+         * Pushes the current WidgetStateStore cache into Glance preferences for all widgets,
+         * then calls update() to trigger recomposition. Called by WidgetSyncWorker and
+         * WidgetRefreshHelper after writing to the durable cache.
+         */
+        suspend fun pushStateToGlance(context: Context) {
+            val store = WidgetStateStore.getInstance(context)
+            val displayState = store.getDisplayState()
+            val bullets = store.getBullets()
+            val docId = store.getFirstDocumentId()
+
+            val manager = GlanceAppWidgetManager(context)
+            val glanceIds = manager.getGlanceIds(NotesWidget::class.java)
+            val widget = NotesWidget()
+            for (id in glanceIds) {
+                updateAppWidgetState(context, id) { prefs ->
+                    prefs[DISPLAY_STATE_KEY] = displayState.name
+                    prefs[BULLETS_JSON_KEY] = gson.toJson(bullets)
+                    if (docId != null) prefs[DOC_ID_KEY] = docId
+                }
+                // update() triggers Glance to re-run provideGlance which reads
+                // the freshly written preferences via currentState<Preferences>()
+                widget.update(context, id)
+            }
         }
     }
 
     override val sizeMode: SizeMode = SizeMode.Responsive(setOf(SMALL, MEDIUM, LARGE))
 
     /**
-     * Reads the cached display state and bullets from WidgetStateStore and renders them.
+     * Sets up the Glance composition. Called per widget session.
      *
-     * No live API calls happen here. All I/O runs with withContext(Dispatchers.IO) before
-     * provideContent{} per the architecture rule that I/O must not happen inside the
-     * provideContent lambda.
-     *
-     * The cache is populated by:
-     * - WidgetSyncWorker (periodic 15-min background sync)
-     * - triggerWidgetRefreshIfNeeded() in BulletTreeViewModel (after every bullet mutation)
-     * - Immediate one-shot sync enqueued by WidgetConfigActivity after document selection
+     * State is read inside provideContent via currentState<Preferences>() so that
+     * Glance automatically recomposes when preferences change (via updateAppWidgetState).
      */
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val store = WidgetStateStore.getInstance(context)
-        val displayState = withContext(Dispatchers.IO) { store.getDisplayState() }
-        val cachedBullets = withContext(Dispatchers.IO) { store.getBullets() }
-        val docId = withContext(Dispatchers.IO) { store.getFirstDocumentId() }
-
-        val uiState = when (displayState) {
-            DisplayState.CONTENT -> WidgetUiState.Content(docId ?: "", "", cachedBullets)
-            DisplayState.EMPTY -> WidgetUiState.Empty
-            DisplayState.SESSION_EXPIRED -> WidgetUiState.SessionExpired
-            DisplayState.DOCUMENT_NOT_FOUND -> WidgetUiState.DocumentNotFound
-            DisplayState.ERROR -> WidgetUiState.Error("Sync failed")
-            DisplayState.LOADING -> WidgetUiState.Loading
-            DisplayState.NOT_CONFIGURED -> WidgetUiState.NotConfigured
-        }
-
         provideContent {
+            val prefs = currentState<Preferences>()
+            val displayStateName = prefs[DISPLAY_STATE_KEY]
+            val bulletsJson = prefs[BULLETS_JSON_KEY]
+            val docId = prefs[DOC_ID_KEY]
+
+            val displayState = displayStateName?.let {
+                try { DisplayState.valueOf(it) } catch (_: Exception) { null }
+            } ?: DisplayState.NOT_CONFIGURED
+
+            val bullets: List<WidgetBullet> = bulletsJson?.let {
+                try { gson.fromJson<List<WidgetBullet>>(it, bulletListType) } catch (_: Exception) { null }
+            } ?: emptyList()
+
+            val uiState = when (displayState) {
+                DisplayState.CONTENT -> WidgetUiState.Content(docId ?: "", "", bullets)
+                DisplayState.EMPTY -> WidgetUiState.Empty
+                DisplayState.SESSION_EXPIRED -> WidgetUiState.SessionExpired
+                DisplayState.DOCUMENT_NOT_FOUND -> WidgetUiState.DocumentNotFound
+                DisplayState.ERROR -> WidgetUiState.Error("Sync failed")
+                DisplayState.LOADING -> WidgetUiState.Loading
+                DisplayState.NOT_CONFIGURED -> WidgetUiState.NotConfigured
+            }
+
             GlanceTheme(colors = NotesWidgetColorScheme.colors) {
                 WidgetContent(uiState = uiState, context = context)
             }
@@ -111,7 +175,6 @@ class NotesWidget : GlanceAppWidget() {
     ): WidgetUiState {
         if (docId == null) return WidgetUiState.NotConfigured
 
-        // Fetch document list to validate the docId still exists and get title
         val documents = try {
             val result = entryPoint.documentRepository().getDocuments()
             if (result.isFailure) {
@@ -134,7 +197,6 @@ class NotesWidget : GlanceAppWidget() {
         val document = documents.find { it.id == docId }
             ?: return WidgetUiState.DocumentNotFound
 
-        // Fetch bullets for the document
         val bullets = try {
             val result = entryPoint.bulletRepository().getBullets(docId)
             if (result.isFailure) {
@@ -154,7 +216,6 @@ class NotesWidget : GlanceAppWidget() {
             }
         }
 
-        // Filter to root-level bullets only (parentId == null), cap at MAX_BULLETS
         val rootBullets = bullets
             .filter { it.parentId == null }
             .take(MAX_BULLETS)

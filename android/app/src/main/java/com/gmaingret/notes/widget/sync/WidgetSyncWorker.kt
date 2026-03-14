@@ -159,10 +159,9 @@ class WidgetSyncWorker @AssistedInject constructor(
      */
     private suspend fun triggerWidgetUpdate() {
         try {
-            val widget = NotesWidget()
-            widget.updateAll(applicationContext)
+            NotesWidget.pushStateToGlance(applicationContext)
         } catch (e: Exception) {
-            // updateAll can throw if no widget instances exist — safe to ignore
+            // Can throw if no widget instances exist — safe to ignore
         }
     }
 }

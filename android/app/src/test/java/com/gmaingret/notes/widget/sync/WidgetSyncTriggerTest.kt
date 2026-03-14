@@ -1,17 +1,22 @@
 package com.gmaingret.notes.widget.sync
 
+import android.content.Context
 import com.gmaingret.notes.domain.repository.BulletRepository
 import com.gmaingret.notes.domain.repository.DocumentRepository
 import com.gmaingret.notes.widget.DisplayState
 import com.gmaingret.notes.widget.WidgetBullet
 import com.gmaingret.notes.widget.WidgetEntryPoint
 import com.gmaingret.notes.widget.WidgetStateStore
+import com.gmaingret.notes.widget.NotesWidget
 import com.gmaingret.notes.domain.model.Bullet
 import com.gmaingret.notes.domain.model.Document
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -32,6 +37,7 @@ class WidgetSyncTriggerTest {
     private lateinit var entryPoint: WidgetEntryPoint
     private lateinit var bulletRepository: BulletRepository
     private lateinit var documentRepository: DocumentRepository
+    private lateinit var context: Context
 
     private val matchingDocId = "doc-123"
     private val differentDocId = "doc-456"
@@ -65,10 +71,20 @@ class WidgetSyncTriggerTest {
         entryPoint = mockk()
         bulletRepository = mockk()
         documentRepository = mockk()
+        context = mockk(relaxed = true)
 
         // Wire entry point mocks
         coEvery { entryPoint.bulletRepository() } returns bulletRepository
         coEvery { entryPoint.documentRepository() } returns documentRepository
+
+        // Mock the static pushStateToGlance to avoid Glance framework calls in tests
+        mockkObject(NotesWidget.Companion)
+        coEvery { NotesWidget.pushStateToGlance(any()) } returns Unit
+    }
+
+    @After
+    fun tearDown() {
+        unmockkObject(NotesWidget.Companion)
     }
 
     /**
@@ -86,13 +102,15 @@ class WidgetSyncTriggerTest {
         val result = refreshWidgetIfDocMatches(
             currentDocId = matchingDocId,
             widgetStateStore = widgetStateStore,
-            entryPoint = entryPoint
+            entryPoint = entryPoint,
+            context = context
         )
 
         // Assert
         assertTrue("Expected true when docIds match", result)
         coVerify { widgetStateStore.saveBullets(any()) }
         coVerify { widgetStateStore.saveDisplayState(DisplayState.CONTENT) }
+        coVerify { NotesWidget.pushStateToGlance(context) }
     }
 
     /**
@@ -108,7 +126,8 @@ class WidgetSyncTriggerTest {
         val result = refreshWidgetIfDocMatches(
             currentDocId = matchingDocId,
             widgetStateStore = widgetStateStore,
-            entryPoint = entryPoint
+            entryPoint = entryPoint,
+            context = context
         )
 
         // Assert
@@ -130,7 +149,8 @@ class WidgetSyncTriggerTest {
         val result = refreshWidgetIfDocMatches(
             currentDocId = matchingDocId,
             widgetStateStore = widgetStateStore,
-            entryPoint = entryPoint
+            entryPoint = entryPoint,
+            context = context
         )
 
         // Assert

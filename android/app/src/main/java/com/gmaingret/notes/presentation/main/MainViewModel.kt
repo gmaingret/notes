@@ -89,7 +89,7 @@ class MainViewModel @Inject constructor(
             // Update widget to show SESSION_EXPIRED immediately after logout
             try {
                 widgetStateStore.saveDisplayState(DisplayState.SESSION_EXPIRED)
-                NotesWidget().updateAll(context)
+                NotesWidget.pushStateToGlance(context)
             } catch (_: Exception) {
                 // Widget update is best-effort — do not block logout navigation
             }

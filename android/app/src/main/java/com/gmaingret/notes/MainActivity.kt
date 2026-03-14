@@ -15,7 +15,6 @@ import com.gmaingret.notes.presentation.navigation.MainRoute
 import com.gmaingret.notes.presentation.navigation.NotesApp
 import com.gmaingret.notes.presentation.splash.SplashViewModel
 import com.gmaingret.notes.presentation.theme.NotesTheme
-import androidx.glance.appwidget.updateAll
 import com.gmaingret.notes.widget.NotesWidget
 import com.gmaingret.notes.widget.OPEN_DOCUMENT_ID
 import dagger.hilt.android.AndroidEntryPoint
@@ -89,9 +88,9 @@ class MainActivity : ComponentActivity() {
         // provideGlance reads from WidgetStateStore cache, so this is instant with no network call
         CoroutineScope(Dispatchers.Main + SupervisorJob()).launch {
             try {
-                NotesWidget().updateAll(this@MainActivity)
+                NotesWidget.pushStateToGlance(this@MainActivity)
             } catch (_: Exception) {
-                // updateAll can throw if no widget instances exist — safe to ignore
+                // Can throw if no widget instances exist — safe to ignore
             }
         }
     }

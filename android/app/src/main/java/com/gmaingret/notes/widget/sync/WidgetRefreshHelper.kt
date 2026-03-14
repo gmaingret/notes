@@ -1,5 +1,6 @@
 package com.gmaingret.notes.widget.sync
 
+import android.content.Context
 import com.gmaingret.notes.widget.DisplayState
 import com.gmaingret.notes.widget.NotesWidget
 import com.gmaingret.notes.widget.WidgetEntryPoint
@@ -10,17 +11,20 @@ import com.gmaingret.notes.widget.WidgetUiState
  * Testable helper for the widget refresh trigger logic extracted from BulletTreeViewModel.
  *
  * Determines whether the given document is the one pinned to the widget, and if so,
- * fetches fresh data and writes it to the WidgetStateStore cache.
+ * fetches fresh data, writes it to WidgetStateStore cache, and pushes to Glance preferences
+ * so the widget recomposes.
  *
  * @param currentDocId The document currently open in the app.
  * @param widgetStateStore The WidgetStateStore to read the pinned doc ID from and write cache to.
  * @param entryPoint The Hilt entry point providing repository access.
+ * @param context Application context needed to push state to Glance preferences.
  * @return true if the widget was refreshed, false if docId didn't match or no widget is configured.
  */
 internal suspend fun refreshWidgetIfDocMatches(
     currentDocId: String,
     widgetStateStore: WidgetStateStore,
-    entryPoint: WidgetEntryPoint
+    entryPoint: WidgetEntryPoint,
+    context: Context
 ): Boolean {
     val pinnedDocId = widgetStateStore.getFirstDocumentId()
     if (pinnedDocId == null || pinnedDocId != currentDocId) return false
@@ -42,6 +46,9 @@ internal suspend fun refreshWidgetIfDocMatches(
         is WidgetUiState.Error -> widgetStateStore.saveDisplayState(DisplayState.ERROR)
         else -> { /* Loading, NotConfigured — ignore */ }
     }
+
+    // Push to Glance preferences so provideContent recomposes
+    NotesWidget.pushStateToGlance(context)
 
     return true
 }

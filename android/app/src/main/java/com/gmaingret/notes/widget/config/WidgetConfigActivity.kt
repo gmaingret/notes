@@ -118,8 +118,7 @@ class WidgetConfigActivity : ComponentActivity() {
                 // Collect one-shot DocumentSelected event to finalize RESULT_OK
                 LaunchedEffect(Unit) {
                     viewModel.documentSelectedEvent.collect { docId ->
-                        // Write docId into Glance widget preferences — triggers provideGlance
-                        // to re-run and read from WidgetStateStore cache
+                        // Write docId + fetched data into Glance widget preferences
                         NotesWidget.setDocumentId(this@WidgetConfigActivity, appWidgetId, docId)
 
                         // Enqueue periodic 15-min background sync (keep existing if already running)

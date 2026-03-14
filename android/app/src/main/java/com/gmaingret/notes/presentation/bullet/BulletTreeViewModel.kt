@@ -31,8 +31,6 @@ import com.gmaingret.notes.domain.usecase.PatchBulletUseCase
 import com.gmaingret.notes.domain.usecase.RedoUseCase
 import com.gmaingret.notes.domain.usecase.RemoveBookmarkUseCase
 import com.gmaingret.notes.domain.usecase.UndoUseCase
-import androidx.glance.appwidget.updateAll
-import com.gmaingret.notes.widget.NotesWidget
 import com.gmaingret.notes.widget.WidgetEntryPoint
 import com.gmaingret.notes.widget.sync.refreshWidgetIfDocMatches
 import dagger.hilt.android.EntryPointAccessors
@@ -1215,10 +1213,7 @@ class BulletTreeViewModel @Inject constructor(
                     getApplication<Application>(),
                     WidgetEntryPoint::class.java
                 )
-                val refreshed = refreshWidgetIfDocMatches(docId, store, entryPoint)
-                if (refreshed) {
-                    NotesWidget().updateAll(getApplication())
-                }
+                refreshWidgetIfDocMatches(docId, store, entryPoint, getApplication())
             } catch (_: Exception) {
                 // Silent failure — widget will catch up on next WorkManager sync
             }

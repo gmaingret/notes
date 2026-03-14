@@ -91,7 +91,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Tapping the "+" button in the widget opens a lightweight overlay dialog with a pre-focused text field; the new bullet is created at the top of the list and appears in the widget immediately after confirmation
   2. Tapping the delete icon on any widget bullet row removes that bullet; the widget updates to reflect the deletion without the user needing to open the app or refresh manually
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 15-01-PLAN.md — Delete bullet ActionCallback with optimistic remove, rollback, and x icon on bullet rows
+- [ ] 15-02-PLAN.md — Add bullet overlay Activity with text field dialog, optimistic insert, and [+] header wiring
 
 ## Progress
 
@@ -112,4 +115,4 @@ Plans:
 | 12. Reactivity and Polish | v2.0 | 5/5 | Complete | 2026-03-12 |
 | 13. Widget Foundation | v2.1 | 4/4 | Complete | 2026-03-14 |
 | 14. Background Sync and Auth | 2/2 | Complete    | 2026-03-14 | - |
-| 15. Interactive Actions | v2.1 | 0/? | Not started | - |
+| 15. Interactive Actions | v2.1 | 0/2 | Not started | - |

@@ -7,27 +7,27 @@
 
 ### Widget Setup
 
-- [ ] **SETUP-01**: User can add the Notes widget to their Android home screen
-- [ ] **SETUP-02**: User is presented with a document picker when adding the widget
+- [x] **SETUP-01**: User can add the Notes widget to their Android home screen
+- [x] **SETUP-02**: User is presented with a document picker when adding the widget
 
 ### Widget Display
 
-- [ ] **DISP-01**: Widget shows the document title in a header row
-- [ ] **DISP-02**: Widget shows root-level bullets as a scrollable flat list
-- [ ] **DISP-03**: Widget shows an empty state when the document has no bullets
-- [ ] **DISP-04**: Widget shows loading and error states appropriately
-- [ ] **DISP-05**: Widget uses Material 3 theming consistent with the app
+- [x] **DISP-01**: Widget shows the document title in a header row
+- [x] **DISP-02**: Widget shows root-level bullets as a scrollable flat list
+- [x] **DISP-03**: Widget shows an empty state when the document has no bullets
+- [x] **DISP-04**: Widget shows loading and error states appropriately
+- [x] **DISP-05**: Widget uses Material 3 theming consistent with the app
 
 ### Widget Actions
 
-- [ ] **ACT-01**: User can tap a "+" button to add a new bullet at the top of the list via a lightweight overlay dialog with pre-focused text field
-- [ ] **ACT-02**: User can tap a delete icon on any bullet to remove it
+- [x] **ACT-01**: User can tap a "+" button to add a new bullet at the top of the list via a lightweight overlay dialog with pre-focused text field
+- [x] **ACT-02**: User can tap a delete icon on any bullet to remove it
 
 ### Widget Sync
 
-- [ ] **SYNC-01**: Widget refreshes automatically when bullets are changed in the Android app
-- [ ] **SYNC-02**: Widget refreshes periodically in the background via WorkManager (15-min interval)
-- [ ] **SYNC-03**: Widget authenticates independently using the persisted refresh token
+- [x] **SYNC-01**: Widget refreshes automatically when bullets are changed in the Android app
+- [x] **SYNC-02**: Widget refreshes periodically in the background via WorkManager (15-min interval)
+- [x] **SYNC-03**: Widget authenticates independently using the persisted refresh token
 
 ## v2.0 Requirements (Complete)
 
@@ -114,18 +114,18 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SETUP-01 | Phase 13 | Pending |
-| SETUP-02 | Phase 13 | Pending |
-| DISP-01 | Phase 13 | Pending |
-| DISP-02 | Phase 13 | Pending |
-| DISP-03 | Phase 13 | Pending |
-| DISP-04 | Phase 13 | Pending |
-| DISP-05 | Phase 13 | Pending |
-| ACT-01 | Phase 15 | Pending |
-| ACT-02 | Phase 15 | Pending |
-| SYNC-01 | Phase 14 | Pending |
-| SYNC-02 | Phase 14 | Pending |
-| SYNC-03 | Phase 14 | Pending |
+| SETUP-01 | Phase 13 | Complete |
+| SETUP-02 | Phase 13 | Complete |
+| DISP-01 | Phase 13 | Complete |
+| DISP-02 | Phase 13 | Complete |
+| DISP-03 | Phase 13 | Complete |
+| DISP-04 | Phase 13 | Complete |
+| DISP-05 | Phase 13 | Complete |
+| ACT-01 | Phase 15 | Complete |
+| ACT-02 | Phase 15 | Complete |
+| SYNC-01 | Phase 14 | Complete |
+| SYNC-02 | Phase 14 | Complete |
+| SYNC-03 | Phase 14 | Complete |
 
 **Coverage:**
 - v2.1 requirements: 12 total (note: original count of 11 was incorrect; SYNC-03 brings total to 12)

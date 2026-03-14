@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -20,6 +21,50 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Widget receiver — handles APPWIDGET_UPDATE broadcasts and onDeleted cleanup -->
+        <receiver
+            android:name=".widget.NotesWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/notes_widget_info" />
+        </receiver>
+
+        <!-- Widget config activity — created in Plan 02; registered here so the manifest
+             is valid before Plan 02 is complete (Android does not validate class existence
+             at compile time in the manifest). -->
+        <activity
+            android:name=".widget.config.WidgetConfigActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Notes">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!-- Overlay activity for adding bullets directly from the widget -->
+        <activity
+            android:name=".widget.add.AddBulletActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Notes.Overlay" />
+
+        <!-- Disable the default WorkManager auto-initializer so we can wire HiltWorkerFactory
+             via Configuration.Provider in NotesApplication. Without this, WorkManager would
+             initialize itself with a default factory that cannot inject Hilt dependencies. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
     </application>
 
 </manifest>

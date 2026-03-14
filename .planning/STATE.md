@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Android Home Screen Widget
 status: roadmap_ready
-stopped_at: Phase 14 context gathered
-last_updated: "2026-03-14T10:21:17.011Z"
+stopped_at: Completed 15-02-PLAN.md
+last_updated: "2026-03-14T15:43:48.960Z"
 last_activity: 2026-03-14 — Roadmap created for v2.1 (Phases 13-15)
 progress:
   total_phases: 3
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  completed_phases: 3
+  total_plans: 8
+  completed_plans: 8
 ---
 
 ---
@@ -60,6 +60,14 @@ Progress: [░░░░░░░░░░] 0% (v2.1: 0/3 phases)
 | 15. Interactive Actions | TBD | Not started |
 
 *Updated after each plan completion*
+| Phase 13-widget-foundation P01 | 10 | 3 tasks | 16 files |
+| Phase 13-widget-foundation P02 | 8 | 2 tasks | 4 files |
+| Phase 13-widget-foundation P03 | 30 | 2 tasks | 5 files |
+| Phase 13-widget-foundation PP04 | 20 | 2 tasks | 7 files |
+| Phase 14-background-sync-and-auth P01 | 14 | 2 tasks | 8 files |
+| Phase 14-background-sync-and-auth P02 | 525623 | 2 tasks | 8 files |
+| Phase 15-interactive-actions P01 | 9 | 2 tasks | 4 files |
+| Phase 15-interactive-actions P02 | 20 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -80,6 +88,26 @@ Decisions affecting v2.1 (from research):
 - v2.1 arch: NotesApplication must implement Configuration.Provider + inject HiltWorkerFactory; disable default WorkManager auto-initializer in AndroidManifest.xml via tools:node="remove"
 - v2.1 arch: SizeMode.Responsive with 2-3 predefined DpSize breakpoints (not SizeMode.Exact)
 - v2.1 arch: WidgetConfigActivity must set RESULT_CANCELED at start; switch to RESULT_OK only on user confirmation — omitting this causes launcher to silently discard widget placement
+- [Phase 13-widget-foundation]: WidgetStateStore createForTest() factory enables Robolectric testing with mock Aead — avoids Android Keystore dependency in JVM tests
+- [Phase 13-widget-foundation]: fetchWidgetData accepts WidgetEntryPoint parameter (not Context) — enables pure Kotlin unit testing without Robolectric for all business logic
+- [Phase 13-widget-foundation]: EncryptedDataStoreFactory.getWidgetStateAead() uses isolated widget_state_keyset separate from auth/cookie keysets for domain separation
+- [Phase 13-widget-foundation]: WidgetModule provides WidgetStateStore via @Provides since manual singleton pattern requires explicit Hilt binding
+- [Phase 13-widget-foundation]: Google SSO in config activity: GoogleSignInUseCase injected into Activity (needs Activity context); ViewModel only receives idToken via loginWithGoogle(idToken)
+- [Phase 13-widget-foundation]: documentSelectedEvent uses Channel<Unit> (not SharedFlow) for one-shot delivery semantics preventing event replay on Activity recreation
+- [Phase 13-widget-foundation]: Glance 1.1.1 ColorProviders lacks outlineVariant — use outline for dividers; actionRunCallback is in androidx.glance.appwidget.action not glance.action; !!date regex uses \S+ not digit-only
+- [Phase 13-widget-foundation]: consumeWidgetDocumentId() pattern chosen over StateFlow: returns-and-clears atomically, no new state propagation needed
+- [Phase 13-widget-foundation]: Robolectric required for NotesWidgetReceiverTest.onDeleted: GlanceAppWidgetReceiver.onDeleted calls goAsync() which requires Android broadcast machinery
+- [Phase 14-background-sync-and-auth]: WidgetSyncWorker always returns Result.success() to keep periodic schedule alive — errors communicated via WidgetStateStore display state instead
+- [Phase 14-background-sync-and-auth]: Non-auth network errors in WidgetSyncWorker keep stale cache unchanged — stale data preferred over blank widget
+- [Phase 14-background-sync-and-auth]: getFirstDocumentId() iterates DataStore keys matching widget_doc_* prefix to find configured widget without needing appWidgetId in worker context
+- [Phase 14-background-sync-and-auth]: triggerWidgetRefreshIfNeeded() logic extracted to WidgetRefreshHelper.kt as internal suspend fun for unit testability
+- [Phase 14-background-sync-and-auth]: NotesWidget.provideGlance reads exclusively from WidgetStateStore cache — no live API calls in widget renderer
+- [Phase 14-background-sync-and-auth]: MainViewModel injects @ApplicationContext + WidgetStateStore to write SESSION_EXPIRED on logout without AndroidViewModel
+- [Phase 15-interactive-actions]: performDelete() extracted as internal suspend fun for pure JVM unit testability without Robolectric
+- [Phase 15-interactive-actions]: Two-layer clickable in BulletRow: inner Row (dot+text) with actionStartActivity, x Box with actionRunCallback — innermost clickable wins in Glance
+- [Phase 15-interactive-actions]: AddBulletActivity uses @AndroidEntryPoint (not @EntryPoint) — Activity context works with Hilt direct injection
+- [Phase 15-interactive-actions]: performAddBullet returns sealed AddBulletResult instead of nullable String for exhaustive when handling
+- [Phase 15-interactive-actions]: [+] button only appears in ContentView HeaderRow — non-Content states have no doc_id to pass
 
 ### Research Flags
 
@@ -96,6 +124,6 @@ None at roadmap stage. Phase 14 auth strategy flagged for design review during p
 
 ## Session Continuity
 
-Last session: 2026-03-14T10:21:17.008Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-background-sync-and-auth/14-CONTEXT.md
+Last session: 2026-03-14T15:40:13.929Z
+Stopped at: Completed 15-02-PLAN.md
+Resume file: None

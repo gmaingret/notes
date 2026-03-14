@@ -1,5 +1,6 @@
 package com.gmaingret.notes.presentation.main
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gmaingret.notes.data.local.TokenStore
@@ -10,7 +11,12 @@ import com.gmaingret.notes.domain.usecase.LogoutUseCase
 import com.gmaingret.notes.domain.usecase.OpenDocumentUseCase
 import com.gmaingret.notes.domain.usecase.RenameDocumentUseCase
 import com.gmaingret.notes.domain.usecase.ReorderDocumentUseCase
+import androidx.glance.appwidget.updateAll
+import com.gmaingret.notes.widget.DisplayState
+import com.gmaingret.notes.widget.NotesWidget
+import com.gmaingret.notes.widget.WidgetStateStore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -22,8 +28,10 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val logoutUseCase: LogoutUseCase,
     private val tokenStore: TokenStore,
+    private val widgetStateStore: WidgetStateStore,
     private val getDocumentsUseCase: GetDocumentsUseCase,
     private val createDocumentUseCase: CreateDocumentUseCase,
     private val renameDocumentUseCase: RenameDocumentUseCase,
@@ -71,11 +79,20 @@ class MainViewModel @Inject constructor(
      * Logs the user out:
      * 1. Calls LogoutUseCase which hits POST /api/auth/logout (clears server cookie)
      *    and then clears local DataStore tokens via TokenStore.clearAll().
-     * 2. Invokes [onComplete] so the caller can navigate back to AuthScreen.
+     * 2. Writes SESSION_EXPIRED to WidgetStateStore so the widget reflects auth state immediately.
+     * 3. Triggers updateAll() to cause provideGlance to re-render from the updated cache.
+     * 4. Invokes [onComplete] so the caller can navigate back to AuthScreen.
      */
     fun logout(onComplete: () -> Unit) {
         viewModelScope.launch {
             logoutUseCase()
+            // Update widget to show SESSION_EXPIRED immediately after logout
+            try {
+                widgetStateStore.saveDisplayState(DisplayState.SESSION_EXPIRED)
+                NotesWidget.pushStateToGlance(context)
+            } catch (_: Exception) {
+                // Widget update is best-effort — do not block logout navigation
+            }
             onComplete()
         }
     }

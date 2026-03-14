@@ -96,6 +96,11 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.work.compiler)
+
+    // WorkManager
+    implementation(libs.work.runtime.ktx)
 
     // Network
     implementation(libs.retrofit)
@@ -149,6 +154,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.work.testing)
 
     // Android Tests
     androidTestImplementation(platform(libs.androidx.compose.bom))

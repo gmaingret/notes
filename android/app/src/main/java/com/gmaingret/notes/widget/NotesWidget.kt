@@ -3,11 +3,16 @@ package com.gmaingret.notes.widget
 import android.content.Context
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceTheme
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.currentState
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -17,12 +22,11 @@ import retrofit2.HttpException
  * Home screen widget for Notes.
  *
  * Uses SizeMode.Responsive with 3 breakpoints so Glance re-renders at each
- * size instead of stretching a single layout. I/O is done inside provideGlance()
- * via withContext(Dispatchers.IO) — never inside the provideContent{} lambda.
+ * size instead of stretching a single layout.
  *
- * Data fetching is extracted into a testable suspend function [fetchWidgetData]
- * that accepts a WidgetEntryPoint interface, making it mockable in unit tests
- * without needing a real Android context.
+ * Document ID is stored in Glance widget preferences (via updateAppWidgetState)
+ * so that provideContent can read it with currentState() and recompose when
+ * the config activity writes a new value.
  */
 class NotesWidget : GlanceAppWidget() {
 
@@ -30,10 +34,25 @@ class NotesWidget : GlanceAppWidget() {
         /** Maximum number of root bullets to load into the widget. */
         const val MAX_BULLETS = 50
 
+        /** Glance preferences key for the selected document ID. */
+        val DOC_ID_KEY = stringPreferencesKey("doc_id")
+
         // Responsive breakpoints
         private val SMALL = DpSize(200.dp, 100.dp)
         private val MEDIUM = DpSize(276.dp, 220.dp)
         private val LARGE = DpSize(276.dp, 380.dp)
+
+        /**
+         * Writes the document ID into Glance widget preferences and triggers
+         * a widget update. Call from the config activity after saving to WidgetStateStore.
+         */
+        suspend fun setDocumentId(context: Context, appWidgetId: Int, docId: String) {
+            val glanceId = GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId)
+            updateAppWidgetState(context, glanceId) { prefs ->
+                prefs[DOC_ID_KEY] = docId
+            }
+            NotesWidget().update(context, glanceId)
+        }
     }
 
     override val sizeMode: SizeMode = SizeMode.Responsive(setOf(SMALL, MEDIUM, LARGE))
@@ -44,18 +63,27 @@ class NotesWidget : GlanceAppWidget() {
             WidgetEntryPoint::class.java
         )
 
-        val appWidgetId = id.hashCode() // used to look up saved document selection
-        val docId = withContext(Dispatchers.IO) {
-            WidgetStateStore.getInstance(context).getDocumentId(appWidgetId)
-        }
-
-        val uiState = withContext(Dispatchers.IO) {
-            fetchWidgetData(entryPoint, docId)
-        }
-
         provideContent {
+            val prefs = currentState<Preferences>()
+            val docId = prefs[DOC_ID_KEY]
+
+            // Fetch data based on docId — this runs on every recomposition
+            // triggered by Glance state changes (e.g., after config activity writes DOC_ID_KEY)
+            val uiState = androidx.compose.runtime.produceState<WidgetUiState>(
+                initialValue = if (docId == null) WidgetUiState.NotConfigured else WidgetUiState.Loading,
+                key1 = docId
+            ) {
+                if (docId == null) {
+                    value = WidgetUiState.NotConfigured
+                } else {
+                    value = withContext(Dispatchers.IO) {
+                        fetchWidgetData(entryPoint, docId)
+                    }
+                }
+            }
+
             GlanceTheme(colors = NotesWidgetColorScheme.colors) {
-                WidgetContent(uiState = uiState, context = context)
+                WidgetContent(uiState = uiState.value, context = context)
             }
         }
     }
@@ -149,7 +177,6 @@ class NotesWidget : GlanceAppWidget() {
     private fun isAuthError(e: Throwable?): Boolean {
         if (e == null) return false
         if (e is HttpException && e.code() == 401) return true
-        // Also check message for auth-related strings (e.g. from custom exceptions)
         val msg = e.message?.lowercase() ?: ""
         return msg.contains("401") || msg.contains("unauthorized") || msg.contains("unauthenticated")
     }

@@ -69,7 +69,7 @@ class WidgetConfigViewModel @Inject constructor(
      * One-shot event emitted after [selectDocument] persists the selection.
      * The Activity collects this to call setResult(RESULT_OK) + finish().
      */
-    private val _documentSelectedEvent = Channel<Unit>(capacity = Channel.BUFFERED)
+    private val _documentSelectedEvent = Channel<String>(capacity = Channel.BUFFERED)
     val documentSelectedEvent = _documentSelectedEvent.receiveAsFlow()
 
     init {
@@ -188,7 +188,7 @@ class WidgetConfigViewModel @Inject constructor(
     fun selectDocument(appWidgetId: Int, docId: String) {
         viewModelScope.launch {
             widgetStateStore.saveDocumentId(appWidgetId, docId)
-            _documentSelectedEvent.send(Unit)
+            _documentSelectedEvent.send(docId)
         }
     }
 }

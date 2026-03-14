@@ -200,7 +200,7 @@ class WidgetConfigViewModelTest {
 
         coEvery { widgetStateStore.saveDocumentId(any(), any()) } returns Unit
 
-        val events = mutableListOf<Unit>()
+        val events = mutableListOf<String>()
         val collectJob = launch {
             vm.documentSelectedEvent.collect { events.add(it) }
         }
@@ -211,5 +211,6 @@ class WidgetConfigViewModelTest {
         collectJob.cancel()
 
         assertTrue("Expected DocumentSelected event", events.isNotEmpty())
+        assertEquals("doc-1", events.first())
     }
 }

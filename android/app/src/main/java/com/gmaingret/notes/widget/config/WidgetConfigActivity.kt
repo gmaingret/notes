@@ -53,7 +53,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
-import androidx.glance.appwidget.updateAll
 import com.gmaingret.notes.domain.model.Document
 import com.gmaingret.notes.domain.usecase.GoogleSignInUseCase
 import com.gmaingret.notes.presentation.theme.NotesTheme
@@ -110,9 +109,10 @@ class WidgetConfigActivity : ComponentActivity() {
             NotesTheme {
                 // Collect one-shot DocumentSelected event to finalize RESULT_OK
                 LaunchedEffect(Unit) {
-                    viewModel.documentSelectedEvent.collect {
-                        // Trigger widget re-render before returning to launcher
-                        NotesWidget().updateAll(this@WidgetConfigActivity)
+                    viewModel.documentSelectedEvent.collect { docId ->
+                        // Write docId into Glance widget preferences — this triggers
+                        // provideContent recomposition via currentState<Preferences>()
+                        NotesWidget.setDocumentId(this@WidgetConfigActivity, appWidgetId, docId)
                         setResult(
                             RESULT_OK,
                             Intent().putExtra(EXTRA_APPWIDGET_ID, appWidgetId)

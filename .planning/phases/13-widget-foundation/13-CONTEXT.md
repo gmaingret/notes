@@ -15,10 +15,11 @@ Users can place a Notes widget on their Android home screen, pick a document via
 
 ### Widget Visual Layout
 - Rounded card shape (Material 3 Glance card)
-- No header, no title — pure bullet list filling the widget
+- Header row: document title (left-aligned, single-line truncated with ellipsis) + [+] add button (right-aligned), thin divider line below (revised in Phase 15 discussion — originally "no header")
 - No branding (no app icon, no accent border) — clean card only
+- Same background throughout header and bullet list (no distinct header shade)
 - Follow system dark/light mode automatically (consistent with app's system-preference approach)
-- Tapping anywhere on the widget opens the document in the full Notes app
+- Tapping the document title in the header opens the document in the full Notes app
 - Default size: 4x2 minimum, user-resizable
 
 ### Document Picker
@@ -29,7 +30,7 @@ Users can place a Notes widget on their Android home screen, pick a document via
 - Reconfigurable via Android long-press widget menu (re-opens picker to change document)
 
 ### Bullet Row Display
-- Each row: bullet dot + text content only
+- Each row: bullet dot + text + bare x delete icon (right-aligned, same color as text; added in Phase 15)
 - Completed bullets: strikethrough + reduced opacity (matching app behavior)
 - Long text: single line, truncated with ellipsis
 - Basic formatting: render bold and strikethrough (Glance SpannableString). Skip links, chips, italic
@@ -73,10 +74,10 @@ Users can place a Notes widget on their Android home screen, pick a document via
 <specifics>
 ## Specific Ideas
 
-- No header at all — user explicitly wants maximum space for bullets, no title row
+- Widget has a minimal header with document title + [+] add button (revised from original "no header" during Phase 15 discussion)
 - Widget is a clean, minimal bullet list card — the user knows which document they picked
 - The widget should feel like a "glanceable list" — grocery list / quick tasks use case
-- Tap-to-open-app on any part of the widget provides the escape hatch to the full editor
+- Tapping document title opens the full app; tapping bullet text also opens the document in the app
 
 </specifics>
 

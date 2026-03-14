@@ -1,66 +1,35 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Native Android Client
-status: ready_to_plan
-stopped_at: Completed 12-05-PLAN.md
-last_updated: "2026-03-14T08:29:11.934Z"
-last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
+milestone: v2.1
+milestone_name: Android Home Screen Widget
+status: defining_requirements
+stopped_at: null
+last_updated: "2026-03-14T00:00:00Z"
+last_activity: 2026-03-14 — Milestone v2.1 started
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 17
-  completed_plans: 17
----
-
----
-gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Native Android Client
-status: ready_to_plan
-stopped_at: Completed 11-04-PLAN.md
-last_updated: "2026-03-12T14:09:24.076Z"
-last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
-progress:
-  total_phases: 4
-  completed_phases: 3
-  total_plans: 12
-  completed_plans: 12
----
-
----
-gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Native Android Client
-status: ready_to_plan
-stopped_at: "Roadmap created for v2.0 — ready to plan Phase 9"
-last_updated: "2026-03-12T00:00:00Z"
-last_activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
-progress:
-  total_phases: 4
+  total_phases: 0
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
-  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-12)
+See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
-**Current focus:** Phase 9 — Android Foundation and Auth
+**Current focus:** Defining requirements for v2.1 Android Home Screen Widget
 
 ## Current Position
 
-Phase: 9 of 12 (Android Foundation and Auth)
-Plan: — of TBD
-Status: Ready to plan
-Last activity: 2026-03-12 — v2.0 roadmap created, phases 9-12 defined
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-14 — Milestone v2.1 started
 
-Progress: [░░░░░░░░░░] 0% (v2.0)
+Progress: [░░░░░░░░░░] 0% (v2.1)
 
 ## Performance Metrics
 

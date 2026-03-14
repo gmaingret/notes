@@ -42,7 +42,14 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 
 ### Active
 
-(No active requirements — next milestone not yet defined)
+<!-- v2.1 Android Home Screen Widget -->
+- [ ] User can add a Notes widget to their Android home screen and choose which document it shows
+- [ ] User can see root-level bullet items of the selected document at a glance
+- [ ] User can add a new bullet from the widget via a lightweight overlay dialog
+- [ ] User can delete a bullet directly from the widget
+- [ ] Widget auto-refreshes when changes are made in the Android app
+- [ ] User can manually refresh the widget to pull in changes from other devices
+- [ ] Each widget instance can point to a different document
 
 ### Deferred
 
@@ -65,6 +72,17 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - Custom domains — self-hosted, user manages their own domain
 - AI features — out of scope for focused outliner clone
 - Real-time sync / collaboration — privacy-first means no sync
+
+## Current Milestone: v2.1 Android Home Screen Widget
+
+**Goal:** Add a resizable Android home screen widget that displays root-level bullets of a chosen document with inline add/delete — ideal for grocery lists, shopping lists, or quick task lists.
+
+**Target features:**
+- Pin any document as a home screen widget (Jetpack Glance)
+- Show root-level bullets as a flat scrollable list
+- Add new bullet via lightweight overlay dialog
+- Delete bullet directly from widget
+- Auto-sync with in-app changes + manual refresh + 15-min WorkManager periodic sync
 
 ## Current State
 
@@ -117,4 +135,4 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 | Inter Variable + JetBrains Mono via @fontsource (no Google Fonts) | Self-hosted fonts maintain privacy-first approach | ✓ Good — no external dependencies, fast load from same server |
 
 ---
-*Last updated: 2026-03-14 after v2.0 milestone completed*
+*Last updated: 2026-03-14 after v2.1 milestone started*

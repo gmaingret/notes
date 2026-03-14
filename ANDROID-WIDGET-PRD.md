@@ -39,7 +39,8 @@ Add a resizable Android home screen widget that displays the root-level bullet p
 | W-2 | As a user, I can see the current bullet items of the selected document at a glance. |
 | W-3 | As a user, I can tap "+" in the widget to type and add a new bullet to the document. |
 | W-4 | As a user, I can tap a delete icon next to any bullet to remove it. |
-| W-5 | As a user, I can manually refresh the widget to see the latest content. |
+| W-5 | As a user, the widget automatically reflects changes I make in the Android app without any manual action. |
+| W-5b | As a user, I can manually refresh the widget to pull in changes made from other devices (desktop, etc.). |
 | W-6 | As a user, each widget instance can point to a different document. |
 
 ---
@@ -137,11 +138,12 @@ When the document has no bullets:
 android/app/src/main/java/com/gmaingret/notes/
 └── presentation/
     └── widget/
-        ├── NotesWidgetReceiver.kt         # GlanceAppWidgetReceiver — registered in Manifest
+        ├── NotesWidgetReceiver.kt         # GlanceAppWidgetReceiver — registered in Manifest; handles ACTION_BULLETS_CHANGED
         ├── NotesWidget.kt                 # Main Glance AppWidget (UI + state)
         ├── NotesWidgetConfigActivity.kt   # Document picker shown on widget add
         ├── AddBulletActivity.kt           # Transparent dialog Activity for text input
-        └── WidgetPreferences.kt           # DataStore: appWidgetId → documentId mapping
+        ├── WidgetPreferences.kt           # DataStore: appWidgetId → documentId mapping
+        └── WidgetSyncWorker.kt            # WorkManager periodic worker: re-fetches bullets every 15 min
 
 android/app/src/main/res/xml/
 └── notes_widget_info.xml                  # AppWidget provider metadata
@@ -153,8 +155,9 @@ android/app/src/main/res/xml/
 |------|--------|
 | `android/gradle/libs.versions.toml` | Add Glance + Glance-Material3 versions |
 | `android/app/build.gradle.kts` | Add Glance dependencies |
-| `android/app/src/main/AndroidManifest.xml` | Register receiver + 2 activities |
+| `android/app/src/main/AndroidManifest.xml` | Register receiver + 2 activities + `ACTION_BULLETS_CHANGED` broadcast permission |
 | `TokenStorage.kt` (data/local) | Verify refresh token persists across app restarts (needed by widget) |
+| `BulletTreeViewModel.kt` | Broadcast `ACTION_BULLETS_CHANGED` after each successful bullet mutation |
 
 ### 6.4 Existing Code Reused
 
@@ -179,10 +182,24 @@ android/app/src/main/res/xml/
 
 ### 6.6 Widget Refresh Strategy
 
-- **Periodic**: `updatePeriodMillis = 1 800 000` (30 min, minimum Android allows is 30 min)
-- **On action**: Any delete or add triggers an immediate local state update + re-render
-- **Manual**: Refresh button in header triggers API re-fetch
-- **On app open**: Optionally broadcast a refresh intent when the main app is foregrounded
+The widget matches the Android app's own sync model — the app has no real-time push (no WebSockets, no FCM). It relies on explicit user actions and pull-to-refresh. The widget mirrors this behavior:
+
+| Trigger | Latency | How |
+|---------|---------|-----|
+| **Widget action** (add/delete from widget) | Immediate | Widget re-fetches after API call completes |
+| **App action** (add/delete/edit in Android app) | Immediate | `BulletTreeViewModel` broadcasts a local intent after each successful mutation; `NotesWidgetReceiver` listens and triggers a refresh |
+| **External change** (desktop, another device) | Up to 15 min | WorkManager `PeriodicWorkRequest` with 15-min interval (Android minimum for background work) re-fetches bullets |
+| **Manual refresh** | On demand | Refresh button (↻) in widget header triggers API re-fetch |
+
+**App → Widget broadcast mechanism:**
+- After every successful bullet mutation in `BulletTreeViewModel` (create, delete, patch), check if the mutated `documentId` matches any widget's configured document.
+- If so, send a local broadcast intent (`ACTION_BULLETS_CHANGED`) with the `documentId`.
+- `NotesWidgetReceiver` handles this intent and triggers a Glance state update.
+
+**WorkManager worker** (`WidgetSyncWorker`):
+- `PeriodicWorkRequest` with `repeatInterval = 15 minutes`
+- Fetches bullets for all active widget instances
+- Enqueued when the first widget is added; cancelled when the last widget is removed
 
 ### 6.7 AndroidManifest Additions
 
@@ -220,7 +237,7 @@ android/app/src/main/res/xml/
 |------|-----------|
 | Glance does not support `TextField` natively | Use a separate dialog `Activity` (`AddBulletActivity`) |
 | Widget runs outside app process — access token is in-memory only | Widget calls `POST /api/auth/refresh` to get a fresh token using the persisted refresh cookie |
-| Android minimum widget update interval is 30 min | Manual refresh button + local optimistic updates on actions |
+| External changes (desktop) only visible after up to 15 min | Same limitation as the Android app itself (no real-time server push); manual refresh button available |
 | Glance + Hilt integration requires specific setup | Follow official Glance + Hilt sample patterns |
 | Widget may appear if user is logged out | Show "Please open the app to log in" error state |
 

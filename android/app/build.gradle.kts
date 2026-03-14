@@ -131,6 +131,10 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 
+    // Glance (home screen widget)
+    implementation(libs.glance.appwidget)
+    implementation(libs.glance.material3)
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 

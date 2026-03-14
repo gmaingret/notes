@@ -98,10 +98,10 @@ fun WidgetContent(uiState: WidgetUiState, context: Context) {
 @androidx.compose.runtime.Composable
 fun ContentView(state: WidgetUiState.Content, context: Context) {
     Column(modifier = GlanceModifier.fillMaxSize()) {
-        HeaderRow(title = state.documentTitle, documentId = "", context = context)
+        HeaderRow(title = state.documentTitle, documentId = state.documentId, context = context)
         LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
             items(state.bullets) { bullet ->
-                BulletRow(bullet = bullet, context = context, documentId = "")
+                BulletRow(bullet = bullet, context = context, documentId = state.documentId)
             }
         }
     }

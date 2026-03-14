@@ -1,5 +1,6 @@
 package com.gmaingret.notes
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,12 +15,31 @@ import com.gmaingret.notes.presentation.navigation.MainRoute
 import com.gmaingret.notes.presentation.navigation.NotesApp
 import com.gmaingret.notes.presentation.splash.SplashViewModel
 import com.gmaingret.notes.presentation.theme.NotesTheme
+import com.gmaingret.notes.widget.OPEN_DOCUMENT_ID
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val splashViewModel: SplashViewModel by viewModels()
+
+    /**
+     * Stores the document ID requested via a widget tap.
+     * Set in onCreate/onNewIntent; consumed and cleared by MainScreen via
+     * [consumeWidgetDocumentId].
+     */
+    var pendingWidgetDocId: String? = null
+        private set
+
+    /**
+     * Returns the pending widget document ID and clears it in one atomic step,
+     * ensuring the navigation happens exactly once even if the composable recomposes.
+     */
+    fun consumeWidgetDocumentId(): String? {
+        val id = pendingWidgetDocId
+        pendingWidgetDocId = null
+        return id
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
@@ -31,6 +51,7 @@ class MainActivity : ComponentActivity() {
         }
 
         enableEdgeToEdge()
+        handleWidgetIntent(intent)
 
         setContent {
             NotesTheme {
@@ -50,6 +71,18 @@ class MainActivity : ComponentActivity() {
                     NotesApp(initialRoute = initialRoute)
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleWidgetIntent(intent)
+    }
+
+    private fun handleWidgetIntent(intent: Intent?) {
+        val docId = intent?.getStringExtra(OPEN_DOCUMENT_ID)
+        if (!docId.isNullOrEmpty()) {
+            pendingWidgetDocId = docId
         }
     }
 }

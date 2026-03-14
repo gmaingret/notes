@@ -33,6 +33,7 @@ sealed interface WidgetUiState {
 
     /** Successfully loaded with at least one root bullet. */
     data class Content(
+        val documentId: String,
         val documentTitle: String,
         val bullets: List<WidgetBullet>
     ) : WidgetUiState

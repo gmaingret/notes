@@ -64,6 +64,7 @@ class NotesWidgetTest {
 
         assertTrue(result is WidgetUiState.Content)
         val content = result as WidgetUiState.Content
+        assertEquals(docId, content.documentId)
         assertEquals("My Doc", content.documentTitle)
         assertEquals(1, content.bullets.size)
         assertEquals("b1", content.bullets[0].id)

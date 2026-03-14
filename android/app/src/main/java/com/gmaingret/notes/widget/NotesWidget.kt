@@ -135,6 +135,7 @@ class NotesWidget : GlanceAppWidget() {
             WidgetUiState.Empty
         } else {
             WidgetUiState.Content(
+                documentId = docId,
                 documentTitle = document.title,
                 bullets = rootBullets
             )

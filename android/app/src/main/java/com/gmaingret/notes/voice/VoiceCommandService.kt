@@ -1,5 +1,7 @@
 package com.gmaingret.notes.voice
 
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -10,35 +12,27 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
 import android.speech.tts.TextToSpeech
 import android.util.Log
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.gmaingret.notes.MainActivity
 import com.gmaingret.notes.R
 import com.gmaingret.notes.data.model.VoiceCommandRequest
 import com.gmaingret.notes.data.api.VoiceApi
+import com.gmaingret.notes.widget.sync.WidgetSyncWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.vosk.Model
 import org.vosk.android.StorageService
 import java.util.Locale
 import javax.inject.Inject
 
-/**
- * Foreground service that manages the full voice command pipeline:
- *
- * 1. LISTENING_WAKE_WORD — Vosk keyword spotter listens for "hey notes"
- * 2. LISTENING_COMMAND — Vosk full recognizer captures the user's command
- * 3. PROCESSING — Sends transcribed text to backend voice endpoint
- * 4. SPEAKING_RESPONSE — TextToSpeech speaks the confirmation
- * 5. Returns to LISTENING_WAKE_WORD
- */
 @AndroidEntryPoint
 class VoiceCommandService : Service(), TextToSpeech.OnInitListener {
 
@@ -90,7 +84,7 @@ class VoiceCommandService : Service(), TextToSpeech.OnInitListener {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(NOTIFICATION_ID, buildNotification("Initializing voice commands..."))
+        startForeground(NOTIFICATION_ID, buildNotification("Initialisation..."))
         loadModelAndStart()
         return START_STICKY
     }
@@ -132,100 +126,108 @@ class VoiceCommandService : Service(), TextToSpeech.OnInitListener {
                     },
                     { e ->
                         Log.e(TAG, "Failed to load Vosk model", e)
-                        updateNotification("Voice model failed to load")
+                        updateNotification("Erreur chargement modèle vocal")
                     }
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Model loading error", e)
-                updateNotification("Voice model error: ${e.message}")
+                updateNotification("Erreur modèle : ${e.message}")
             }
         }
     }
 
     private fun startWakeWordListening() {
         state = State.LISTENING_WAKE_WORD
-        updateNotification("Listening for \"Hey Notes\"...")
+        updateNotification("\"Hey Notes\" pour commencer...")
 
         speechRecognizer?.stop()
+        speechRecognizer = null
         wakeWordEngine?.stop()
+        wakeWordEngine = null
 
-        wakeWordEngine = WakeWordEngine(model!!) {
-            onWakeWordDetected()
+        serviceScope.launch(Dispatchers.IO) {
+            delay(500)
+            wakeWordEngine = WakeWordEngine(model!!) {
+                onWakeWordDetected()
+            }
+            wakeWordEngine?.start(serviceScope)
         }
-        wakeWordEngine?.start(serviceScope)
     }
 
     private fun onWakeWordDetected() {
         state = State.LISTENING_COMMAND
-        updateNotification("Listening for your command...")
+        updateNotification("En écoute...")
 
-        // Vibrate to acknowledge wake word
-        vibrate()
-
-        // Stop wake word, start full recognition
         wakeWordEngine?.stop()
+        wakeWordEngine = null
 
-        speechRecognizer = SpeechRecognizerManager(
-            model = model!!,
-            onResult = { text -> onCommandRecognized(text) },
-            onError = { error ->
-                speak(error)
-                startWakeWordListening()
+        serviceScope.launch(Dispatchers.Main) {
+            playBeep()
+
+            speechRecognizer = SpeechRecognizerManager(
+                context = this@VoiceCommandService,
+                onResult = { text -> onCommandRecognized(text) },
+                onError = { error -> speak(error) }
+            )
+            speechRecognizer?.start(serviceScope)
+        }
+    }
+
+    private fun playBeep() {
+        try {
+            val tg = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+            tg.startTone(ToneGenerator.TONE_PROP_BEEP, 100)
+            Log.d(TAG, "Beep played")
+            // Release after tone in background
+            serviceScope.launch {
+                delay(150)
+                tg.release()
             }
-        )
-        speechRecognizer?.start(serviceScope)
+        } catch (e: Exception) {
+            Log.w(TAG, "Beep failed", e)
+        }
     }
 
     private fun onCommandRecognized(text: String) {
         state = State.PROCESSING
-        updateNotification("Processing: \"$text\"")
+        updateNotification("Traitement : \"$text\"")
         Log.d(TAG, "Command recognized: $text")
 
         serviceScope.launch {
             try {
                 val response = voiceApi.sendCommand(VoiceCommandRequest(text))
+                if (response.success) {
+                    WorkManager.getInstance(this@VoiceCommandService)
+                        .enqueue(OneTimeWorkRequestBuilder<WidgetSyncWorker>().build())
+                }
                 speak(response.message)
             } catch (e: Exception) {
                 Log.e(TAG, "API call failed", e)
-                speak("Sorry, I couldn't process that command. Please try again.")
+                speak("Sorry, I couldn't process that command.")
             }
         }
     }
 
     private fun speak(text: String) {
         state = State.SPEAKING_RESPONSE
-        updateNotification("Speaking: \"$text\"")
+        updateNotification(text)
+        Log.d(TAG, "Speaking: $text")
 
         if (ttsReady && tts != null) {
             tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "voice_response")
-            // Wait for TTS to finish, then resume wake word listening
             serviceScope.launch {
-                // Poll TTS speaking state
-                while (tts?.isSpeaking == true) {
-                    kotlinx.coroutines.delay(200)
+                delay(500)
+                var waitCount = 0
+                while (tts?.isSpeaking == true && waitCount < 30) {
+                    delay(200)
+                    waitCount++
                 }
+                Log.d(TAG, "TTS finished, resuming wake word")
                 startWakeWordListening()
             }
         } else {
             Log.w(TAG, "TTS not ready, skipping speech")
             startWakeWordListening()
-        }
-    }
-
-    private fun vibrate() {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                vibratorManager.defaultVibrator.vibrate(
-                    VibrationEffect.createOneShot(150, VibrationEffect.DEFAULT_AMPLITUDE)
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-                vibrator.vibrate(VibrationEffect.createOneShot(150, VibrationEffect.DEFAULT_AMPLITUDE))
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Vibration failed", e)
         }
     }
 
@@ -244,7 +246,7 @@ class VoiceCommandService : Service(), TextToSpeech.OnInitListener {
                 "Voice Commands",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Shows when voice command listening is active"
+                description = "Commandes vocales actives"
                 setShowBadge(false)
             }
             val nm = getSystemService(NotificationManager::class.java)
@@ -254,8 +256,7 @@ class VoiceCommandService : Service(), TextToSpeech.OnInitListener {
 
     private fun buildNotification(text: String): Notification {
         val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
+            this, 0,
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

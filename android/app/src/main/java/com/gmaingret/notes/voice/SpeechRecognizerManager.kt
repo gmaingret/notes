@@ -1,146 +1,118 @@
 package com.gmaingret.notes.voice
 
-import android.media.AudioFormat
-import android.media.AudioRecord
-import android.media.MediaRecorder
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import org.vosk.Model
-import org.vosk.Recognizer
 
 /**
- * Captures a full voice command using Vosk in unrestricted recognition mode.
+ * Captures a full voice command using Android's built-in SpeechRecognizer (Google).
  *
- * Activated after the wake word is detected. Listens until the user stops speaking
- * (Vosk returns a final result after silence), then returns the transcribed text.
+ * Uses cloud-based recognition for much better accuracy than offline Vosk.
+ * Activated after the wake word is detected, listens until the user stops speaking.
  */
 class SpeechRecognizerManager(
-    private val model: Model,
+    private val context: Context,
     private val onResult: (String) -> Unit,
     private val onError: (String) -> Unit
 ) {
     companion object {
         private const val TAG = "SpeechRecognizerMgr"
-        private const val SAMPLE_RATE = 16000
-        private const val SILENCE_TIMEOUT_MS = 3000L
     }
 
-    private var audioRecord: AudioRecord? = null
-    private var recognizer: Recognizer? = null
-    private var recognitionJob: Job? = null
+    private var speechRecognizer: SpeechRecognizer? = null
 
     fun start(scope: CoroutineScope) {
-        if (recognitionJob?.isActive == true) return
-
-        recognitionJob = scope.launch(Dispatchers.IO) {
+        scope.launch(Dispatchers.Main) {
             try {
-                val bufferSize = AudioRecord.getMinBufferSize(
-                    SAMPLE_RATE,
-                    AudioFormat.CHANNEL_IN_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT
-                ).coerceAtLeast(4096)
+                speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
+                speechRecognizer?.setRecognitionListener(object : RecognitionListener {
+                    override fun onReadyForSpeech(params: Bundle?) {
+                        Log.d(TAG, "Ready for speech")
+                    }
 
-                audioRecord = AudioRecord(
-                    MediaRecorder.AudioSource.VOICE_RECOGNITION,
-                    SAMPLE_RATE,
-                    AudioFormat.CHANNEL_IN_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    bufferSize
-                )
+                    override fun onBeginningOfSpeech() {
+                        Log.d(TAG, "Speech started")
+                    }
 
-                // Full recognition mode — no grammar restriction
-                recognizer = Recognizer(model, SAMPLE_RATE.toFloat())
+                    override fun onRmsChanged(rmsdB: Float) {}
 
-                audioRecord?.startRecording()
-                Log.d(TAG, "Command recognition started")
+                    override fun onBufferReceived(buffer: ByteArray?) {}
 
-                val buffer = ByteArray(4096)
-                var lastPartialTime = System.currentTimeMillis()
-                var hasHeardSpeech = false
+                    override fun onEndOfSpeech() {
+                        Log.d(TAG, "Speech ended")
+                    }
 
-                while (isActive) {
-                    val bytesRead = audioRecord?.read(buffer, 0, buffer.size) ?: -1
-                    if (bytesRead > 0) {
-                        if (recognizer?.acceptWaveForm(buffer, bytesRead) == true) {
-                            // Final result — user stopped speaking
-                            val result = recognizer?.result ?: ""
-                            val text = extractText(result)
-                            if (text.isNotBlank()) {
-                                Log.d(TAG, "Final result: $text")
-                                onResult(text)
-                                return@launch
-                            }
-                        } else {
-                            // Partial result — check if user is speaking
-                            val partial = recognizer?.partialResult ?: ""
-                            val partialText = extractPartial(partial)
-                            if (partialText.isNotBlank()) {
-                                hasHeardSpeech = true
-                                lastPartialTime = System.currentTimeMillis()
-                            }
+                    override fun onError(error: Int) {
+                        val message = when (error) {
+                            SpeechRecognizer.ERROR_NO_MATCH -> "I didn't understand that. Please try again."
+                            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "I didn't hear a command. Please try again."
+                            SpeechRecognizer.ERROR_NETWORK,
+                            SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network error. Check your connection."
+                            else -> "Speech recognition error. Please try again."
                         }
+                        Log.e(TAG, "Recognition error: $error")
+                        onError(message)
                     }
 
-                    // Timeout if user hasn't spoken after wake word
-                    val elapsed = System.currentTimeMillis() - lastPartialTime
-                    if (!hasHeardSpeech && elapsed > SILENCE_TIMEOUT_MS) {
-                        Log.d(TAG, "Silence timeout — no speech detected")
-                        onError("I didn't hear a command. Please try again.")
-                        return@launch
-                    }
-                    // Also timeout if speech stopped for a while
-                    if (hasHeardSpeech && elapsed > SILENCE_TIMEOUT_MS) {
-                        val finalResult = recognizer?.finalResult ?: ""
-                        val text = extractText(finalResult)
+                    override fun onResults(results: Bundle?) {
+                        val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        val text = matches?.firstOrNull()?.trim() ?: ""
                         if (text.isNotBlank()) {
-                            Log.d(TAG, "Silence timeout final: $text")
+                            Log.d(TAG, "Final result: $text")
                             onResult(text)
                         } else {
-                            onError("I couldn't understand what you said.")
+                            onError("I didn't catch that. Please try again.")
                         }
-                        return@launch
                     }
+
+                    override fun onPartialResults(partialResults: Bundle?) {
+                        val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        Log.d(TAG, "Partial: ${matches?.firstOrNull()}")
+                    }
+
+                    override fun onEvent(eventType: Int, params: Bundle?) {}
+                })
+
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    // Multilingual — detect both French and English equally
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fr-FR")
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "fr-FR")
+                    putExtra("android.speech.extra.EXTRA_ADDITIONAL_LANGUAGES", arrayOf("en-US"))
+                    putExtra("android.speech.extra.ENABLE_LANGUAGE_DETECTION", true)
+                    putExtra("android.speech.extra.LANGUAGE_DETECTION_ALLOWED_LANGUAGES", arrayOf("fr-FR", "en-US"))
+                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                    putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                    // Longer timeouts for complex commands
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 15000L)
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 5000L)
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 5000L)
+                    putExtra("android.speech.extra.DICTATION_MODE", true)
+                    // Prefer offline recognition if available (faster, more tolerant)
+                    putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
                 }
+
+                speechRecognizer?.startListening(intent)
+                Log.d(TAG, "Command recognition started")
             } catch (e: Exception) {
-                Log.e(TAG, "Recognition error", e)
+                Log.e(TAG, "Failed to start speech recognizer", e)
                 onError("Speech recognition failed: ${e.message}")
-            } finally {
-                cleanup()
             }
         }
     }
 
     fun stop() {
-        recognitionJob?.cancel()
-        recognitionJob = null
-        cleanup()
-    }
-
-    private fun cleanup() {
         try {
-            audioRecord?.stop()
-            audioRecord?.release()
+            speechRecognizer?.stopListening()
+            speechRecognizer?.destroy()
         } catch (_: Exception) { }
-        audioRecord = null
-
-        try {
-            recognizer?.close()
-        } catch (_: Exception) { }
-        recognizer = null
-    }
-
-    private fun extractText(json: String): String {
-        // Vosk result format: {"text" : "some recognized text"}
-        val regex = """"text"\s*:\s*"([^"]*)"""".toRegex()
-        return regex.find(json)?.groupValues?.get(1)?.trim() ?: ""
-    }
-
-    private fun extractPartial(json: String): String {
-        val regex = """"partial"\s*:\s*"([^"]*)"""".toRegex()
-        return regex.find(json)?.groupValues?.get(1)?.trim() ?: ""
+        speechRecognizer = null
     }
 }

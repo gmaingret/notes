@@ -56,19 +56,45 @@ class WakeWordEngine(
                 recognizer = Recognizer(model, SAMPLE_RATE.toFloat(), grammar)
 
                 audioRecord?.startRecording()
-                Log.d(TAG, "Wake word listening started")
+                val recordingState = audioRecord?.recordingState
+                Log.d(TAG, "Wake word listening started (recordingState=$recordingState)")
 
                 val buffer = ByteArray(4096)
+                var frameCount = 0
                 while (isActive) {
                     val bytesRead = audioRecord?.read(buffer, 0, buffer.size) ?: -1
                     if (bytesRead > 0) {
-                        if (recognizer?.acceptWaveForm(buffer, bytesRead) == true) {
-                            val result = recognizer?.result ?: ""
-                            if (WAKE_PHRASES.any { phrase -> result.contains("\"$phrase\"") }) {
-                                Log.d(TAG, "Wake word detected: $result")
+                        frameCount++
+                        if (frameCount % 100 == 0) {
+                            Log.d(TAG, "Audio frames processed: $frameCount")
+                        }
+                        val accepted = recognizer?.acceptWaveForm(buffer, bytesRead) == true
+
+                        // Check PARTIAL results for faster wake word detection
+                        if (!accepted) {
+                            val partial = recognizer?.partialResult ?: ""
+                            val partialMatch = """"partial"\s*:\s*"([^"]*)"""".toRegex().find(partial)
+                            val partialText = partialMatch?.groupValues?.get(1) ?: ""
+                            if (partialText.isNotBlank() && WAKE_PHRASES.any { phrase -> partialText.contains(phrase) }) {
+                                Log.d(TAG, "Wake word detected from partial: $partialText")
                                 onWakeWordDetected()
+                                return@launch
                             }
                         }
+
+                        // Also check final results
+                        if (accepted) {
+                            val result = recognizer?.result ?: ""
+                            val textMatch = """"text"\s*:\s*"([^"]*)"""".toRegex().find(result)
+                            val text = textMatch?.groupValues?.get(1) ?: ""
+                            if (text.isNotBlank() && WAKE_PHRASES.any { phrase -> text.contains(phrase) }) {
+                                Log.d(TAG, "Wake word detected from final: $text")
+                                onWakeWordDetected()
+                                return@launch
+                            }
+                        }
+                    } else {
+                        Log.w(TAG, "AudioRecord read returned $bytesRead")
                     }
                 }
             } catch (e: Exception) {

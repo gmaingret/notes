@@ -56,6 +56,10 @@ android {
         jvmTarget = "21"
     }
 
+    androidResources {
+        noCompress += listOf("conf", "mdl", "fst", "int", "stats", "mat")
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true

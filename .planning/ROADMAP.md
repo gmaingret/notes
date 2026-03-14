@@ -69,7 +69,7 @@ Plans:
 - [x] 13-01-PLAN.md — Glance infrastructure, type contracts, WidgetStateStore, manifest registration
 - [x] 13-02-PLAN.md — Document picker config activity with auth gate
 - [x] 13-03-PLAN.md — Widget UI composables and all display states
-- [ ] 13-04-PLAN.md — Gap closure: wire documentId through widget tap intents and add onDeleted test
+- [x] 13-04-PLAN.md — Gap closure: wire documentId through widget tap intents and add onDeleted test
 
 ### Phase 14: Background Sync and Auth
 **Goal**: The widget stays current across device sessions, app restarts, and process death without requiring the user to manually intervene
@@ -79,11 +79,10 @@ Plans:
   1. After making bullet changes in the Android app, the home screen widget reflects those changes without any manual action by the user
   2. With the Android app force-stopped overnight, the widget still shows current content the next morning (WorkManager 15-minute periodic sync ran)
   3. After a device reboot where the app has never been opened, the widget successfully authenticates and loads content using the persisted refresh token — no "sign in" prompt appears unless the session has genuinely expired
-**Plans**: 3 plans
+**Plans**: 2 plans
 Plans:
-- [ ] 13-01-PLAN.md — Glance infrastructure, type contracts, WidgetStateStore, manifest registration
-- [ ] 13-02-PLAN.md — Document picker config activity with auth gate
-- [ ] 13-03-PLAN.md — Widget UI composables and all display states
+- [ ] 14-01-PLAN.md — WorkManager infrastructure, WidgetStateStore cache extensions, WidgetSyncWorker
+- [ ] 14-02-PLAN.md — provideGlance cache refactor, enqueue/cancel lifecycle, in-app mutation triggers
 
 ### Phase 15: Interactive Actions
 **Goal**: Users can add and delete bullets directly from the home screen widget without opening the app
@@ -92,11 +91,7 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Tapping the "+" button in the widget opens a lightweight overlay dialog with a pre-focused text field; the new bullet is created at the top of the list and appears in the widget immediately after confirmation
   2. Tapping the delete icon on any widget bullet row removes that bullet; the widget updates to reflect the deletion without the user needing to open the app or refresh manually
-**Plans**: 3 plans
-Plans:
-- [ ] 13-01-PLAN.md — Glance infrastructure, type contracts, WidgetStateStore, manifest registration
-- [ ] 13-02-PLAN.md — Document picker config activity with auth gate
-- [ ] 13-03-PLAN.md — Widget UI composables and all display states
+**Plans**: TBD
 
 ## Progress
 
@@ -115,6 +110,6 @@ Plans:
 | 10. Document Management | v2.0 | 3/3 | Complete | 2026-03-12 |
 | 11. Bullet Tree | v2.0 | 4/4 | Complete | 2026-03-12 |
 | 12. Reactivity and Polish | v2.0 | 5/5 | Complete | 2026-03-12 |
-| 13. Widget Foundation | 4/4 | Complete    | 2026-03-14 | - |
-| 14. Background Sync and Auth | v2.1 | 0/? | Not started | - |
+| 13. Widget Foundation | v2.1 | 4/4 | Complete | 2026-03-14 |
+| 14. Background Sync and Auth | v2.1 | 0/2 | Not started | - |
 | 15. Interactive Actions | v2.1 | 0/? | Not started | - |

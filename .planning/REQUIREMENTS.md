@@ -8,7 +8,7 @@
 ### Widget Setup
 
 - [x] **SETUP-01**: User can add the Notes widget to their Android home screen
-- [ ] **SETUP-02**: User is presented with a document picker when adding the widget
+- [x] **SETUP-02**: User is presented with a document picker when adding the widget
 
 ### Widget Display
 
@@ -115,7 +115,7 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SETUP-01 | Phase 13 | Complete |
-| SETUP-02 | Phase 13 | Pending |
+| SETUP-02 | Phase 13 | Complete |
 | DISP-01 | Phase 13 | Pending |
 | DISP-02 | Phase 13 | Pending |
 | DISP-03 | Phase 13 | Pending |

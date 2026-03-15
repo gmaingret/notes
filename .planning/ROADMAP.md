@@ -63,7 +63,7 @@ Full details: [`.planning/milestones/v2.1-ROADMAP.md`](milestones/v2.1-ROADMAP.m
 **Milestone Goal:** Fix all HIGH and MEDIUM severity backend security vulnerabilities — injection, XSS, upload abuse, token exposure, weak auth, and missing API protection.
 
 - [x] **Phase 16: Injection and Upload Hardening** — Escape ILIKE metacharacters, restrict upload types, sanitize filenames, serve SVG as attachment, verify bullet ownership on upload (completed 2026-03-15)
-- [ ] **Phase 17: Auth and Session Security** — Move JWT to hash fragment, implement server-side refresh token revocation on logout and password change, strengthen password policy
+- [x] **Phase 17: Auth and Session Security** — Move JWT to hash fragment, implement server-side refresh token revocation on logout and password change, strengthen password policy (completed 2026-03-15)
 - [ ] **Phase 18: API Protection** — Add rate limiting across data endpoints, add CSRF token enforcement on state-changing endpoints
 
 ## Phase Details
@@ -132,5 +132,5 @@ Plans:
 | 14. Background Sync and Auth | v2.1 | 2/2 | Complete | 2026-03-14 |
 | 15. Interactive Actions | v2.1 | 2/2 | Complete | 2026-03-14 |
 | 16. Injection and Upload Hardening | 2/2 | Complete    | 2026-03-15 | - |
-| 17. Auth and Session Security | 1/2 | In Progress|  | - |
+| 17. Auth and Session Security | 2/2 | Complete   | 2026-03-15 | - |
 | 18. API Protection | v2.2 | 0/TBD | Not started | - |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Security Hardening
 status: ready_to_plan
-stopped_at: Completed 17-auth-and-session-security 17-01-PLAN.md
-last_updated: "2026-03-15T09:40:02.464Z"
+stopped_at: Completed 17-auth-and-session-security 17-02-PLAN.md
+last_updated: "2026-03-15T09:46:40.009Z"
 last_activity: 2026-03-15 — v2.2 roadmap created; phases 16-18 defined
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 ---
@@ -60,6 +60,7 @@ Progress: [████████░░] ~83% (15/18 phases complete across al
 | Phase 16-injection-and-upload-hardening P01 | 6m | 2 tasks | 6 files |
 | Phase 16-injection-and-upload-hardening P02 | 6m | 1 tasks | 3 files |
 | Phase 17-auth-and-session-security P01 | 525533m | 2 tasks | 4 files |
+| Phase 17-auth-and-session-security P02 | 4m | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,8 @@ Recent decisions affecting current work:
 - [Phase 17-auth-and-session-security]: Common password check runs before character-diversity rules for better UX on well-known breached passwords
 - [Phase 17-auth-and-session-security]: Static in-process common password blocklist chosen over npm package for self-hosted single-user app
 - [Phase 17-auth-and-session-security]: Password policy enforced at registration only (not login) per plan specification
+- [Phase 17-auth-and-session-security]: Store SHA-256 hash of refresh token in DB — DB compromise does not leak usable tokens
+- [Phase 17-auth-and-session-security]: Soft revocation (revokedAt column) preserves audit trail; revokeAllUserTokensExcept keeps current session active on password change
 
 ### Pending Todos
 
@@ -87,6 +90,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-15T09:40:02.462Z
-Stopped at: Completed 17-auth-and-session-security 17-01-PLAN.md
+Last session: 2026-03-15T09:46:40.006Z
+Stopped at: Completed 17-auth-and-session-security 17-02-PLAN.md
 Resume file: None

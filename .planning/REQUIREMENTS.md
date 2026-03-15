@@ -17,8 +17,8 @@ Requirements for security hardening. Each maps to roadmap phases.
 
 - [x] **SESS-01**: OAuth callback passes JWT via URL hash fragment (#token=) instead of query string (?token=)
 - [x] **SESS-02**: Client reads token from hash fragment and clears it from URL
-- [ ] **SESS-03**: Refresh tokens are stored server-side and invalidated on logout
-- [ ] **SESS-04**: Refresh tokens are invalidated on password change
+- [x] **SESS-03**: Refresh tokens are stored server-side and invalidated on logout
+- [x] **SESS-04**: Refresh tokens are invalidated on password change
 
 ### Upload & Attachment Security
 
@@ -73,8 +73,8 @@ Requirements for security hardening. Each maps to roadmap phases.
 | UPLD-03 | Phase 16 | Complete |
 | SESS-01 | Phase 17 | Complete |
 | SESS-02 | Phase 17 | Complete |
-| SESS-03 | Phase 17 | Pending |
-| SESS-04 | Phase 17 | Pending |
+| SESS-03 | Phase 17 | Complete |
+| SESS-04 | Phase 17 | Complete |
 | AUTH-01 | Phase 17 | Complete |
 | AUTH-02 | Phase 17 | Complete |
 | API-01 | Phase 18 | Pending |

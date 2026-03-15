@@ -22,9 +22,9 @@ Requirements for security hardening. Each maps to roadmap phases.
 
 ### Upload & Attachment Security
 
-- [ ] **UPLD-01**: File uploads are restricted to an allowlist of safe MIME types (no .html, .exe, .js, etc.)
+- [x] **UPLD-01**: File uploads are restricted to an allowlist of safe MIME types (no .html, .exe, .js, etc.)
 - [x] **UPLD-02**: Filenames in Content-Disposition headers are sanitized (quotes, newlines, control chars stripped)
-- [ ] **UPLD-03**: Attachment upload verifies the authenticated user owns the target bullet
+- [x] **UPLD-03**: Attachment upload verifies the authenticated user owns the target bullet
 
 ### Authentication Hardening
 
@@ -68,9 +68,9 @@ Requirements for security hardening. Each maps to roadmap phases.
 | INJ-01 | Phase 16 | Complete |
 | INJ-02 | Phase 16 | Complete |
 | INJ-03 | Phase 16 | Complete |
-| UPLD-01 | Phase 16 | Pending |
+| UPLD-01 | Phase 16 | Complete |
 | UPLD-02 | Phase 16 | Complete |
-| UPLD-03 | Phase 16 | Pending |
+| UPLD-03 | Phase 16 | Complete |
 | SESS-01 | Phase 17 | Pending |
 | SESS-02 | Phase 17 | Pending |
 | SESS-03 | Phase 17 | Pending |

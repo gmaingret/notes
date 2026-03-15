@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Security Hardening
 status: ready_to_plan
-stopped_at: Completed 16-01-PLAN.md
-last_updated: "2026-03-15T09:01:36.102Z"
+stopped_at: Completed 16-02-PLAN.md
+last_updated: "2026-03-15T09:09:20.198Z"
 last_activity: 2026-03-15 — v2.2 roadmap created; phases 16-18 defined
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 ---
@@ -58,6 +58,7 @@ Progress: [████████░░] ~83% (15/18 phases complete across al
 | v2.1 Widget | 3 | 8 | 1 | 8 |
 | **Total** | **16** | **80** | **8** | **10** |
 | Phase 16-injection-and-upload-hardening P01 | 6m | 2 tasks | 6 files |
+| Phase 16-injection-and-upload-hardening P02 | 6m | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Recent decisions affecting current work:
 - All security fixes are backend-only (Express/Node server) except SESS-01/SESS-02 which require a client-side change to the OAuth callback handler
 - [Phase 16-01]: escapeIlike placed in shared utils module to avoid duplication between searchService and tagService
 - [Phase 16-01]: SVG force-download chosen over sanitization; filename sanitization applied to all attachments in Content-Disposition header
+- [Phase 16-02]: Return 404 (not 403) when bullet not owned by user — hides bullet existence
+- [Phase 16-02]: Multer ALLOWED_EXTENSIONS Set pattern for file type allowlist; fileFilter rejects with plain Error returning 400 directly
 
 ### Pending Todos
 
@@ -80,6 +83,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-15T09:01:36.099Z
-Stopped at: Completed 16-01-PLAN.md
+Last session: 2026-03-15T09:09:20.194Z
+Stopped at: Completed 16-02-PLAN.md
 Resume file: None

@@ -78,7 +78,10 @@ Full details: [`.planning/milestones/v2.1-ROADMAP.md`](milestones/v2.1-ROADMAP.m
   3. Uploading a .html, .exe, or .js file is rejected with an error message
   4. Downloading an uploaded SVG triggers a file-save dialog instead of rendering in the browser
   5. Uploading a file to a bullet owned by a different user is rejected with a 403 error
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 16-01-PLAN.md — ILIKE escaping and SVG force-download
+- [ ] 16-02-PLAN.md — File type allowlist and bullet ownership verification
 
 ### Phase 17: Auth and Session Security
 **Goal**: Tokens are never exposed in URLs, sessions are revocable, and weak passwords are rejected at registration
@@ -122,6 +125,6 @@ Full details: [`.planning/milestones/v2.1-ROADMAP.md`](milestones/v2.1-ROADMAP.m
 | 13. Widget Foundation | v2.1 | 4/4 | Complete | 2026-03-14 |
 | 14. Background Sync and Auth | v2.1 | 2/2 | Complete | 2026-03-14 |
 | 15. Interactive Actions | v2.1 | 2/2 | Complete | 2026-03-14 |
-| 16. Injection and Upload Hardening | v2.2 | 0/TBD | Not started | - |
+| 16. Injection and Upload Hardening | v2.2 | 0/2 | Not started | - |
 | 17. Auth and Session Security | v2.2 | 0/TBD | Not started | - |
 | 18. API Protection | v2.2 | 0/TBD | Not started | - |

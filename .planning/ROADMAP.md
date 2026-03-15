@@ -93,7 +93,10 @@ Plans:
   3. After a password change, existing sessions on other devices are invalidated
   4. Registering with a common password (e.g., "Password1") is rejected with an informative error
   5. Registering with a password lacking character diversity is rejected with a clear policy message
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 17-01-PLAN.md — Password policy and OAuth hash fragment fix
+- [ ] 17-02-PLAN.md — Refresh token revocation and password change endpoint
 
 ### Phase 18: API Protection
 **Goal**: Data endpoints are protected against brute-force and cross-site request forgery
@@ -103,7 +106,10 @@ Plans:
   1. Sending more than the configured request limit to /api/bullets in a short window returns 429 Too Many Requests
   2. A state-changing request (create/update/delete) without a valid CSRF token is rejected
   3. Normal in-app usage (create bullet, edit, delete) continues to work without any visible change for the user
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 17-01-PLAN.md — Password policy and OAuth hash fragment fix
+- [ ] 17-02-PLAN.md — Refresh token revocation and password change endpoint
 
 ## Progress
 

@@ -1,10 +1,11 @@
 ---
 phase: 15
 slug: interactive-actions
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-14
+validated: 2026-03-15
 ---
 
 # Phase 15 — Validation Strategy
@@ -19,16 +20,16 @@ created: 2026-03-14
 |----------|-------|
 | **Framework** | JUnit 4 + MockK + Kotlin Coroutines Test |
 | **Config file** | `android/app/build.gradle.kts` (testImplementation blocks) |
-| **Quick run command** | `./gradlew :app:testDebugUnitTest --tests "*.widget.*"` |
-| **Full suite command** | `ssh root@192.168.1.50 "cd /root/notes/android && ./gradlew :app:testDebugUnitTest"` |
+| **Quick run command** | `./gradlew :app:testDebugUnitTest --tests "*.widget.*" -x lintDebug` |
+| **Full suite command** | `./gradlew :app:testDebugUnitTest -x lintDebug` |
 | **Estimated runtime** | ~30 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `./gradlew :app:testDebugUnitTest --tests "*.widget.*"`
-- **After every plan wave:** Run `./gradlew :app:testDebugUnitTest`
+- **After every task commit:** Run `./gradlew :app:testDebugUnitTest --tests "*.widget.*" -x lintDebug`
+- **After every plan wave:** Run `./gradlew :app:testDebugUnitTest -x lintDebug`
 - **Before `/gsd:verify-work`:** Full suite must be green
 - **Max feedback latency:** 30 seconds
 
@@ -38,21 +39,39 @@ created: 2026-03-14
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 15-01-01 | 01 | 1 | ACT-02 | unit | `./gradlew :app:testDebugUnitTest --tests "*.DeleteBulletActionCallbackTest"` | ❌ W0 | ⬜ pending |
-| 15-01-02 | 01 | 1 | ACT-02 | unit | `./gradlew :app:testDebugUnitTest --tests "*.DeleteBulletActionCallbackTest"` | ❌ W0 | ⬜ pending |
-| 15-02-01 | 02 | 1 | ACT-01 | unit | `./gradlew :app:testDebugUnitTest --tests "*.AddBulletActivityTest"` | ❌ W0 | ⬜ pending |
-| 15-02-02 | 02 | 1 | ACT-01 | unit | `./gradlew :app:testDebugUnitTest --tests "*.AddBulletActivityTest"` | ❌ W0 | ⬜ pending |
+| 15-01-01 | 01 | 1 | ACT-02 | unit | `./gradlew :app:testDebugUnitTest --tests "*.DeleteBulletActionCallbackTest" -x lintDebug` | ✅ | ✅ green |
+| 15-01-02 | 01 | 1 | ACT-02 | unit | `./gradlew :app:testDebugUnitTest --tests "*.DeleteBulletActionCallbackTest" -x lintDebug` | ✅ | ✅ green |
+| 15-02-01 | 02 | 1 | ACT-01 | unit | `./gradlew :app:testDebugUnitTest --tests "*.AddBulletActionTest" -x lintDebug` | ✅ | ✅ green |
+| 15-02-02 | 02 | 1 | ACT-01 | unit | `./gradlew :app:testDebugUnitTest --tests "*.AddBulletActionTest" -x lintDebug` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
 ---
 
+## Test Coverage Detail
+
+### ACT-01 — `AddBulletActionTest.kt` (7 tests)
+- `performAddBullet calls CreateBulletUseCase with correct CreateBulletRequest`
+- `on CreateBulletUseCase success, temp bullet is replaced with server-assigned ID`
+- `on CreateBulletUseCase failure, original bullet list is restored to WidgetStateStore`
+- `on auth error 401, display state transitions to SESSION_EXPIRED`
+- `optimistic add inserts new WidgetBullet at position 0 (top of list)`
+- `after successful add, display state is CONTENT even if list was previously empty`
+- `pushStateToGlance is called immediately after optimistic insert`
+
+### ACT-02 — `DeleteBulletActionCallbackTest.kt` (5 tests)
+- `on successful delete, returns null (no toast) and does not rollback`
+- `calls DeleteBulletUseCase with the correct bulletId`
+- `on DeleteBulletUseCase failure, original bullet list is restored to WidgetStateStore`
+- `on auth error, display state transitions to SESSION_EXPIRED`
+- `with null bulletId returns null without side effects`
+
+---
+
 ## Wave 0 Requirements
 
-- [ ] `android/app/src/test/.../widget/DeleteBulletActionCallbackTest.kt` — stubs for ACT-02 (optimistic remove, rollback, auth error)
-- [ ] `android/app/src/test/.../widget/add/AddBulletActivityTest.kt` — stubs for ACT-01 (optimistic insert, rollback, temp ID replacement)
-
-*Existing test infrastructure (JUnit 4, MockK, Coroutines Test) already installed.*
+- [x] `android/app/src/test/.../widget/DeleteBulletActionCallbackTest.kt` — 5 tests for ACT-02
+- [x] `android/app/src/test/.../widget/add/AddBulletActionTest.kt` — 7 tests for ACT-01
 
 ---
 
@@ -69,11 +88,23 @@ created: 2026-03-14
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** complete
+
+---
+
+## Validation Audit 2026-03-15
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+Both requirements already had full automated test coverage (12 tests across 2 test files). No new tests needed.

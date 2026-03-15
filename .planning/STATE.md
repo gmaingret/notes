@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Security Hardening
 status: ready_to_plan
-stopped_at: Phase 16 context gathered
-last_updated: "2026-03-15T08:45:42.171Z"
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-03-15T09:01:36.102Z"
 last_activity: 2026-03-15 — v2.2 roadmap created; phases 16-18 defined
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
 ---
 
 ---
@@ -57,6 +57,7 @@ Progress: [████████░░] ~83% (15/18 phases complete across al
 | v2.0 Native Android | 4 | 17 | 3 | 5.7 |
 | v2.1 Widget | 3 | 8 | 1 | 8 |
 | **Total** | **16** | **80** | **8** | **10** |
+| Phase 16-injection-and-upload-hardening P01 | 6m | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 Recent decisions affecting current work:
 - All security fixes are backend-only (Express/Node server) except SESS-01/SESS-02 which require a client-side change to the OAuth callback handler
+- [Phase 16-01]: escapeIlike placed in shared utils module to avoid duplication between searchService and tagService
+- [Phase 16-01]: SVG force-download chosen over sanitization; filename sanitization applied to all attachments in Content-Disposition header
 
 ### Pending Todos
 
@@ -77,6 +80,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-15T08:45:42.167Z
-Stopped at: Phase 16 context gathered
-Resume file: .planning/phases/16-injection-and-upload-hardening/16-CONTEXT.md
+Last session: 2026-03-15T09:01:36.099Z
+Stopped at: Completed 16-01-PLAN.md
+Resume file: None

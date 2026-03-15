@@ -9,9 +9,9 @@ Requirements for security hardening. Each maps to roadmap phases.
 
 ### Injection & XSS
 
-- [ ] **INJ-01**: ILIKE metacharacters (%, _) are escaped in search queries before pattern matching
-- [ ] **INJ-02**: ILIKE metacharacters are escaped in tag search queries (getBulletsForTag)
-- [ ] **INJ-03**: SVG files are served with Content-Disposition: attachment (never inline) to prevent stored XSS
+- [x] **INJ-01**: ILIKE metacharacters (%, _) are escaped in search queries before pattern matching
+- [x] **INJ-02**: ILIKE metacharacters are escaped in tag search queries (getBulletsForTag)
+- [x] **INJ-03**: SVG files are served with Content-Disposition: attachment (never inline) to prevent stored XSS
 
 ### Token & Session Security
 
@@ -23,7 +23,7 @@ Requirements for security hardening. Each maps to roadmap phases.
 ### Upload & Attachment Security
 
 - [ ] **UPLD-01**: File uploads are restricted to an allowlist of safe MIME types (no .html, .exe, .js, etc.)
-- [ ] **UPLD-02**: Filenames in Content-Disposition headers are sanitized (quotes, newlines, control chars stripped)
+- [x] **UPLD-02**: Filenames in Content-Disposition headers are sanitized (quotes, newlines, control chars stripped)
 - [ ] **UPLD-03**: Attachment upload verifies the authenticated user owns the target bullet
 
 ### Authentication Hardening
@@ -65,11 +65,11 @@ Requirements for security hardening. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INJ-01 | Phase 16 | Pending |
-| INJ-02 | Phase 16 | Pending |
-| INJ-03 | Phase 16 | Pending |
+| INJ-01 | Phase 16 | Complete |
+| INJ-02 | Phase 16 | Complete |
+| INJ-03 | Phase 16 | Complete |
 | UPLD-01 | Phase 16 | Pending |
-| UPLD-02 | Phase 16 | Pending |
+| UPLD-02 | Phase 16 | Complete |
 | UPLD-03 | Phase 16 | Pending |
 | SESS-01 | Phase 17 | Pending |
 | SESS-02 | Phase 17 | Pending |

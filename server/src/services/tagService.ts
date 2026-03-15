@@ -1,6 +1,7 @@
 import { db } from '../../db/index.js';
 import { bullets, documents } from '../../db/schema.js';
 import { eq, and, isNull, ilike, sql } from 'drizzle-orm';
+import { escapeIlike } from './utils/escapeIlike.js';
 
 export type ChipType = 'tag' | 'mention' | 'date';
 
@@ -53,13 +54,14 @@ export async function getBulletsForTag(
   chipType: ChipType,
   value: string
 ): Promise<Array<{ id: string; content: string; documentId: string; documentTitle: string }>> {
+  const escaped = escapeIlike(value);
   let pattern: string;
   if (chipType === 'tag') {
-    pattern = `%#${value}%`;
+    pattern = `%#${escaped}%`;
   } else if (chipType === 'mention') {
-    pattern = `%@${value}%`;
+    pattern = `%@${escaped}%`;
   } else {
-    pattern = `%!![${value}]%`;
+    pattern = `%!![${escaped}]%`;
   }
 
   return db

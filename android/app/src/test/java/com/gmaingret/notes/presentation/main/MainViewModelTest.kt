@@ -1,5 +1,6 @@
 package com.gmaingret.notes.presentation.main
 
+import android.content.Context
 import com.gmaingret.notes.data.local.TokenStore
 import com.gmaingret.notes.domain.model.Document
 import com.gmaingret.notes.domain.usecase.CreateDocumentUseCase
@@ -9,6 +10,7 @@ import com.gmaingret.notes.domain.usecase.LogoutUseCase
 import com.gmaingret.notes.domain.usecase.OpenDocumentUseCase
 import com.gmaingret.notes.domain.usecase.RenameDocumentUseCase
 import com.gmaingret.notes.domain.usecase.ReorderDocumentUseCase
+import com.gmaingret.notes.widget.WidgetStateStore
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -33,6 +35,8 @@ class MainViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
+    private lateinit var context: Context
+    private lateinit var widgetStateStore: WidgetStateStore
     private lateinit var getDocumentsUseCase: GetDocumentsUseCase
     private lateinit var createDocumentUseCase: CreateDocumentUseCase
     private lateinit var renameDocumentUseCase: RenameDocumentUseCase
@@ -51,6 +55,8 @@ class MainViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        context = mockk(relaxed = true)
+        widgetStateStore = mockk(relaxed = true)
         getDocumentsUseCase = mockk()
         createDocumentUseCase = mockk()
         renameDocumentUseCase = mockk()
@@ -70,8 +76,10 @@ class MainViewModelTest {
     }
 
     private fun createViewModel(): MainViewModel = MainViewModel(
+        context = context,
         logoutUseCase = logoutUseCase,
         tokenStore = tokenStore,
+        widgetStateStore = widgetStateStore,
         getDocumentsUseCase = getDocumentsUseCase,
         createDocumentUseCase = createDocumentUseCase,
         renameDocumentUseCase = renameDocumentUseCase,

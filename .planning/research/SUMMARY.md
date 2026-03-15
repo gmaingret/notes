@@ -1,229 +1,217 @@
 # Project Research Summary
 
-**Project:** Notes v2.0 — Native Android Client
-**Domain:** Native Android outliner (Kotlin/Jetpack Compose) consuming an existing Express REST API
-**Researched:** 2026-03-12
+**Project:** Notes v2.1 — Android Home Screen Widget
+**Domain:** Jetpack Glance home screen widget added to an existing Kotlin/Compose Android app with Clean Architecture, Hilt DI, DataStore+Tink, and Retrofit/OkHttp
+**Researched:** 2026-03-14
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This milestone adds a native Android client to an already-complete Express + PostgreSQL backend. No backend changes are needed. The architecture question is entirely about how to consume the existing REST API in a Kotlin/Jetpack Compose application. The recommended approach is strict Clean Architecture layering (presentation → domain → data) with MVVM, Hilt DI, Retrofit 3.0 for networking, and a flat LazyColumn tree model that ports the existing web client's `flattenTree` algorithm directly. The entire library stack uses KSP (not KAPT), Navigation3 (not Navigation 2), and DataStore + Tink (not the deprecated EncryptedSharedPreferences). All version choices have been verified against official sources as of 2026-03-12.
+The v2.1 milestone adds an Android home screen widget to a fully-built Notes Android app (12,200 LOC Kotlin, Clean Architecture). The widget is built on Jetpack Glance 1.1.1 — the only production-stable Jetpack widget framework. Glance composables render to `RemoteViews`, not a standard Compose surface, which means the entire set of standard Compose and Material 3 components is unavailable inside the widget. Developers must import exclusively from `androidx.glance.*` and keep a hard package boundary between widget code and app UI code. The widget reuses all existing infrastructure: the Hilt singleton graph, the Retrofit API interfaces, the DataStore+Tink `TokenStore`, and the existing `BulletRepository` and `DocumentRepository`. New infrastructure is limited to Glance+WorkManager+HiltWork dependencies, a `WidgetStateStore` DataStore singleton, and the `widget/` package containing four new components.
 
-The critical architectural decision — and the one with the most pitfall surface — is the bullet tree rendering model. The web client solved the "tree in a flat list" problem with a single flat SortableContext. The Android client must apply the identical pattern: a recursive `flattenTree` DFS that produces a `List<FlatBullet>` (bullet + depth int), rendered in a single `LazyColumn` with `paddingStart` per depth. Collapse/expand, drag-to-reorder, zoom, and swipe gestures all depend on this model being correct before they are built. The two use cases that port this algorithm from the web client (`FlattenTreeUseCase`, `ComputeDragProjectionUseCase`) must live in the domain layer with zero Android SDK imports — making them unit-testable without a device.
+The recommended approach is a three-phase build ordered by dependency: foundation first (DI wiring, widget registration, configuration activity, basic rendering), then background sync infrastructure (WorkManager, auth token strategy for widget context, multi-instance support), then interactive action handling (delete from widget, add via overlay Activity, in-app broadcast). This ordering is non-negotiable: the DI entry-point pattern must be correct before any feature work because errors there are silent at compile time but produce null fields at runtime. Auth strategy is the second critical dependency because the existing app stores the access token in-memory only — a gap the widget process cannot bridge without an explicit refresh-cookie strategy in the worker.
 
-Three build-order constraints override all others: (1) auth infrastructure — specifically the `Mutex`-synchronized `TokenAuthenticator` that prevents concurrent 401 refresh races — must be correct in Phase 1 before any screen is built; (2) the flat tree ViewModel must be designed with optimistic updates from the start, not retrofitted; (3) the Android project must live in `/android/` (not the repo root) to avoid Gradle scanning `node_modules`. These are not polish decisions — they are architectural choices that carry HIGH recovery cost if shipped incorrectly.
+The most significant risk is the in-memory access token gap: the existing `TokenStore` keeps the short-lived access token in a `StateFlow` that is null when the widget receiver wakes in a fresh process. The widget must use the persisted refresh cookie from encrypted DataStore to obtain a fresh token independently. A secondary risk is the `GlanceAppWidget` Hilt injection pattern: native `@AndroidEntryPoint` is not supported on `GlanceAppWidget` (open issue since 2021), and developers who assume it works will get silent null-field failures. The workaround is well-documented and verified against the official Glance issue tracker: use `@EntryPoint` + `EntryPointAccessors.fromApplication()` inside `provideGlance()`.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The Android client uses a modern Kotlin-first stack with all components selected for compatibility and long-term support. Kotlin 2.3.0 with KSP 2.3.0-1.0.31 replaces the KAPT-era approach entirely. Jetpack Compose BOM 2025.12.00 pins all Compose/Material 3 versions in sync. Navigation3 1.0.1 (stable November 2025) replaces Navigation 2's error-prone string routes with type-safe data class destinations. Retrofit 3.0.0 has native coroutine support — no Jake Wharton adapter needed. The EncryptedSharedPreferences API was deprecated in April 2025; DataStore 1.2.1 + Tink 1.8.0 is the mandated replacement. One hard constraint: OkHttp must stay at 4.12.0 because Retrofit 3.0 does not yet support OkHttp 5.x.
+The existing Android stack (Kotlin 2.1.20, Compose BOM 2025.02.00, Material 3, Hilt 2.56.1, Retrofit 3.0.0 + OkHttp 4.12.0, DataStore 1.2.1 + Tink 1.8.0, Navigation3 1.0.1, AGP 8.9.1, compileSdk 36, minSdk 26) is validated and unchanged. Three dependency groups are added for the widget.
 
-See `.planning/research/STACK.md` for the complete Gradle version catalog TOML and full version compatibility matrix.
+**New dependencies for v2.1 (add to `android/gradle/libs.versions.toml`):**
 
-**Core technologies:**
-- Kotlin 2.3.0 + KSP 2.3.0-1.0.31: primary language + annotation processor — K2 compiler is production-grade; 2x faster than KAPT for Hilt and Room
-- Jetpack Compose BOM 2025.12.00 (Compose 1.10.0, Material 3 1.4.0): declarative UI — all required patterns (drawer, swipe, pull-to-refresh, search bar) are in Material 3 1.4.0
-- Hilt 2.56 + hilt-lifecycle-viewmodel-compose 1.3.0: compile-time DI — integrates directly with ViewModel and Compose; `hiltViewModel()` without transitive Nav2 dependency at 1.3.0
-- Navigation3 1.0.1: in-app navigation — type-safe destinations; correct choice for greenfield Compose-only apps in 2026
-- Retrofit 3.0.0 + OkHttp 4.12.0: HTTP client — native coroutine suspend functions; kotlinx.serialization 1.10.0 converter for null-safe JSON; do not upgrade OkHttp to 5.x
-- DataStore 1.2.1 + Tink 1.8.0: secure persistent storage — replaces deprecated EncryptedSharedPreferences for refresh cookie and access token persistence
-- sh.calvin.reorderable 3.0.0: drag-to-reorder in LazyColumn — the only actively maintained Compose reorder library; uses `Modifier.animateItem` (v2.1 feature but the LazyColumn structure must be compatible from v2.0)
+- **Glance AppWidget 1.1.1** (`androidx.glance:glance-appwidget`): Widget rendering framework — the only stable Jetpack option; 1.1.1 includes a protobuf security fix (CVE-2024-7254); do not add the `glance` core artifact separately (pulled in transitively)
+- **Glance Material 3 1.1.1** (`androidx.glance:glance-material3`): Maps the app's M3 color tokens into widget surfaces via `GlanceMaterialTheme`; without it the widget ignores the app's theme
+- **WorkManager KTX 2.11.1** (`androidx.work:work-runtime-ktx`): Periodic 15-minute background sync; `CoroutineWorker` for Kotlin-native suspend logic; minSdk raised to 23 in 2.11.0 — no conflict with project minSdk 26
+- **Hilt Work 1.3.0** (`androidx.hilt:hilt-work` + `androidx.hilt:hilt-compiler`): `@HiltWorker` + `@AssistedInject` for injecting repositories into the WorkManager worker; must use `ksp(...)` not `kapt`
 
-**What not to add:**
-- Room: no offline mode in scope per PROJECT.md; adds schema migration complexity for zero gain
-- LiveData: replaced by StateFlow + `collectAsStateWithLifecycle()` in Compose
-- Navigation 2 (`navigation-compose:2.9.7`): string-based routes are runtime-error-prone; Nav3 is stable and preferred
-- WorkManager / FCM: background sync and push notifications are out of scope
-- OkHttp 5.x: incompatible with Retrofit 3.0.0
-- KAPT: deprecated; KSP is 2x faster and all modern Jetpack processors support it
-- `retrofit2-kotlin-coroutines-adapter` (Jake Wharton): redundant with Retrofit 3.0's built-in coroutine support
+One mandatory configuration change accompanies `hilt-work`: `NotesApplication` must implement `Configuration.Provider` and inject `HiltWorkerFactory`. The default WorkManager auto-initializer must be disabled in `AndroidManifest.xml` via the `tools:node="remove"` meta-data entry, or WorkManager crashes on init.
+
+**What not to add:** `androidx.glance:glance` core (transitive), `glance-material` Material 2 variant, `work-multiprocess` (same process app), FCM/push (out of scope per PROJECT.md), `glance-wear-tiles` (Wear OS only).
 
 ### Expected Features
 
-The v2.0 milestone delivers the core outliner experience on Android. The web client (v1.0 + v1.1) is the feature reference; the question is what "table stakes" means specifically for a native Material Design 3 context.
+**Must have — v2.1 launch (P1):**
 
-**Must have (table stakes for v2.0 launch):**
-- Email/password login with JWT + refresh cookie persistence — nothing works without auth
-- ModalNavigationDrawer with document list + CRUD — native Android navigation pattern; Dynalist/Workflowy both use drawer
-- Bullet tree as flat LazyColumn with depth-based indentation — the only viable approach; nested LazyColumn causes touch event conflicts
-- Tap to edit inline (BasicTextField per row) — separate edit screen is unacceptable outliner UX
-- Enter = new bullet at same level, Tab/Shift+Tab = indent/outdent — core outliner keyboard loop
-- Collapse/expand bullets, zoom into bullet as root, breadcrumb trail — core outliner interactions
-- Swipe right = complete, swipe left = delete with proportional color/icon reveal — matches web v1.1 and Workflowy Android
-- Long-press context menu (indent, outdent, complete, zoom, delete) — required for indent/outdent when no physical keyboard
-- Pull to refresh — universal Android sync pattern; explicit sync trigger
-- Undo button in top app bar (existing server-side undo API)
-- Search via Material 3 SearchBar reusing existing `/api/search` endpoint
-- Material 3 dark/light follows system; dynamic color (Material You) on Android 12+
-- Optimistic updates on all mutations — must be designed in from the start, not retrofitted
-- Predictive back gesture (opt in via manifest; Android 13+)
+- Config activity: document picker launched on widget placement; handles Back press with `RESULT_CANCELED`; reconfigurable on long-press (Android 12+)
+- Scrollable `LazyColumn` of root-level bullet text (no nested bullets — fundamental widget constraint)
+- Loading / Empty / Error / Unauthenticated states with user-readable messages using a sealed state class
+- Manual refresh button in widget header
+- Delete bullet from widget via per-row delete button using `ActionParameters` (not lambda closures — not serializable across RemoteViews process boundaries)
+- Add new bullet via transparent dialog-themed overlay `Activity` (not `SYSTEM_ALERT_WINDOW`)
+- WorkManager periodic sync (15-minute interval, `setRequiredNetworkType(CONNECTED)`, `enqueueUniquePeriodicWork(KEEP)`)
+- In-app broadcast: call `updateAll()` from `BulletTreeViewModel` in a fire-and-forget `viewModelScope.launch` after every successful mutation
+- Per-instance document binding: `appWidgetId → documentId` stored in `WidgetStateStore`
+- Unauthenticated state: "Open app to sign in" with `actionStartActivity` tap target
 
-**Should have (v2.1 — after v2.0 stabilizes):**
-- Drag-to-reorder bullets and documents — Calvin-LL/Reorderable; depends on v2.0 flat LazyColumn being stable
-- Inline markdown rendering (AnnotatedString) — read mode only; raw text when bullet has focus
-- #tags, @mentions, !!dates as tappable chips — depends on inline markdown
-- Bookmarks screen — low complexity quick win
-- Physical keyboard shortcuts (Tab, Shift+Tab, Ctrl+Z for Bluetooth keyboards/Chromebooks)
+**Should have — v2.1 if time permits (P2):**
 
-**Defer (v3+):**
-- Google SSO — Firebase/Play Services dependency; low ROI for a self-hosted app
-- File attachments — SAF integration is substantial; most usage is on desktop
-- Offline mode — requires CRDT or conflict resolution; explicitly out of scope per PROJECT.md
-- Widgets / App Links deep-link to document
+- Tap row → deep-link opens the app at the specific document
+- Widget reconfiguration flag (`android:widgetFeatures="reconfigurable"`)
 
-**Anti-features (do not build in v2.0):**
-- Separate "edit mode" per bullet — doubles tap count for the most frequent action
-- Bottom navigation bar — wrong pattern for single-surface app; Dynalist/Workflowy both use drawer-only
-- Nested LazyColumn / RecyclerView — touch event conflicts and perf issues at scale
-- Real-time collaborative sync — no WebSocket infrastructure in backend
-- Kanban / board view — orthogonal paradigm; this is an outliner, not a project manager
+**Defer to v2.1.x / v2.2+:**
+
+- Completed-bullet strikethrough in widget
+- Mark-complete action from widget (extends delete pattern but adds visual state complexity)
+- Widget theming (defer until app theming is finalized)
+- Error state retry button (one-liner add once error state is shipped)
+
+**Hard anti-features (platform constraints — never implement):**
+
+- Inline text editing in widget — `EditText` is not supported by RemoteViews or Glance; no workaround exists
+- Sub-15-minute background refresh — OS silently coerces shorter intervals to 15 minutes
+- Drag-to-reorder in widget — no drag-and-drop mechanism in RemoteViews or Glance
+- Nested bullet tree in widget — widget screen real estate; root-level only is the declared product goal
+- Auth flow inside widget — widget process cannot reliably host OAuth or credential flows
 
 ### Architecture Approach
 
-The Android client follows strict Clean Architecture with three layers: presentation (ViewModels + Composables), domain (repository interfaces + pure use cases), and data (Retrofit implementations + DTOs). The domain layer has zero Android SDK imports, making `FlattenTreeUseCase` and `ComputeDragProjectionUseCase` unit-testable without a device. The navigation graph has two routes (Auth / Main) — document switching is a `viewModel.openDocument(id)` state change, not a navigation event, which preserves scroll position and avoids remounting the bullet tree on every document tap.
+The widget layer is a clean addition to the existing Clean Architecture. Seven components are affected: four new (in a `widget/` package), two minor modifications to existing classes, and zero changes to data/domain/network layers. The new `WidgetStateStore` DataStore singleton is the coordination hub — every widget component reads/writes through it. Glance's built-in `PreferencesGlanceStateDefinition` is explicitly avoided because it is scoped to the rendering session and is inaccessible from `WidgetConfigActivity` (which must write before the widget has rendered) or from `NotesWidgetReceiver.onDeleted()`.
 
-See `.planning/research/ARCHITECTURE.md` for the full component diagram, all data flow sequences, the complete `NotesApiService` Retrofit interface (~30 endpoints), and the suggested build order per phase.
+**Build order (dependency-ordered):**
 
-**Major components:**
-1. `NotesApiService` — Retrofit interface mirroring all ~30 Express routes; single interface appropriate for this API size; suspend functions throughout
-2. `AuthInterceptor` + `TokenAuthenticator` + `JavaNetCookieJar` — split auth: Interceptor attaches Bearer token, Authenticator handles 401 with Mutex-synchronized refresh, JavaNetCookieJar persists the httpOnly refresh cookie
-3. `TokenStore` — in-memory access token + DataStore/Tink refresh cookie persistence; Hilt singleton
-4. `FlattenTreeUseCase` — pure Kotlin port of `buildBulletMap` + `flattenTree` from `BulletTree.tsx`; recursive DFS, respects `isCollapsed`; drives all tree rendering, collapse, zoom, and drag
-5. `BulletTreeViewModel` — `StateFlow<TreeUiState>` with optimistic update + rollback pattern for all mutations; snapshot before API call, revert on failure
-6. `AppNavGraph` — two routes (Auth / Main); `ModalNavigationDrawer` wraps `BulletTreeScreen`; document switching is ViewModel state, not navigation
+1. `WidgetStateStore` (NEW) — standalone DataStore singleton; follows existing `TokenStore.kt` pattern; no dependencies on new widget code
+2. `NotesGlanceWidget` (NEW) — reads `WidgetStateStore` + repositories via `EntryPointAccessors.fromApplication()`; fetches data in `provideGlance()` before calling `provideContent {}`
+3. `NotesWidgetReceiver` (NEW) — `@AndroidEntryPoint`; manages `WidgetSyncWorker` lifecycle in `onEnabled`/`onDisabled`; cleans up `WidgetStateStore` keys in `onDeleted()`
+4. `WidgetConfigActivity` (NEW) — document picker; writes `appWidgetId → documentId` to `WidgetStateStore`; calls `NotesGlanceWidget().updateAll()`; returns `setResult(RESULT_OK)` before `finish()`
+5. `WidgetSyncWorker` (NEW) — `@HiltWorker` `CoroutineWorker`; calls `NotesGlanceWidget().updateAll(context)` every 15 minutes when network is connected
+6. `BulletTreeViewModel` (MODIFIED) — add `viewModelScope.launch { NotesGlanceWidget().updateAll(applicationContext) }` after successful mutations
+7. `NotesApplication` (MODIFIED) — add `Configuration.Provider` + inject `HiltWorkerFactory`
+
+**Non-negotiable patterns:**
+
+- `EntryPointAccessors.fromApplication()` with a `@InstallIn(SingletonComponent::class)` `@EntryPoint` interface — the only correct Hilt path into `GlanceAppWidget`
+- All I/O inside `provideGlance()` using `withContext(Dispatchers.IO)` — never inside `provideContent {}` composable lambda
+- `updateAll()` everywhere except inside `ActionCallback.onAction()` — never hard-code a single `glanceId`
+- Write to DataStore first, then call `update()` — `provideGlance()` re-reads DataStore on every recompose
+- `android:updatePeriodMillis="0"` in `appwidget-provider` XML — WorkManager exclusively owns the schedule
+- `SizeMode.Responsive` with 2-3 predefined `DpSize` breakpoints — not `SizeMode.Exact`
 
 ### Critical Pitfalls
 
-1. **Token refresh race condition** — Multiple concurrent 401s each independently call `/api/auth/refresh` without synchronization. Prevention: `Mutex.withLock` in `TokenAuthenticator.authenticate()`; compare stored token against the failed request's token before calling refresh. Must be correct in Phase 1. Recovery cost: HIGH.
+1. **Hilt cannot inject into `GlanceAppWidget`** — `@AndroidEntryPoint` compiles but never runs on `GlanceAppWidget`; injected fields are null at runtime. Use `@EntryPoint` + `EntryPointAccessors.fromApplication()` inside `provideGlance()`. `@AndroidEntryPoint` is valid on `GlanceAppWidgetReceiver` only. Phase: foundation.
 
-2. **httpOnly cookie dropped by CookieJar** — Some third-party OkHttp CookieJar implementations silently discard cookies with the `HttpOnly` flag, causing `/api/auth/refresh` to always return 401. Prevention: use `JavaNetCookieJar(CookieManager(null, CookiePolicy.ACCEPT_ALL))` as the baseline; do NOT use `franmontiel/PersistentCookieJar` without auditing. Validate the cookie round-trip as the first Phase 1 test.
+2. **In-memory access token is null in widget context** — the app stores the access token in a `StateFlow` that is null when the widget receiver wakes in a fresh process. The widget must read the persisted refresh cookie from encrypted DataStore and call `/auth/refresh` independently. Do not assume the singleton `OkHttpClient`'s in-memory cookie jar is populated. Phase: sync/auth.
 
-3. **flattenTree collapsed-subtree leak** — An iterative Kotlin port of the TypeScript `flattenTree` will have an off-by-one in the "skip subtree" logic. Prevention: port as a direct recursive function first (no stack overflow risk for personal outliner depths < 100 levels); unit-test with collapsed parents and grandchildren before wiring to UI. Recovery cost: HIGH — this algorithm underlies every tree feature.
+3. **Glance composables are not Jetpack Compose composables** — import exclusively from `androidx.glance.*`. No `AnimatedVisibility`, no `MaterialTheme`, no `LazyListState`, no `Modifier` (use `GlanceModifier`). Custom fonts (`Inter Variable`) are not renderable in Glance — design with system fonts from the start. Phase: foundation.
 
-4. **Debounced content save cancelled on navigation** — `viewModelScope` is cancelled on `onCleared()`. If the user types and navigates away within the ~500ms debounce window, the save and undo checkpoint are dropped. Prevention: override `onCleared()` to flush pending saves via `runBlocking(NonCancellable)`.
+4. **Config activity must call `setResult(RESULT_OK)` with widget ID extra** — omitting this causes the launcher to silently discard the widget placement. Set `RESULT_CANCELED` at activity start; only switch to `RESULT_OK` on user confirmation. Phase: foundation.
 
-5. **Gradle root pollution** — Placing `settings.gradle.kts` at the repo root causes Gradle to scan `server/node_modules` and `client/node_modules`. Prevention: Android project lives in `/android/` subdirectory; all `./gradlew` commands run from `/android/`; separate GitHub Actions workflows for Node vs Android changes.
+5. **Race condition between action and state update** — concurrent `update()` calls from the 15-min sync and an `ActionCallback` can race; Glance has an internal update lock period that silently drops requests during an in-progress update. Write new state to DataStore first, then call `update()`. Use `WorkManager.enqueueUniqueWork(REPLACE)` for on-demand refreshes. Phase: action handling.
+
+6. **`updatePeriodMillis` is unreliable on OEM devices** — OEM battery management (Xiaomi, Samsung, Huawei) suppresses broadcasts; the Android OS silently rounds 15-minute values up to 30 minutes. Set `updatePeriodMillis="0"` and use WorkManager exclusively. Phase: sync setup.
+
+7. **`update()` misses secondary widget instances** — calling `update()` with a hard-coded `glanceId` silently skips all other placed instances. Use `updateAll()` everywhere except inside `ActionCallback.onAction()` where the specific instance is known. Phase: sync setup.
 
 ## Implications for Roadmap
 
-Four phases map naturally from the architecture's suggested build order. The structure is dictated by hard dependencies: auth must precede everything; documents must precede bullets; the tree model must be stable before swipe/drag/search are layered on top.
+Research strongly suggests three phases ordered by strict technical dependency. No phase can begin until the previous one is verified because each builds on infrastructure the prior phase establishes.
 
-### Phase 1: Foundation (Auth + Project Scaffold)
+### Phase 1: Widget Foundation
 
-**Rationale:** Every subsequent screen requires authenticated network access. The three critical infrastructure decisions — Mutex-synchronized token refresh, httpOnly cookie handling, and `/android/` project location — must be made and validated before any feature work begins. This phase has no user-visible product output but is the highest-leverage phase for preventing HIGH recovery-cost failures.
+**Rationale:** DI wiring, widget registration, sizing, and the configuration activity contract must be correct before any rendering or sync work. The wrong Hilt pattern produces silent null-field failures that are extremely hard to diagnose after feature code is layered on top. The `RESULT_OK` contract failure causes silent widget discard with nothing in logcat on physical devices. Get the structural bones right first.
 
-**Delivers:** Working auth round-trip against production server (register, login, silent refresh on cold start, logout); Hilt DI module; OkHttp client with AuthInterceptor + TokenAuthenticator + JavaNetCookieJar; TokenStore with DataStore/Tink; Material 3 theme (light + dark, dynamic color on Android 12+); AppNavGraph with Auth/Main routing; LoginScreen + RegisterScreen composables.
+**Delivers:** A placeable widget that shows the selected document's root bullets after manual placement. No background sync, no interactive actions — static rendering with correct states (Loading, Empty, Error, Unauthenticated).
 
-**Addresses:** Auth (JWT + refresh cookie), Material 3 theme, dark mode system-follow, predictive back manifest opt-in.
+**Addresses features:** Config activity (P1), scrollable bullet list (P1), loading/empty/error/unauthenticated states (P1), per-instance document binding (P1)
 
-**Avoids:** Token refresh race condition (Pitfall 1 — Mutex in Authenticator), httpOnly cookie drop (Pitfall 2 — JavaNetCookieJar), CORS confusion (Pitfall 5 — no Origin header in OkHttp), Gradle root pollution (Pitfall 8 — /android/ subdirectory).
+**Avoids pitfalls:** Hilt entry-point anti-pattern (Pitfall 1), Glance/Compose import confusion (Pitfall 3), config activity `RESULT_OK` failure (Pitfall 4/7), `SizeMode.Exact` layout jank (Pitfall 6)
 
-### Phase 2: Document Management (Drawer)
+**Research flag:** Not needed. All patterns are verified against the official Glance codelab and Android docs. ARCHITECTURE.md contains production-ready code samples for every component in this phase.
 
-**Rationale:** Document management is the entry point to all content. It is architecturally simpler than the bullet tree (flat list, not recursive) and validates the full data layer stack — Retrofit calls, DTO mapping, ViewModel StateFlow, Composable collection — before the complex tree work begins. Last-opened persistence (DataStore) lives here.
+### Phase 2: Background Sync and Auth
 
-**Delivers:** ModalNavigationDrawer with full document CRUD (list, create, rename, delete); document position reorder calling `PATCH /api/documents/:id/position`; document selection navigates to placeholder BulletTreeScreen; last-opened document ID persisted in DataStore and restored on cold start.
+**Rationale:** WorkManager and auth strategy are the next dependency layer. The widget must function when the app is force-stopped (the 401 gap from in-memory tokens), and it must update all placed instances (not just one). These are correctness requirements that block interactive features in Phase 3 — delete and add actions make real API calls that require valid auth.
 
-**Addresses:** Document drawer navigation, document CRUD, last-opened persistence.
+**Delivers:** Widget that stays current without user action. WorkManager periodic sync at 15-minute intervals. Correct auth token handling from widget process context (read refresh cookie → call `/auth/refresh` → use token for API call). Multi-instance support verified (`updateAll()` throughout). Manual refresh button.
 
-**Uses:** DataStore 1.2.1 for last-opened ID; full DocumentRepositoryImpl + DocumentsViewModel + DocumentsDrawer composable.
+**Addresses features:** WorkManager periodic sync (P1), in-app broadcast refresh from `BulletTreeViewModel` (P1), manual refresh button (P1), unauthenticated state flow (P1)
 
-### Phase 3: Bullet Tree (Core Feature)
+**Avoids pitfalls:** In-memory token gap (Pitfall 2), `updatePeriodMillis` OEM unreliability (Pitfall 6), single-instance `update()` vs `updateAll()` bug (Pitfall 9), missing `HiltWorkerFactory` setup (architecture Anti-Pattern 5)
 
-**Rationale:** Highest-complexity phase. All core outliner behaviors live here. The flat tree model is the foundation for swipe, zoom, and search — these cannot be built until the LazyColumn rendering is stable and the optimistic update pattern is proven. Drag-to-reorder is deferred to v2.1 per the feature research (it depends on this phase's LazyColumn being stable first, and it is a P2 feature).
+**Research flag:** The auth token strategy for widget worker context deserves explicit design before Phase 2 begins. Validate whether the shared `OkHttpClient` with `AuthInterceptor` handles the widget worker context correctly, or whether a worker-scoped client is needed. Confirm the actual `/auth/refresh` endpoint behavior when called from a `CoroutineWorker` with a DataStore-read cookie.
 
-**Delivers:** Full bullet tree interaction — create, edit (BasicTextField per row), delete, indent (`POST /api/bullets/:id/indent`), outdent, collapse/expand, zoom into bullet as root + breadcrumbs, Enter to create sibling, Backspace on empty to delete; debounced content save (800ms) + undo checkpoint; all mutations optimistic with rollback; `LazyColumn` with `key = { it.id }` on every items block.
+### Phase 3: Interactive Actions
 
-**Addresses:** Bullet tree (flat LazyColumn + CRUD), Tab/Shift+Tab indent, Enter new bullet, collapse/expand, zoom + breadcrumbs, optimistic updates, undo.
+**Rationale:** Action handling (delete, add) depends on the correct update loop from Phase 2. The persist-before-update ordering and race condition mitigations only make sense once the update path is established and verified. The transparent overlay Activity for adding bullets also requires valid auth — hence Phase 2 first.
 
-**Avoids:** flattenTree collapsed-subtree leak (Pitfall 3 — recursive port, unit-tested before UI wiring), computeDragProjection DOM dependency (Pitfall 4 — use Reorderable library for v2.1; spike at Phase 3 start), debounced save drop on navigation (Pitfall 6 — onCleared flush), missing LazyColumn keys, re-fetching full tree on every patch (update only the affected item from the returned DTO).
+**Delivers:** Full interactive widget. Delete bullet from widget via per-row `ActionCallback` + `ActionParameters`. Add bullet via transparent dialog-themed overlay `Activity`. Tap row → deep-link to document in the app.
 
-### Phase 4: Reactivity and Polish
+**Addresses features:** Delete from widget (P1), add via overlay Activity (P1), tap row deep-link (P2)
 
-**Rationale:** No new architecture — this phase adds the interaction layer (swipe gestures, search, undo, animations) on top of the stable tree model from Phase 3. Swipe gesture directional discrimination must be implemented from the start (not bolted on) to prevent the scroll/swipe conflict pitfall.
+**Avoids pitfalls:** Persist-before-update ordering failure (Pitfall 8), race condition on concurrent updates (Pitfall 4), Activity launch from broadcast receiver on Android 12+ (use `actionStartActivity` not lambda), `onAction()` not deprecated `onRun()` in `ActionCallback`
 
-**Delivers:** Swipe right = complete / swipe left = delete (SwipeToDismissBox with proportional color/icon reveal; icon fades in at 25% threshold); SearchBar with 300ms debounce against `/api/search`; undo/redo toolbar buttons with `GET /api/undo/status` polling; pull-to-refresh (PullToRefreshBox); AnimatedVisibility for collapse/expand; `animateItem` on LazyColumn for mutations; Crossfade for document switching; loading skeletons; error states with retry buttons; SnackbarHostState for confirmations; keyboard-aware scroll (`WindowCompat.setDecorFitsSystemWindows` + `Modifier.imePadding()` + `LazyListState.animateScrollToItem` on focus).
-
-**Addresses:** Swipe gestures (complete + delete), search, undo/redo, pull to refresh, animation polish, error handling, empty states.
-
-**Avoids:** Swipe/scroll gesture conflict (Pitfall 7 — directional discrimination: arm swipe only when `abs(deltaX) > abs(deltaY) * 2`), loading spinner on every operation (optimistic updates from Phase 3 already prevent this), focused bullet hidden behind IME (imePadding + scroll to focused item).
+**Research flag:** Not needed. The `ActionParameters` pattern, `ActionCallback` API, and transparent overlay `Activity` pattern are all verified against official docs with clear code samples in FEATURES.md and ARCHITECTURE.md.
 
 ### Phase Ordering Rationale
 
-- Auth before everything: JWT + refresh cookie is required for every API call; the Mutex Authenticator must be correct from the start — retrofitting synchronized token refresh is painful and its bugs are subtle.
-- Documents before bullets: the simpler flat document list validates the full data layer (Retrofit → DTO → domain model → ViewModel → StateFlow → Composable) before the complex recursive tree model is built.
-- Tree model before gestures: swipe, zoom, and search all operate on the flat `List<FlatBullet>`; the list must be stable before interaction layers are added.
-- Optimistic updates in Phase 3, not retrofitted: the feature research is explicit — bolt-on optimism after pessimistic mutations doubles state management complexity.
-- Drag-to-reorder deferred to v2.1: feature research places it at P2; it depends on Phase 3's LazyColumn being stable and it is not needed for the v2.0 launch milestone.
+- `WidgetStateStore` must exist and be populated by `WidgetConfigActivity` before WorkManager has a `documentId` to fetch — Phase 1 before Phase 2
+- Auth must be solved before interactive API calls (delete/add) are possible — Phase 2 before Phase 3
+- The "looks done but isn't" checklist items map cleanly to phase boundaries: Phase 1 verifies placement and basic rendering, Phase 2 verifies persistence across process death and multi-instance correctness, Phase 3 verifies mutations with optimistic state updates
+- WorkManager unique job deduplication must be established in Phase 2 to prevent duplicate workers accumulating across widget add/remove/add cycles
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
+Phases needing explicit design review during planning:
 
-- **Phase 1:** Refresh cookie persistence across process death — the research identifies `JavaNetCookieJar` as correct for in-session persistence but notes that standard `CookieManager` holds cookies in memory only (lost on process death). The exact DataStore/Tink serialization wrapper for the `Set-Cookie` response value needs to be written and validated against the production server's cookie format as the first Phase 1 deliverable.
-- **Phase 3:** `ComputeDragProjectionUseCase` — the web algorithm uses `getBoundingClientRect()` which has no Android equivalent. The research recommends using Calvin-LL/Reorderable to avoid hand-rolling coordinate transforms. Confirm this is the right call via a 1-day tech spike at the start of Phase 3 before committing to the drag architecture.
+- **Phase 2 (auth strategy):** Validate the refresh-cookie-to-access-token flow from a `CoroutineWorker` context. Determine whether to reuse the shared `OkHttpClient` (which has `AuthInterceptor` but an in-memory cookie jar that may be null) or create a worker-scoped client that explicitly reads the Tink-encrypted cookie from DataStore and injects it as a header.
 
-Phases with standard, well-documented patterns (skip research-phase):
+Phases with standard, well-documented patterns (skip `/gsd:research-phase`):
 
-- **Phase 2:** Document drawer pattern is standard Material 3; `ModalNavigationDrawer` + StateFlow + CRUD is well-documented with official samples.
-- **Phase 4:** SwipeToDismissBox, PullToRefreshBox, SearchBar, and SnackbarHostState are all Material 3 Compose components with official documentation and established patterns.
+- **Phase 1 (Widget Foundation):** Official Glance codelab + docs cover every required pattern. ARCHITECTURE.md provides production-ready code samples for all four new components.
+- **Phase 3 (Action Handling):** `ActionCallback`, `ActionParameters`, transparent overlay `Activity` — all verified against official docs with clear examples in FEATURES.md and ARCHITECTURE.md.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All versions verified against official release pages and changelogs 2026-03-12; Gradle version catalog TOML provided in STACK.md |
-| Features | HIGH | Material 3 gesture patterns and Compose APIs well-documented; competitor Android UX parity (Workflowy/Dynalist) verified against app store behavior — MEDIUM on that subset |
-| Architecture | HIGH | Derived from direct inspection of all server route files, middleware, and web client algorithms; Retrofit interface covers all ~30 endpoints with verified signatures |
-| Pitfalls | HIGH | Critical pitfalls (token refresh, cookie handling, flattenTree) derived from direct inspection of production backend code; confirmed by official OkHttp and Android docs |
+| Stack | HIGH | All new dependency versions verified against official release notes and MVN Repository as of 2026-03-14. Version catalog TOML entries ready to copy in verbatim. |
+| Features | HIGH | Official Android docs + direct comparison against Google Keep / Tasks widget baseline. Feature boundaries (especially anti-features) are grounded in platform constraints, not opinion. |
+| Architecture | HIGH | Patterns verified against official Glance codelab (SociaLite sample), official Hilt docs, Dagger entry-point documentation, and direct inspection of existing app source files. |
+| Pitfalls | HIGH | Critical pitfalls sourced from official docs and confirmed open issue tracker items (Glance + Hilt issue #218520083, open since 2021). OEM battery restriction pitfall supported by multiple practitioner sources and official WorkManager docs. |
 
-**Overall confidence:** HIGH
+**Overall confidence: HIGH**
 
 ### Gaps to Address
 
-- **Refresh cookie serialization across process death:** The research identifies `JavaNetCookieJar` as correct for in-session use but does not provide a complete implementation for persisting the refresh cookie to DataStore/Tink across process death. This must be written and tested as the very first Phase 1 deliverable — before any login UI is built.
+- **Auth token strategy for widget worker:** The in-memory token gap is identified and the solution direction is clear (read refresh cookie from DataStore, call `/auth/refresh`), but the exact implementation — specifically whether the shared `OkHttpClient`'s `AuthInterceptor` + `TokenAuthenticator` can be reused from a worker context or requires a worker-scoped client — must be validated against the actual backend in Phase 2 before action handling is built.
 
-- **Gboard Tab key interception:** FEATURES.md documents that Gboard and some OEM keyboards intercept Tab before the app receives it as a KeyEvent. The Phase 3 plan must treat toolbar indent/outdent buttons as the primary interaction path and physical keyboard Tab as a secondary convenience — not the reverse. This is a UX decision that should be noted in Phase 3 acceptance criteria.
+- **`LazyColumn` item count limits:** PITFALLS.md flags a risk with 30+ root-level bullets. Glance's `LazyColumn` is backed by `ListView` which has a soft cap on the number of `RemoteViews` children. Test with a document that has 30+ root bullets before shipping Phase 1.
 
-- **Dynamic color brand consistency (Material You):** Material You changes the app's color scheme per device based on wallpaper. PITFALLS.md flags this as a UX concern. The Phase 1 theme implementation must establish an explicit decision: opt in with a consistent fallback seed color, or opt out entirely. Document this decision in `Theme.kt`.
-
-- **`computeDragProjection` Android port:** The web implementation is tightly coupled to DOM APIs (`getBoundingClientRect`). Confirm the Reorderable library approach before Phase 3 begins via a tech spike — if the library's API does not fit the flat-tree model, the custom `Modifier.onGloballyPositioned` approach documented in PITFALLS.md is the fallback.
+- **OEM battery restriction testing:** WorkManager reliability on Xiaomi/Samsung/Huawei is best-effort by design. The manual refresh button mitigates this for users. Test on at least one OEM device (not just the Pixel emulator) during Phase 2 if hardware is available.
 
 ## Sources
 
 ### Primary (HIGH confidence)
 
-- Direct code inspection: `server/src/routes/auth.ts`, `documents.ts`, `bullets.ts`, `search.ts`, `undo.ts`, `bookmarks.ts`, `attachments.ts`, `tags.ts` — all endpoint signatures verified
-- Direct code inspection: `server/src/middleware/auth.ts` — JWT Bearer token strategy via passport-jwt confirmed
-- Direct code inspection: `client/src/components/DocumentView/BulletTree.tsx` — `flattenTree`, `buildBulletMap`, `computeDragProjection` algorithms verified
-- Direct code inspection: `client/src/contexts/AuthContext.tsx` — silent refresh on mount, access token in memory only, refresh cookie flow confirmed
-- https://developer.android.com/develop/ui/compose/bom/bom-mapping — BOM 2025.12.00; Compose 1.10.0, Material3 1.4.0
-- https://developer.android.com/jetpack/androidx/releases/navigation3 — Navigation3 1.0.1 stable November 2025
-- https://developer.android.com/jetpack/androidx/releases/lifecycle — lifecycle 2.10.0 stable
-- https://developer.android.com/jetpack/androidx/releases/hilt — androidx.hilt 1.3.0; hilt-lifecycle-viewmodel-compose API change
-- https://github.com/square/retrofit/releases — Retrofit 3.0.0 stable; OkHttp 4.12 dependency confirmed
-- https://developer.android.com/jetpack/androidx/releases/security — EncryptedSharedPreferences deprecated in security-crypto 1.1.0-alpha07
-- https://developer.android.com/build/releases/agp-9-1-0-release-notes — AGP 9.1.0 March 2026
-- https://blog.jetbrains.com/kotlin/2025/12/kotlin-2-3-0-released/ — Kotlin 2.3.0 stable December 2025
-- https://developer.android.com/develop/ui/compose/performance/bestpractices — LazyColumn keys; collectAsStateWithLifecycle
-- https://developer.android.com/develop/ui/compose/touch-input/pointer-input/drag-swipe-fling — gesture conflict resolution
-- https://m3.material.io/foundations/interaction/gestures — Material 3 swipe gesture patterns
-- https://github.com/Calvin-LL/Reorderable — sh.calvin.reorderable 3.0.0; Modifier.animateItem support
+- [Create an app widget with Glance — Android Developers codelab](https://developer.android.com/codelabs/glance) — EntryPoint pattern, receiver setup, config activity contract
+- [Manage and update GlanceAppWidget — Android Developers](https://developer.android.com/develop/ui/compose/glance/glance-app-widget) — `updateAll()`, WorkManager integration, update triggers
+- [Build UI with Glance — Android Developers](https://developer.android.com/develop/ui/compose/glance/build-ui) — composable subset, `GlanceModifier`, `LazyColumn` backed by `ListView`
+- [Create an app widget with Glance — Android Developers](https://developer.android.com/develop/ui/compose/glance/create-app-widget) — `GlanceAppWidget`, `GlanceAppWidgetReceiver`, `provideGlance` lifecycle
+- [Enable users to configure app widgets — Android Developers](https://developer.android.com/develop/ui/views/appwidgets/configuration) — `RESULT_OK` contract, `EXTRA_APPWIDGET_ID`, Back press handling
+- [Handle errors with Glance — Android Developers](https://developer.android.com/develop/ui/compose/glance/error-handling) — error state composable pattern, `glance_error_layout`
+- [Handle user interaction — Glance — Android Developers](https://developer.android.com/develop/ui/compose/glance/user-interaction) — `ActionCallback`, `ActionParameters`, `actionStartActivity`
+- [Use Hilt with other Jetpack libraries — Android Developers](https://developer.android.com/training/dependency-injection/hilt-jetpack) — `@HiltWorker`, `HiltWorkerFactory`, `Configuration.Provider`
+- [Dagger Hilt Entry Points](https://dagger.dev/hilt/entry-points.html) — `EntryPointAccessors.fromApplication()` pattern, `@InstallIn(SingletonComponent::class)`
+- [Glance release notes](https://developer.android.com/jetpack/androidx/releases/glance) — 1.1.1 stable confirmed; 1.2.0-rc01 latest RC
+- [WorkManager release notes](https://developer.android.com/jetpack/androidx/releases/work) — 2.11.1 stable confirmed, minSdk 23
+- [Hilt Jetpack releases](https://developer.android.com/jetpack/androidx/releases/hilt) — `androidx.hilt:hilt-work` 1.3.0 stable confirmed
+- [Glance issue tracker #218520083](https://issuetracker.google.com/issues/218520083) — confirmed no native Hilt support on `GlanceAppWidget`; EntryPoint workaround is the official recommendation
+- Direct code inspection: `data/local/TokenStore.kt`, `data/api/BulletApi.kt`, `data/api/DocumentApi.kt`, `app/NotesApplication.kt`, `di/NetworkModule.kt`, `di/DataModule.kt`, `gradle/libs.versions.toml`
 
 ### Secondary (MEDIUM confidence)
 
-- https://github.com/hoc081098/Refresh-Token-Sample — OkHttp Authenticator + Mutex pattern (widely referenced)
-- https://mvnrepository.com/artifact/com.google.crypto.tink/tink-android — tink-android 1.8.0 latest stable
-- WebSearch: EncryptedSharedPreferences deprecation migration 2026 — DataStore + Tink pattern (corroborated by official release notes)
-- WebSearch: Retrofit 3.0.0 migration guide — suspend fun, no coroutines adapter needed
-- Workflowy Android UX behavior observed for swipe and drawer patterns
-- Obsidian Android community (forum.obsidian.md) — Gboard Tab key interception behavior
-
-### Tertiary (LOW confidence)
-
-- Obsidian Android forum confirmation of Gboard Tab behavior scope — needs direct device testing; behavior may vary by OEM keyboard variant
+- [Demystifying Jetpack Glance for app widgets — Android Developers Medium](https://medium.com/androiddevelopers/demystifying-jetpack-glance-for-app-widgets-8fbc7041955c) — update patterns, common failure modes
+- [Taming Glance Widgets: Fast & Reliable Widget Updates — Medium, Nov 2025](https://medium.com/@abdalmoniemalhifnawy/taming-glance-widgets-a-deep-dive-into-fast-reliable-widget-updates-ae44bfc4c75a) — race condition and update lock period analysis
+- [Android: Jetpack Glance with Hilt — Medium](https://medium.com/@debuggingisfun/android-jetpack-glance-with-hilt-6dce38cc9ff6) — EntryPoint workaround practitioner example, consistent with issue tracker
+- [Widgets with Glance: Beyond String States — ProAndroidDev](https://proandroiddev.com/widgets-with-glance-beyond-string-states-2dcc4db2f76c) — sealed state class pattern for widget UI states
+- [Updating widgets with Jetpack WorkManager — DEV Community](https://dev.to/tkuenneth/updating-widgets-with-jetpack-workmanager-g0b) — WorkManager periodic sync implementation
+- [How to reliably update widgets on Android — arkadiuszchmura.com](https://arkadiuszchmura.com/posts/how-to-reliably-update-widgets-on-android/) — `updatePeriodMillis` vs WorkManager with OEM battery restriction analysis
+- [How to Reliably Refresh Your Widgets — Ackee blog](https://www.ackee.agency/blog/how-to-reliably-refresh-widgets) — vendor battery restriction patterns across OEM ROMs
+- [Android Widgets with Glance: what's new with Google I/O 2024](https://medium.com/@ssharyk/android-widgets-with-glance-whats-new-with-google-i-o-2024-08b85b7ce676) — `SizeMode.Responsive` best practices
+- [Goodbye EncryptedSharedPreferences: A 2026 Migration Guide — ProAndroidDev](https://proandroiddev.com/goodbye-encryptedsharedpreferences-a-2026-migration-guide-4b819b4a537a) — confirms DataStore + Tink as the current encrypted storage path
 
 ---
-*Research completed: 2026-03-12*
+*Research completed: 2026-03-14*
 *Ready for roadmap: yes*

@@ -8,6 +8,17 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
+    <!-- Overlay theme for widget dialogs (transparent, floating window over home screen) -->
+    <style name="Theme.Notes.Overlay" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.5</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
     <!-- Splash screen theme (shown while app initializes) -->
     <style name="Theme.Notes.Splash" parent="Theme.SplashScreen">
         <!-- Splash background matches brand color -->

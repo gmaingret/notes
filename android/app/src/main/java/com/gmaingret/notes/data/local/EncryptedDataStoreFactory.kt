@@ -22,8 +22,10 @@ object EncryptedDataStoreFactory {
 
     private const val AUTH_TOKENS_PREF = "__androidx_security_crypto_encrypted_prefs_auth_tokens__"
     private const val COOKIE_JAR_PREF = "__androidx_security_crypto_encrypted_prefs_cookie_jar__"
+    private const val WIDGET_STATE_PREF = "__androidx_security_crypto_encrypted_prefs_widget_state__"
     private const val AUTH_TOKENS_KEYSET = "auth_tokens_keyset"
     private const val COOKIE_JAR_KEYSET = "cookie_jar_keyset"
+    private const val WIDGET_STATE_KEYSET = "widget_state_keyset"
     private const val MASTER_KEY_URI = "android-keystore://notes_master_key"
 
     init {
@@ -45,6 +47,9 @@ object EncryptedDataStoreFactory {
 
     fun getCookieJarAead(context: Context): Aead =
         getAead(context, COOKIE_JAR_PREF, COOKIE_JAR_KEYSET)
+
+    fun getWidgetStateAead(context: Context): Aead =
+        getAead(context, WIDGET_STATE_PREF, WIDGET_STATE_KEYSET)
 
     /**
      * Encrypts a plaintext string and returns a Base64-encoded ciphertext.

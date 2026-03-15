@@ -31,6 +31,9 @@ import com.gmaingret.notes.domain.usecase.PatchBulletUseCase
 import com.gmaingret.notes.domain.usecase.RedoUseCase
 import com.gmaingret.notes.domain.usecase.RemoveBookmarkUseCase
 import com.gmaingret.notes.domain.usecase.UndoUseCase
+import com.gmaingret.notes.widget.WidgetEntryPoint
+import com.gmaingret.notes.widget.sync.refreshWidgetIfDocMatches
+import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -229,6 +232,7 @@ class BulletTreeViewModel @Inject constructor(
                             }
                             contentOverridesMap.remove(bulletId)
                             _contentOverrides.value = contentOverridesMap.toMap()
+                            triggerWidgetRefreshIfNeeded()
                         }
                 }
         }
@@ -450,6 +454,7 @@ class BulletTreeViewModel @Inject constructor(
                         _contentOverrides.value = contentOverridesMap.toMap()
                         contentEditFlow.tryEmit(newBullet.id to migratedContent)
                     }
+                    triggerWidgetRefreshIfNeeded()
                 },
                 onFailure = {
                     // Remove temp bullet on failure
@@ -472,10 +477,12 @@ class BulletTreeViewModel @Inject constructor(
         updateState(optimisticBullets)
 
         enqueue {
-            deleteBulletUseCase(bulletId).onFailure {
-                _snackbarMessage.emit("Failed to delete bullet")
-                reloadFromServer()
-            }
+            deleteBulletUseCase(bulletId)
+                .onSuccess { triggerWidgetRefreshIfNeeded() }
+                .onFailure {
+                    _snackbarMessage.emit("Failed to delete bullet")
+                    reloadFromServer()
+                }
         }
     }
 
@@ -516,6 +523,7 @@ class BulletTreeViewModel @Inject constructor(
                         if (b.id == bulletId) updatedBullet else b
                     }
                     updateState(updatedBullets, focusedBulletId = bulletId)
+                    triggerWidgetRefreshIfNeeded()
                 },
                 onFailure = {
                     _snackbarMessage.emit("Failed to indent bullet")
@@ -556,6 +564,7 @@ class BulletTreeViewModel @Inject constructor(
                         if (b.id == bulletId) updatedBullet else b
                     }
                     updateState(updatedBullets, focusedBulletId = bulletId)
+                    triggerWidgetRefreshIfNeeded()
                 },
                 onFailure = {
                     _snackbarMessage.emit("Failed to outdent bullet")
@@ -700,6 +709,7 @@ class BulletTreeViewModel @Inject constructor(
 
         enqueue {
             patchBulletUseCase(bulletId, PatchBulletRequest.updateIsComplete(newComplete))
+                .onSuccess { triggerWidgetRefreshIfNeeded() }
                 .onFailure {
                     _snackbarMessage.emit("Failed to update bullet")
                     reloadFromServer()
@@ -866,14 +876,31 @@ class BulletTreeViewModel @Inject constructor(
     /**
      * Refreshes bullets from server, setting [_isRefreshing] appropriately.
      * Used by pull-to-refresh (Plan 04).
+     *
+     * Flushes any pending local edits first so the server has the latest content,
+     * then clears overrides so the UI shows the freshly-fetched server state.
      */
     fun refresh() {
         val docId = currentDocumentId ?: return
         _isRefreshing.value = true
         viewModelScope.launch {
             try {
+                // Flush pending edits so the server has our latest content
+                val pendingContent = contentOverridesMap.toMap()
+                val pendingNotes = noteOverrides.toMap()
+                pendingContent.forEach { (bulletId, content) ->
+                    patchBulletUseCase(bulletId, PatchBulletRequest.updateContent(content))
+                }
+                pendingNotes.forEach { (bulletId, note) ->
+                    patchBulletUseCase(bulletId, PatchBulletRequest.updateNote(note))
+                }
+                // Clear overrides so the UI shows server-authoritative content
+                contentOverridesMap.clear()
+                _contentOverrides.value = emptyMap()
+                noteOverrides.clear()
+
                 getBulletsUseCase(docId).onSuccess { bullets ->
-                    updateState(bullets)
+                    updateState(bullets, forceRebuild = true)
                     getBookmarksUseCase().onSuccess { bookmarks ->
                         _bookmarkedBulletIds.value = bookmarks.map { it.bulletId }.toSet()
                     }
@@ -975,6 +1002,7 @@ class BulletTreeViewModel @Inject constructor(
                     _canUndo.value = status.canUndo
                     _canRedo.value = status.canRedo
                     reloadFromServer()
+                    triggerWidgetRefreshIfNeeded()
                 },
                 onFailure = {
                     _snackbarMessage.emit("Undo failed")
@@ -994,6 +1022,7 @@ class BulletTreeViewModel @Inject constructor(
                     _canUndo.value = status.canUndo
                     _canRedo.value = status.canRedo
                     reloadFromServer()
+                    triggerWidgetRefreshIfNeeded()
                 },
                 onFailure = {
                     _snackbarMessage.emit("Redo failed")
@@ -1127,6 +1156,7 @@ class BulletTreeViewModel @Inject constructor(
                     getBulletsUseCase(docId).onSuccess { bullets ->
                         updateState(bullets, forceRebuild = true)
                     }
+                    triggerWidgetRefreshIfNeeded()
                 },
                 onFailure = {
                     _isDragInProgress.value = false
@@ -1156,6 +1186,38 @@ class BulletTreeViewModel @Inject constructor(
         contentOverridesMap.clear()
         _contentOverrides.value = emptyMap()
         noteOverrides.clear()
+    }
+
+    // -----------------------------------------------------------------------
+    // Widget refresh trigger
+    // -----------------------------------------------------------------------
+
+    /**
+     * Conditionally refreshes the home screen widget after a bullet mutation.
+     *
+     * Checks if the currently open document is the one pinned to the widget.
+     * If so, fetches fresh widget data and writes it to WidgetStateStore cache,
+     * then calls updateAll() so provideGlance re-renders from the new cache.
+     *
+     * Uses [refreshWidgetIfDocMatches] from WidgetRefreshHelper so the logic
+     * can be unit-tested in isolation without a real Android environment.
+     *
+     * Silent on failure — the widget will catch up on the next WorkManager sync.
+     */
+    private fun triggerWidgetRefreshIfNeeded() {
+        val docId = currentDocumentId ?: return
+        viewModelScope.launch {
+            try {
+                val store = com.gmaingret.notes.widget.WidgetStateStore.getInstance(getApplication())
+                val entryPoint = EntryPointAccessors.fromApplication(
+                    getApplication<Application>(),
+                    WidgetEntryPoint::class.java
+                )
+                refreshWidgetIfDocMatches(docId, store, entryPoint, getApplication())
+            } catch (_: Exception) {
+                // Silent failure — widget will catch up on next WorkManager sync
+            }
+        }
     }
 
     override fun onCleared() {

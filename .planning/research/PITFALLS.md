@@ -1,226 +1,269 @@
 # Pitfalls Research
 
-**Domain:** Native Android client (Kotlin/Jetpack Compose) added to existing Express + PostgreSQL web app
-**Researched:** 2026-03-12
-**Confidence:** HIGH (pitfalls derived from direct inspection of backend auth code, tree algorithm, CORS config + verified community sources)
+**Domain:** Jetpack Glance home screen widget — adding to existing Kotlin/Compose Android app
+**Researched:** 2026-03-14
+**Confidence:** HIGH (critical pitfalls verified against official Android docs and multiple practitioner sources)
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Token Refresh Race Condition — Multiple Concurrent 401s
+### Pitfall 1: Hilt Cannot Inject Into GlanceAppWidget or GlanceAppWidgetReceiver
 
 **What goes wrong:**
-When the Android app has multiple in-flight API calls and the access token expires, every call receives a 401 simultaneously. OkHttp's `Authenticator.authenticate()` fires independently for each. Without synchronization, each call independently POSTs to `/api/auth/refresh`. The server issues a new access token on the first call; if the CookieJar still has the original refresh cookie, subsequent calls each also receive a new access token — but those extra calls consume server resources and can cause divergent token state. In a future where refresh token rotation is added to the backend, the second concurrent refresh will fail with 401, unexpectedly logging the user out.
+Developers annotate `GlanceAppWidgetReceiver` with `@AndroidEntryPoint` expecting the same Hilt injection path used in Activities, Fragments, and ViewModels. This compiles but either silently injects nothing or crashes at runtime. `GlanceAppWidget.provideGlance()` has no injection point at all — it is not a Hilt-aware component.
 
 **Why it happens:**
-`Authenticator.authenticate()` runs on a background thread per request. The naive implementation does `runBlocking { postRefreshToken() }` with no awareness that another thread is already refreshing. OkHttp does not coordinate between concurrent `Authenticator` invocations.
+Hilt has first-class support for ViewModel, WorkManager, Navigation, and Compose, but not for Glance. This is an open feature request (Google Issue Tracker #218520083) that was still unresolved as of late 2025. Developers assume Glance receives the same treatment as WorkManager (`@HiltWorker` / `@AssistedInject`) and are surprised when it does not.
 
 **How to avoid:**
-Use a `Mutex` inside the `Authenticator`. Before calling the refresh endpoint, acquire the lock. After acquiring, compare the stored access token against the token that was on the failed request — if they differ, another coroutine already refreshed; skip the network call and re-attach the current token. Only call `/api/auth/refresh` if the tokens still match (no refresh has happened yet).
+Use the Hilt `@EntryPoint` pattern manually inside `provideGlance()`:
 
 ```kotlin
-// Enforce in Phase 1 (Foundation)
-private val mutex = Mutex()
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface WidgetEntryPoint {
+    fun notesRepository(): NotesRepository
+    fun authRepository(): AuthRepository
+}
 
-override fun authenticate(route: Route?, response: Response): Request? {
-    val failedToken = response.request.header("Authorization")?.removePrefix("Bearer ")
-    return runBlocking {
-        mutex.withLock {
-            val currentToken = tokenStore.getAccessToken()
-            if (currentToken != null && "Bearer $currentToken" != failedToken) {
-                // Another coroutine already refreshed — reuse current token
-                return@runBlocking response.request.newBuilder()
-                    .header("Authorization", "Bearer $currentToken")
-                    .build()
-            }
-            val newToken = performRefresh() ?: return@runBlocking null
-            tokenStore.saveAccessToken(newToken)
-            response.request.newBuilder()
-                .header("Authorization", "Bearer $newToken")
-                .build()
+// Inside GlanceAppWidget.provideGlance()
+val entryPoint = EntryPointAccessors.fromApplication(
+    context.applicationContext,
+    WidgetEntryPoint::class.java
+)
+val repo = entryPoint.notesRepository()
+```
+
+`@AndroidEntryPoint` is still valid on `GlanceAppWidgetReceiver` itself (for the receiver's `onUpdate` / `onReceive` body), but `GlanceAppWidget` requires the `EntryPointAccessors` pattern. Only `@Singleton` or unscoped bindings are safe to retrieve from this context — do not request `@ActivityRetainedScoped` or `@ViewModelScoped` bindings.
+
+**Warning signs:**
+- `NullPointerException` on an injected field inside `provideGlance()`
+- Hilt generates "Unsatisfied dependency" errors at compile time when scoped bindings are referenced
+- Repository calls succeed in the app but NPE in the widget
+
+**Phase to address:** Phase 1 — Widget Foundation. The DI wiring must be correct before any feature work begins.
+
+---
+
+### Pitfall 2: In-Memory Access Token Is Not Available in Widget Context
+
+**What goes wrong:**
+The existing app stores the access token in a Kotlin `StateFlow` inside an `AuthRepository` singleton that lives in the app process. When the widget receiver wakes up (often in a short-lived process separate from any running foreground activity), that singleton may be freshly constructed with a null token. API calls from the widget fail with 401.
+
+**Why it happens:**
+Android widget receivers extend `BroadcastReceiver`. The system can run them in a process that has no foreground components. Even if the singleton exists, `StateFlow` initial state is null — the in-memory token is only populated after a successful login flow that runs in the Activity/ViewModel layer. The widget has no way to trigger that flow.
+
+This project deliberately stores the access token in-memory only (not in SharedPreferences). The right call for the main app creates a gap for widgets.
+
+**How to avoid:**
+The widget must obtain a fresh access token independently using the refresh cookie. The existing encrypted DataStore already stores the refresh cookie (via Tink). The widget should:
+
+1. Read the refresh cookie from DataStore (accessible because it is persisted, not in-memory).
+2. Call the `/auth/refresh` endpoint using a dedicated OkHttp client instance created inside the widget or WorkManager worker — do not assume the singleton `OkHttpClient` has a populated in-memory cookie jar.
+3. Use the resulting short-lived access token for the single API call, then discard it.
+
+The WorkManager `CoroutineWorker` is the correct location for this logic since it already has Hilt support via `@HiltWorker`.
+
+**Warning signs:**
+- Widget API calls return 401 intermittently (works when app is open, fails when app is backgrounded or killed)
+- Logcat shows `IllegalStateException` or NPE accessing `authRepository.accessToken.value` from widget context
+- Widget works immediately after user logs in, then breaks after phone restarts overnight
+
+**Phase to address:** Phase 2 — Auth Integration. Must be solved before any real API call is attempted from the widget.
+
+---
+
+### Pitfall 3: Glance Composables Are Not Jetpack Compose Composables
+
+**What goes wrong:**
+Developers import `androidx.compose.foundation.*` or `androidx.compose.material3.*` inside `GlanceAppWidget.Content()`. The build fails or the composable silently renders nothing. Even when imports are correct, developers apply modifiers, animations, or theming from Compose that do not exist in Glance.
+
+**Why it happens:**
+Glance uses a Compose runtime but translates its composables into `RemoteViews`, not into a Compose surface. The available composable set is a strict subset: `Box`, `Column`, `Row`, `LazyColumn` (becomes `ListView`), `Text`, `Button`, `Image`, `CheckBox`, `Switch`. There are no `AnimatedVisibility`, no `SnackbarHost`, no `MaterialTheme`, no custom fonts. Glance uses its own `GlanceModifier`, not `Modifier`.
+
+Key restriction: `LazyColumn` in Glance is backed by `ListView` — it does not support item keys, sticky headers, or `LazyListState`.
+
+**How to avoid:**
+- Import exclusively from `androidx.glance.*` inside any `GlanceAppWidget` subclass.
+- Keep a hard package boundary: Glance files live in a `widget/` package, app Compose files live in `ui/`. Never cross-import.
+- Glance does not support `@Preview` — use `GlancePreview` from `androidx.glance.appwidget.preview` or test on a device.
+- Custom fonts (Inter Variable) are not renderable in Glance — widget text will use system fonts.
+
+**Warning signs:**
+- IDE shows no error but the widget renders blank or shows "Widget unavailable" on device
+- `ClassCastException` at runtime mentioning `RemoteViews`
+- Modifier compiler errors: `Unresolved reference: Modifier` (Glance uses `GlanceModifier`)
+
+**Phase to address:** Phase 1 — Widget Foundation. A wrong import here produces silent failures that are hard to diagnose.
+
+---
+
+### Pitfall 4: Race Condition Between Widget Action and State Update
+
+**What goes wrong:**
+User taps "Delete bullet" in the widget. The `ActionCallback` fires, makes the API call, then calls `GlanceAppWidget().update(context, glanceId)`. Simultaneously, the 15-minute WorkManager sync fires and also calls `update()`. Both read the DataStore cache at the same time, one overwrites the other's result, and the widget shows stale data or the deleted bullet reappears.
+
+Additionally, Glance has an internal update lock period — when a widget is already in the middle of updating, new update requests issued during that window are silently dropped.
+
+**Why it happens:**
+Glance's `update()` is a suspend function, but multiple callers can race without external coordination. There is no built-in locking mechanism across concurrent update triggers.
+
+**How to avoid:**
+- Funnel all widget state writes through a single `Mutex`-protected function in the repository layer.
+- Use `WorkManager.enqueueUniqueWork(REPLACE)` for on-demand refreshes so concurrent triggers collapse into one.
+- Write the new state to DataStore before calling `GlanceAppWidget().update()` — the update call re-reads DataStore, so the write must complete first (see Pitfall 8 below).
+- For the delete action: optimistically update the DataStore cache immediately, then fire the API call. Do not wait for the API response before updating the widget or the UI will feel sluggish.
+
+**Warning signs:**
+- Deleted bullets occasionally reappear after a few seconds
+- Widget shows loading state permanently after an action (update call was dropped during lock period)
+- Rapid tap of "refresh" causes the widget to stop updating
+
+**Phase to address:** Phase 3 — Action Handling. Applies to every interactive widget element.
+
+---
+
+### Pitfall 5: WorkManager Minimum Interval and Vendor Battery Restrictions
+
+**What goes wrong:**
+Developer sets `updatePeriodMillis` in `appwidget-provider` XML to 900000 (15 minutes) expecting reliable periodic updates. On many devices (especially Xiaomi, Huawei, Samsung with aggressive battery management), the widget stops refreshing entirely after a few cycles. On stock Android, the minimum honored value for `updatePeriodMillis` is 30 minutes — 15-minute values are silently rounded up to 30.
+
+**Why it happens:**
+`updatePeriodMillis` is unreliable by design. It is delivered as a broadcast that vendors can and do throttle or suppress under battery optimization. WorkManager itself runs in Doze mode at reduced frequency — on some OEM ROMs, periodic workers are deferred much longer than scheduled.
+
+**How to avoid:**
+- Set `android:updatePeriodMillis="0"` in the `appwidget-provider` XML. All periodic scheduling goes through WorkManager exclusively.
+- Schedule as `PeriodicWorkRequest` with `repeatInterval = 15` minutes and `enqueueUniquePeriodicWork(KEEP)` so duplicate enqueues are ignored.
+- Set `setRequiredNetworkType(NetworkType.CONNECTED)` — widget data is meaningless without a server connection.
+- Do NOT set `setRequiresBatteryNotLow(true)` — overly restrictive for a user-visible widget.
+- Accept that on heavily restricted OEM devices, 15-minute sync is best-effort. Make manual refresh a visible affordance in the widget.
+
+**Warning signs:**
+- Widget stops updating after the device sits idle overnight
+- WorkManager shows tasks as `ENQUEUED` but never `RUNNING` in the WorkManager inspector
+- Update frequency varies wildly across test devices
+
+**Phase to address:** Phase 2 — WorkManager Sync Setup.
+
+---
+
+### Pitfall 6: Widget Size and SizeMode Misconfiguration
+
+**What goes wrong:**
+Developer uses `SizeMode.Exact` to get pixel-perfect control. On Android 11 and below, size calculation is unreliable across launchers — the reported available size can be significantly wrong. On all versions, `SizeMode.Exact` triggers a full widget recomposition every time the user resizes, causing visible UI jumps.
+
+A separate mistake: `minWidth`/`minHeight` in `appwidget-provider` XML set too large so the widget cannot be placed on a standard 4x4 home screen grid. Or set too small causing layout overflow with no error.
+
+**How to avoid:**
+- Use `SizeMode.Responsive` with two or three well-chosen breakpoint sizes (e.g., `DpSize(180.dp, 110.dp)` for 2-cell, `DpSize(250.dp, 220.dp)` for 4-cell). This pre-renders layouts at fixed sizes; the best-fit is selected at runtime without recomposition on resize.
+- If `SizeMode.Responsive` produces inconsistent launcher behavior, fall back to `SizeMode.Single` — simpler and more predictable.
+- Avoid `SizeMode.Exact` unless the team has tested across at least three launcher implementations.
+- Follow Android widget size guidelines: minimum cell size = approximately `(70 × n) - 30` dp. A 2×2 widget = `110 × 110` dp minimum.
+
+**Warning signs:**
+- Widget layout correct on Pixel but broken on Samsung or Xiaomi
+- Widget placed but shows "Widget unavailable" when resized to a smaller size
+- `LocalSize.current` returns `0.dp × 0.dp` inside `Content()`
+
+**Phase to address:** Phase 1 — Widget Foundation. Get sizing right before any layout work.
+
+---
+
+### Pitfall 7: Widget Configuration Activity Doesn't Finish with RESULT_OK
+
+**What goes wrong:**
+User adds the widget to the home screen. The document picker configuration activity is shown. User selects a document and presses "Confirm." The widget is removed from the home screen immediately. The system treats the placement as cancelled.
+
+**Why it happens:**
+Android requires that a widget configuration `Activity` call `setResult(Activity.RESULT_OK, resultIntent)` where `resultIntent` carries `AppWidgetManager.EXTRA_APPWIDGET_ID`. If the activity finishes with `RESULT_CANCELED` (the default when `finish()` is called without `setResult`), or if the Intent is missing the widget ID extra, the launcher discards the widget placement silently.
+
+**How to avoid:**
+```kotlin
+val appWidgetId = intent?.extras?.getInt(
+    AppWidgetManager.EXTRA_APPWIDGET_ID,
+    AppWidgetManager.INVALID_APPWIDGET_ID
+) ?: AppWidgetManager.INVALID_APPWIDGET_ID
+
+// Set CANCELED early so Back press is handled correctly
+setResult(Activity.RESULT_CANCELED)
+
+// When user confirms selection:
+val resultValue = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+setResult(Activity.RESULT_OK, resultValue)
+finish()
+```
+
+**Warning signs:**
+- Widget disappears from home screen immediately after configuration with no error in logcat (silent contract failure)
+- Widget works without a configuration activity but fails when the activity is added
+- Testing on emulator works but fails on physical device (some launchers are more strict)
+
+**Phase to address:** Phase 1 — Widget Foundation.
+
+---
+
+### Pitfall 8: Calling update() Without First Persisting State to DataStore
+
+**What goes wrong:**
+`ActionCallback` modifies a local variable, calls `GlanceAppWidget().update(context, glanceId)`, and the widget re-renders with the old data. The action appears to do nothing.
+
+**Why it happens:**
+`GlanceAppWidget.Content()` is stateless by design. Every recomposition reads from `currentState()` (the Glance DataStore) or from an application-layer data source. Any in-memory state inside the widget composable is not guaranteed to survive across calls. `update()` triggers a new composition pass that re-reads whatever is persisted — if nothing was persisted, the old state is shown.
+
+**How to avoid:**
+Strict ordering: write to DataStore first, then trigger recomposition.
+
+```kotlin
+override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+    val result = repository.deleteBullet(bulletId)
+    if (result.isSuccess) {
+        // 1. Persist new state FIRST
+        updateAppWidgetState(context, glanceId) { prefs ->
+            prefs[widgetDataKey] = newSerializedState
         }
+        // 2. Then trigger recomposition
+        MyWidget().update(context, glanceId)
     }
 }
 ```
 
 **Warning signs:**
-- Server logs show multiple simultaneous POST `/api/auth/refresh` calls within milliseconds of each other
-- User is randomly logged out during normal multi-screen navigation
-- Refresh fails with 401 even though the user just logged in
+- Widget action appears to do nothing on first tap, works on the second tap (second tap triggers a periodic refresh that actually reads fresh data)
+- Logcat shows `update()` called but the displayed content does not change
 
-**Phase to address:** Phase 1 (Foundation) — build correctly from the start; retrofitting synchronized token refresh is painful.
-
----
-
-### Pitfall 2: SameSite=Strict Cookie — Refresh Endpoint Returns 401 Forever
-
-**What goes wrong:**
-The Express backend sets `sameSite: 'strict'` on the `refreshToken` cookie (confirmed in `server/src/services/authService.ts` line 24). On browsers, `SameSite=Strict` blocks the cookie from being sent on cross-origin requests. OkHttp does not enforce `SameSite` — it is a browser-specific security attribute. However, the bigger risk is that several popular third-party `CookieJar` implementations for OkHttp (notably older versions of `PersistentCookieJar`) silently discard cookies with the `HttpOnly` flag when parsing `Set-Cookie` response headers. If the `refreshToken` cookie is dropped during parsing, every call to `/api/auth/refresh` will return 401 even with a valid session, making the user appear permanently logged out.
-
-**Why it happens:**
-The web implementation uses `HttpOnly` for XSS protection (correct for browsers). OkHttp does not have a DOM and cannot be exploited via XSS, so `HttpOnly` is irrelevant for security — but some CookieJar implementations copy the browser's behavior of not exposing httpOnly cookies to "JavaScript," which in OkHttp translates to not storing them at all.
-
-**How to avoid:**
-Use `JavaNetCookieJar` with `CookieManager(null, CookiePolicy.ACCEPT_ALL)` as the baseline — it is part of the Java standard library and correctly stores httpOnly cookies. Persist the refresh cookie by serializing it to `EncryptedSharedPreferences` in `saveFromResponse` and reloading in `loadForRequest`. Write a unit test: log in, assert `Cookie: refreshToken=...` appears in the next request to `/api/auth/refresh`. Do NOT use `PersistentCookieJar` from `franmontiel` without auditing for httpOnly handling.
-
-**Warning signs:**
-- POST `/api/auth/refresh` always returns 401 from the Android client, but works in a browser
-- OkHttp request logs show no `Cookie` header on the refresh call
-- `Set-Cookie: refreshToken=...; HttpOnly` visible in login response but the cookie is absent on subsequent requests
-
-**Phase to address:** Phase 1 (Foundation) — validate the cookie round-trip before any other auth code is written.
+**Phase to address:** Phase 3 — Action Handling. Applies to every interactive element.
 
 ---
 
-### Pitfall 3: flattenTree Port — Collapsed Subtree Leak
+### Pitfall 9: Multiple Widget Instances Require updateAll() Not update()
 
 **What goes wrong:**
-The TypeScript `flattenTree` in `BulletTree.tsx` uses recursive `flatMap` with an early return on `b.isCollapsed` — this naturally prevents any descendant of a collapsed bullet from appearing. When porting to Kotlin using an iterative stack-based approach (common for Android performance concerns), the "skip subtree" logic must explicitly track when we are inside a collapsed subtree at a given depth. Getting the depth-comparison boundary condition wrong (off-by-one on mixed-depth trees) causes bullets that belong to a collapsed subtree to appear visibly in the LazyColumn.
+Developer calls `MyWidget().update(context, hardcodedGlanceId)` inside the WorkManager worker. This updates only the widget instance that had that `glanceId` at a specific point in time. If the user placed the same widget twice (each showing a different document), only one instance is updated. The other becomes permanently stale.
 
 **Why it happens:**
-The TypeScript version's correctness is implicit in the recursion — you simply do not recurse when `isCollapsed`. An iterative Kotlin port must make this state explicit. The off-by-one occurs when checking `if (currentDepth <= collapsedDepth)` vs `< collapsedDepth` when exiting a collapsed section.
+Each widget placement generates a unique `glanceId`. Developers testing with a single instance never notice the problem. The correct call iterates over all placed instances.
 
 **How to avoid:**
-Port as a direct recursive function first — Kotlin handles recursion fine for typical bullet tree depths (< 100 levels; a personal outliner never hits stack overflow). Only optimize to iterative if profiling proves a bottleneck (it will not be). Add unit tests with: (a) a bullet with 3 levels of children where the top is collapsed — assert grandchildren absent; (b) adjacent collapsed bullets at the same level — assert neither's children appear.
+Always use the iterator pattern in WorkManager workers and repository update functions:
 
 ```kotlin
-// Direct recursive port — correct by construction
-fun flattenTree(
-    map: Map<String, Bullet>,
-    parentId: String? = null,
-    depth: Int = 0
-): List<FlatBullet> = getChildren(map, parentId).flatMap { bullet ->
-    buildList {
-        add(FlatBullet(bullet, depth))
-        if (!bullet.isCollapsed) {
-            addAll(flattenTree(map, bullet.id, depth + 1))
-        }
-    }
+val manager = GlanceAppWidgetManager(context)
+val glanceIds = manager.getGlanceIds(MyWidget::class.java)
+glanceIds.forEach { glanceId ->
+    MyWidget().update(context, glanceId)
 }
+// Or simply:
+MyWidget().updateAll(context)
 ```
 
-**Warning signs:**
-- Bullets that should be hidden (children of a collapsed parent) appear in the list
-- Collapsing a bullet removes its direct children but grandchildren remain visible
-- Depth values of visible bullets jump from 0 to 2 (missing the depth-1 intermediary)
-
-**Phase to address:** Phase 3 (Bullet Tree) — write unit tests for `flattenTree` before wiring to the UI.
-
----
-
-### Pitfall 4: computeDragProjection DOM Dependency — No Android Equivalent
-
-**What goes wrong:**
-The web `computeDragProjection` uses `document.getElementById('bullet-row-${id}')` and `getBoundingClientRect()` to determine insertion index from the pointer Y position. These DOM APIs do not exist on Android. The Android equivalent — `LazyListState.layoutInfo.visibleItemsInfo` — provides item bounds in `LazyColumn-local` coordinates, not screen coordinates. Touch `pointerY` arrives in root-composable coordinates. The coordinate system mismatch is non-obvious and causes the drag drop to always insert at the wrong position if the LazyColumn is not at the top of the screen.
-
-**Why it happens:**
-The web implementation is tightly coupled to the DOM for coordinate lookup. Developers porting the algorithm often use `LazyListState.layoutInfo` directly without converting to screen coordinates, or use screen coordinates without accounting for LazyColumn scroll offset.
-
-**How to avoid:**
-Option A (recommended): Use the `Reorderable` library (Calvin-LL/Reorderable on GitHub) which handles all coordinate transforms, scroll-while-dragging, and haptic feedback internally. Wire `rememberReorderableLazyListState` to the existing `flattenTree` output — this is a 1-2 day integration, not a full rewrite.
-
-Option B (if custom is required): Track item center-Y in screen coordinates using `Modifier.onGloballyPositioned { coords -> itemCenters[bullet.id] = coords.positionInRoot().y + coords.size.height / 2f }` on each row. Then compare `pointerY` (also in root coordinates, from `Modifier.pointerInput`) against `itemCenters` — both are in the same coordinate space.
+Only use `update(context, specificGlanceId)` inside `ActionCallback.onAction()` where the specific instance that received the action is known.
 
 **Warning signs:**
-- Drag preview follows the finger but the drop indicator is always at position 0 or at the end of the list
-- Drop target is correct only when the list is scrolled to the very top
-- `NullPointerException` or compilation error when referencing `getBoundingClientRect`
+- Second widget instance placed shows correct data on first load, then never updates
+- Removing the first widget instance and keeping the second causes updates to stop
 
-**Phase to address:** Phase 3 (Bullet Tree) — evaluate Reorderable library in a tech spike before deciding to hand-roll.
-
----
-
-### Pitfall 5: Express CORS Disabled in Production — Wrong Diagnosis When Android Calls Fail
-
-**What goes wrong:**
-The Express CORS config (`server/src/app.ts` line 24) sets `origin: process.env.NODE_ENV === 'development' ? 'http://localhost:5173' : false`. In production, CORS is entirely disabled. OkHttp (native Android HTTP client) does NOT send an `Origin` header, so CORS never activates. However, when Android API calls fail for unrelated reasons (wrong base URL, certificate error, missing auth header), developers sometimes diagnose the failure as "CORS issue" and add an `Origin` header to "fix" it. This activates Express CORS handling where there was none — Express sees an `Origin` header with `cors: false` config and may reject the request with a 500 or return no `Access-Control-Allow-Origin` header, making the actual error harder to diagnose.
-
-**Why it happens:**
-CORS is a browser security concept. OkHttp is not a browser. Developers coming from web background assume CORS applies universally and debug Android network failures through that lens.
-
-**How to avoid:**
-Do NOT manually set an `Origin` header in the OkHttp client. If the server needs to identify Android vs web clients, use `X-Client: android` rather than spoofing `Origin`. When debugging Android network failures, check: (1) base URL is exactly `https://notes.gregorymaingret.fr` with no trailing slash, (2) `Authorization: Bearer <token>` header is present, (3) TLS certificate is valid (Let's Encrypt auto-renews — verify the cert is current).
-
-**Warning signs:**
-- Android API calls return 500 only after an `Origin` header was added to OkHttp
-- OkHttp logs show `Origin: android-app://...` in request headers — this should never appear
-- The same endpoint works in Postman (which also does not send `Origin`) but fails from the app
-
-**Phase to address:** Phase 1 (Foundation) — OkHttp client configuration, documented in code comments.
-
----
-
-### Pitfall 6: Debounced Content Save + Undo Checkpoint Cancelled on Navigation
-
-**What goes wrong:**
-The web client debounces bullet content saves (the `PATCH /api/bullets/:id` call) and after a delay posts an undo checkpoint to `POST /api/bullets/:id/undo-checkpoint`. On Android, these are coroutines launched in `viewModelScope`. When the user navigates away, `viewModelScope` is cancelled (`onCleared()` is called), cancelling all child coroutines. If the user types and immediately navigates away within the debounce window (~500ms), both the content save and the undo checkpoint are dropped. The text typed in those last few seconds is lost, and the server-side undo history is incomplete.
-
-**Why it happens:**
-`viewModelScope` uses `SupervisorJob` + `Dispatchers.Main` — all child coroutines are cancelled when the ViewModel is cleared. A debounce-delay coroutine is a direct child of this scope.
-
-**How to avoid:**
-Override `onCleared()` in the BulletTree ViewModel to explicitly flush any pending save before the scope is cancelled. Execute the flush with `withContext(NonCancellable)` or via `runBlocking(Dispatchers.IO)` so it is not cancelled when `viewModelScope` is cleared.
-
-```kotlin
-override fun onCleared() {
-    super.onCleared()
-    // Flush any pending debounced content saves synchronously before scope dies
-    pendingContentSave?.let { (bulletId, content) ->
-        runBlocking(Dispatchers.IO) {
-            api.patchBulletContent(bulletId, content)
-            api.postUndoCheckpoint(bulletId, content, previousContent)
-        }
-    }
-}
-```
-
-**Warning signs:**
-- Text entered just before pressing the back button is not visible when returning to the document
-- Server-side undo skips back multiple content states instead of one after a navigate-away-and-return sequence
-- The bug only reproduces with fast navigation (within ~500ms of the last keystroke); slow navigation always saves correctly
-
-**Phase to address:** Phase 3 (Bullet Tree) for content save flush; Phase 4 (Reactivity & Polish) for end-to-end navigation testing.
-
----
-
-### Pitfall 7: Swipe Gesture Conflict With LazyColumn Vertical Scroll
-
-**What goes wrong:**
-The bullet list is a `LazyColumn` with swipe-to-complete (right) and swipe-to-delete (left) gestures on each row. LazyColumn owns vertical scroll. If swipe gestures are implemented naively with `detectHorizontalDragGestures`, a diagonal touch (common when users intend to scroll) can be misidentified as a horizontal swipe, completing or deleting a bullet the user wanted to scroll past. Conversely, if scroll sensitivity is too high, deliberate horizontal swipes are intercepted by the LazyColumn scroll system before the swipe threshold is reached.
-
-**Why it happens:**
-Compose gesture detection resolves conflicts based on which detector first "wins" pointer input. Without explicit directional discrimination, a 30-degree diagonal touch can trigger the horizontal detector even if the user intended vertical scroll.
-
-**How to avoid:**
-Use `pointerInput` with a custom gesture detector that measures the initial displacement vector: only arm the horizontal swipe handler if `abs(deltaX) > abs(deltaY) * 2` (i.e., the gesture is more than 2x more horizontal than vertical) within the first 16dp of movement. This is the same directional discrimination used in the web `gestures.ts` implementation. The web version uses `totalDeltaX > 40` as its activation threshold — map that proportionally to dp on Android. Reject gestures that have a vertical component before the horizontal threshold is met.
-
-**Warning signs:**
-- Bullets are accidentally completed or deleted when scrolling rapidly through a long list
-- Deliberate horizontal swipes are intercepted and interpreted as scroll — no color background appears
-- The swipe visual feedback (growing green/red background) appears momentarily then disappears on diagonal touches
-
-**Phase to address:** Phase 4 (Reactivity & Polish) — implement swipe gestures with directional discrimination from the start.
-
----
-
-### Pitfall 8: Gradle Added to Non-Standard Monorepo Location — Root Project Pollution
-
-**What goes wrong:**
-The current repo root (`/`) contains `package.json`, `Dockerfile`, `docker-compose.yml`, `server/`, and `client/` — a Node.js monorepo. Adding an Android project means adding a `settings.gradle.kts` at the repo root OR in a subdirectory (e.g., `/android/`). If `settings.gradle.kts` is placed at the repo root, Gradle will attempt to treat the entire repo as a Gradle project. It will scan `server/node_modules` and `client/node_modules` looking for subprojects, potentially taking minutes for the configuration phase. GitHub Actions CI will also need to detect whether a push affects Android or Node to avoid running Gradle builds on every web-only change.
-
-**Why it happens:**
-The standard Android Studio "Add Android module to existing project" workflow assumes a Gradle-native monorepo. Placing `settings.gradle.kts` at the repo root is the standard Android approach, but it conflicts with an existing Node.js root.
-
-**How to avoid:**
-Place the entire Android project in a `/android/` subdirectory with its own `settings.gradle.kts` — completely isolated from the Node.js project. All `./gradlew` commands are run from `/android/`. GitHub Actions should have separate workflow files: one for Node/Docker changes (triggered on `server/**` or `client/**` changes), one for Android changes (triggered on `android/**` changes). Gradle build cache should be scoped to `~/.gradle/caches` and keyed to `android/gradle/wrapper/gradle-wrapper.properties` + `android/build.gradle.kts` hash.
-
-**Warning signs:**
-- `./gradlew` at the repo root attempts to configure `server/` or `client/` as Gradle subprojects
-- GitHub Actions runs a 10-minute Gradle build on a commit that only changed `server/src/routes/auth.ts`
-- `node_modules` symlinks appear in Gradle's project scan output
-
-**Phase to address:** Phase 1 (Foundation) — directory structure decision must be made before any Gradle files are written.
+**Phase to address:** Phase 2 — WorkManager Sync Setup. Must be correct in the initial worker implementation.
 
 ---
 
@@ -228,13 +271,12 @@ Place the entire Android project in a `/android/` subdirectory with its own `set
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| In-memory-only CookieJar (no persistence) | Simpler auth setup | User logged out on every cold start | Never — users expect sessions to persist |
-| Hardcoded `https://notes.gregorymaingret.fr` base URL | One less config layer | Cannot point at local dev server for testing | Never — use `BuildConfig.BASE_URL` |
-| Missing `key { bullet.id }` in LazyColumn items | Less boilerplate | Full list recomposition on any mutation; broken drag animations | Never for a list with drag-drop |
-| `GlobalScope` for API calls | Quick coroutine launch | Calls continue after ViewModel cleared; can crash with stale UI references | Never |
-| Copy/paste Bullet model across layers | Faster initial build | Model changes require updates in multiple places; breaks Clean Architecture | Only for a single-phase prototype, refactor before Phase 4 |
-| `runBlocking` in `Authenticator` without `Mutex` | Simpler token refresh | Race condition on concurrent 401s (see Pitfall 1) | Never |
-| Skipping `EncryptedSharedPreferences` — using plain `SharedPreferences` for access token | Simpler storage | Token readable via ADB backup on non-encrypted devices | Never |
+| Use `updatePeriodMillis` instead of WorkManager | Simpler setup | Unreliable on OEM devices, silently capped at 30 min | Never — set to 0 and always use WorkManager |
+| Store access token in plain `SharedPreferences` to bridge widget auth gap | Unblocks widget auth immediately | Token readable by other apps on rooted devices; undermines existing security posture | Never — use the encrypted DataStore already present |
+| `SizeMode.Exact` for layout flexibility | Full control over layout at any size | Recomposition on every resize; unreliable on Android 11 and below | Only if `SizeMode.Responsive` is truly insufficient after testing |
+| Re-use the main app's singleton `OkHttpClient` from widget | Avoids creating a second client | OkHttp cookie jar is in-memory; widget process may not have the jar populated | Never — widget needs its own client with DataStore-backed cookie loading |
+| Hard-code a single `glanceId` for update calls | Simpler code | Breaks when user places multiple widget instances | Never — always iterate over `GlanceAppWidgetManager.getGlanceIds()` |
+| Skip configuration activity — pin first document automatically | Simpler initial implementation | Removes the core "choose which document" requirement | Never for this milestone's requirements |
 
 ---
 
@@ -242,12 +284,14 @@ Place the entire Android project in a `/android/` subdirectory with its own `set
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| Express `/api/auth/refresh` | Not attaching the same OkHttp instance (with CookieJar) to the Retrofit client used for the refresh call | Use a single OkHttp singleton via Hilt — CookieJar must be on the same instance used for all requests |
-| Express `/api/auth/refresh` | Using an `Interceptor` (fires before response) instead of `Authenticator` (fires after 401) for token refresh | Always use `Authenticator` for token refresh; `Interceptor` only for attaching existing tokens |
-| Express `/api/bullets` POST | Sending `afterId: undefined` — Kotlin serializes `null` correctly but omitting the field may not match Zod schema expectations | Always include `afterId: null` explicitly in the Kotlin request data class; do not rely on default omission |
-| Express `/api/bullets` POST | Sending `parentId` as absent (not serialized) instead of `null` for top-level bullets | Define `parentId: String? = null` in the Kotlin request data class; Retrofit/Gson/Moshi serialize `null` as JSON `null` |
-| Express auth rate limiter | Sending burst of concurrent requests on app startup (document list + bullets simultaneously) triggers the 20 req/15min rate limit | Rate limit is on `/api/auth/*` only — startup data requests go to `/api/documents` and `/api/bullets`, not affected |
-| Express CORS disabled in production | Adding `Origin` header to "fix" CORS issues that don't exist for OkHttp | Never add `Origin` to OkHttp headers; CORS is browser-only |
+| Hilt + GlanceAppWidget | `@AndroidEntryPoint` on `GlanceAppWidget` (unsupported component type) | `@EntryPoint` interface + `EntryPointAccessors.fromApplication()` inside `provideGlance()` |
+| Hilt + GlanceAppWidgetReceiver | Injecting `@ActivityRetainedScoped` or `@ViewModelScoped` bindings | Only `@Singleton` or unscoped bindings are safe in widget receivers |
+| Hilt + WorkManager (widget worker) | Creating the worker manually with `new` instead of using Hilt | Use `@HiltWorker` + `@AssistedInject` on the worker class; Hilt WorkManager integration is supported |
+| OkHttp + widget auth | Assume singleton client cookie jar has cookies populated | Create a worker-scoped OkHttp client; load the refresh cookie from encrypted DataStore before each API call |
+| DataStore + Glance state | Mix Glance's `PreferencesGlanceStateDefinition` with the app's `DataStore` | Keep them separate: Glance state stores widget-specific data (selected document ID, loading flag); app DataStore stores the cached bullet list |
+| WorkManager periodic job | Enqueue a new `PeriodicWorkRequest` on every `onUpdate()` call | Use `enqueueUniquePeriodicWork(KEEP)` with a stable tag; only one periodic job should exist per device |
+| Glance action targeting an Activity | Launch Activity from lambda callback (`onClick = { startActivity(...) }`) | Use `actionStartActivity<MyActivity>()` — Android 12+ blocks activity launches from broadcast receiver trampolines |
+| Glance `ActionCallback` API | Using deprecated `onRun()` method (older tutorials) | Current API uses `onAction()` — method was renamed; old tutorials are wrong |
 
 ---
 
@@ -255,12 +299,11 @@ Place the entire Android project in a `/android/` subdirectory with its own `set
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| `flattenTree` computed in a Composable (not ViewModel) | Every scroll or focus change re-flattens the entire tree | Derive flat list as a `StateFlow` in the ViewModel via `.map { flattenTree(it) }`; Composable only observes | Documents with > 50 bullets |
-| Missing `key { it.id }` in `LazyColumn items { }` | Scroll position jumps after any mutation; drag animations incorrect | Always pass `key = { it.id }` to every `items()` call | Every list mutation |
-| `collectAsState()` instead of `collectAsStateWithLifecycle()` | UI state collectors run in background when screen is not visible; CPU waste; potential stale-state crashes | Use `collectAsStateWithLifecycle()` from `lifecycle-runtime-compose` everywhere | Background lifecycle transitions |
-| Nested `LazyColumn` inside a `LazyColumn item { }` | Inner LazyColumn loses lazy behavior; `IllegalStateException` on measurement | Never nest LazyColumn — tree is already flattened to a single list by `flattenTree` | Always |
-| Network call on Main thread | `NetworkOnMainThreadException` crash | All Retrofit calls are `suspend fun`; call only from `viewModelScope.launch(Dispatchers.IO)` | Always on Android 3.0+ |
-| Rebuilding `BulletMap` from flat list on every state update | O(n) allocation per keystroke when typing in a bullet | `buildBulletMap` should be recomputed only when the list itself changes — use `derivedStateOf` or `StateFlow.map` with a structural equality check | Documents with > 100 bullets and fast typing |
+| Network call inside `GlanceAppWidget.Content()` composable | Widget ANR or "Widget unavailable" error | All I/O in WorkManager worker or `ActionCallback.onAction()`; `Content()` only reads pre-cached DataStore state | Any real network call from inside the composable |
+| Fetching full document tree for widget | Slow widget renders, excessive data transfer | Add a dedicated API endpoint (or query parameter) that returns root-level bullets only for the selected document | Documents with deep nesting or 100+ bullets |
+| `SizeMode.Exact` with complex layout | UI jank when user resizes widget | Use `SizeMode.Responsive` with 2-3 predefined sizes | Every resize event |
+| `updateAll()` in worker without checking if any widget is placed | Worker fetches data even when no widgets exist on the home screen | Check `GlanceAppWidgetManager.getGlanceIds().isNotEmpty()` before making any network call | Any user who removes all widgets but WorkManager job persists |
+| Serializing the entire bullet list to DataStore | Large serialized payload written on every sync | Store only root-level bullets (widget view is root-only by design); cache as JSON string with a size cap | Documents with 50+ root bullets |
 
 ---
 
@@ -268,10 +311,10 @@ Place the entire Android project in a `/android/` subdirectory with its own `set
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Storing access token in plain `SharedPreferences` | Token readable via ADB backup or on rooted devices | Always use `EncryptedSharedPreferences` (Jetpack Security, API 23+); consider in-memory only for the short-lived access token |
-| Logging JWT tokens in Logcat | Token visible in `adb logcat` — trivial to capture in dev | Use `HttpLoggingInterceptor.Level.HEADERS` max in debug, `NONE` in release; never log the Authorization header value |
-| Sending `refreshToken` cookie to all endpoints | If any endpoint mishandles the cookie, it could be captured | Scope the `CookieJar` so it only sends the `refreshToken` cookie to `/api/auth/*` paths |
-| Certificate pinning on self-hosted Let's Encrypt cert | Pin expires when cert renews (every 90 days) | For a personal self-hosted app, certificate pinning is not required; if added later, pin to the CA (ISRG Root X1) not the leaf cert, and implement a backup pin |
+| Store access token in plain `SharedPreferences` to bridge the widget auth gap | Token readable in plain text on rooted devices; violates the existing security posture | Read refresh cookie from existing encrypted DataStore (Tink); issue a fresh access token per widget network call via the refresh endpoint |
+| Log access token or cookie value in widget debug logging | Token leaks to logcat, visible to any app with `READ_LOGS` permission | Never log token values; log only success/failure status codes |
+| Pass `bulletId` in `ActionParameters` without server-side validation | A crafted broadcast could inject an arbitrary ID and delete an unintended bullet | Validate the ID against the cached DataStore state inside `onAction()` before sending to the API; server already enforces user ownership |
+| `android:exported="true"` on configuration Activity without protection | Other apps can invoke the configuration Activity outside of widget placement flow | The configuration Activity must be exported (launchers require it), but restrict to `ACTION_APPWIDGET_CONFIGURE` intent filter and validate `EXTRA_APPWIDGET_ID` on entry |
 
 ---
 
@@ -279,26 +322,27 @@ Place the entire Android project in a `/android/` subdirectory with its own `set
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Loading spinner on every bullet operation | Constant flicker; outliner UX requires instant feedback | Optimistic updates: mutate local state immediately, roll back on API error with a `Snackbar` undo option |
-| Keyboard appears and pushes bullet list up without focused bullet scrolling into view | Focused bullet hidden behind the keyboard | `WindowCompat.setDecorFitsSystemWindows(window, false)` + `Modifier.imePadding()` on the list + `LazyListState.animateScrollToItem()` on focus change |
-| Long-press triggers both context menu and drag start simultaneously | Unpredictable behavior; context menu flashes and closes | Use `detectDragGesturesAfterLongPress` — context menu fires on long-press-without-movement; drag starts only after movement detected post long-press |
-| No empty state for a document with zero bullets | Blank screen with no affordance | Show a placeholder prompt ("Tap to add your first bullet"); the web app has this behavior — match it |
-| Dynamic color theme changes the brand appearance unpredictably on Android 12+ | App looks different on every device based on wallpaper color | Explicitly opt out of dynamic color when the user has a specific palette preference; provide a consistent fallback theme for all devices |
+| No loading state while widget fetches initial data | Widget shows blank or stale content with no indication something is loading | Store a `isLoading: Boolean` in Glance DataStore state; show a loading placeholder composable before the first successful fetch |
+| No error state when network is unavailable or auth fails | Widget appears to show correct data but is actually stale with no indication | Store a `lastUpdated: Long` timestamp in DataStore; show "Updated X min ago" and a "Refresh" button when data is stale |
+| Configuration activity requires user to be logged in but no guard | Widget placement fails if no auth credential exists in DataStore | Check for refresh cookie presence on configuration Activity start; if absent, show a "Please log in to the Notes app first" message and finish with `RESULT_CANCELED` |
+| Tapping a widget action with no visual feedback | User taps delete; nothing appears to happen; user taps again (duplicate action) | Optimistically update DataStore state immediately on action tap so the widget recomposes before the API call completes |
+| Widget shows all bullets including deeply nested ones | The widget becomes unreadable for any document with nested content | Filter to depth = 0 (root-level only) in both the API response and the DataStore cache |
+| Widget uses the same Inter Variable font as the app | Widget falls back to system default without error — but developer expects the custom font | Design widget typography around system fonts from the start; do not reference the `R.font.*` resources inside Glance composables |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Token refresh:** After 15 minutes, the app transparently retries the failed request without the user seeing a 401 error — test by shortening `ACCESS_TOKEN_TTL` to `'30s'` in a dev backend build
-- [ ] **Refresh cookie persistence:** Kill the app process completely (not just background), reopen it, confirm the user is still logged in — the refresh cookie must survive process death via `EncryptedSharedPreferences`
-- [ ] **Concurrent 401 handling:** Expire the access token, then tap rapidly on three different documents — server logs must show exactly one POST to `/api/auth/refresh`, not three
-- [ ] **Collapsed subtree:** Collapse a bullet with 3+ levels of children, scroll away and back — none of the descendants are visible
-- [ ] **Drag-drop depth change:** Drag a top-level bullet and, while dragging, move the finger right to indent it — verify it lands as an indented child, not a sibling
-- [ ] **Debounce flush on navigate:** Type in a bullet, immediately press back before 500ms, return to the document — the text must be saved
-- [ ] **Dark mode:** Toggle system dark mode while the app is open — all surfaces update immediately with no light-mode flash
-- [ ] **Note field:** The `PATCH /api/bullets/:id` with `note: ""` (empty string) should be normalized to `null` by the server — verify an empty note clears correctly
-- [ ] **`afterId` null vs. absent:** Creating a bullet as the first child of a parent (no preceding sibling) must send `afterId: null` in the JSON body, not omit the field
-- [ ] **Swipe direction lock:** A 45-degree diagonal touch on a bullet row triggers neither swipe nor scroll — it should be consumed by scroll; only near-horizontal touches arm the swipe detector
+- [ ] **Multiple widget instances:** Verify each instance independently shows a different document and each updates independently after an edit in the app.
+- [ ] **Widget after phone reboot:** Cold reboot the test device; the widget must restore its content and the WorkManager periodic job must resume without manual intervention.
+- [ ] **Widget after app update:** Deploy a new APK; verify the WorkManager job is still running and the widget still updates.
+- [ ] **Widget when user is logged out:** Clear the app's DataStore (simulate logout); verify the widget shows a "Please log in" state rather than crashing or showing an empty list.
+- [ ] **Delete action deduplication:** Tap delete on the same bullet twice in rapid succession; verify the second tap does not send a second API request for a bullet that no longer exists.
+- [ ] **Configuration Back press:** Press Back during the document picker without confirming; verify no blank widget appears on the home screen.
+- [ ] **Widget font:** Custom fonts (Inter Variable) are not rendered by Glance — verify the widget is designed and tested with system fonts, not relying on `R.font.inter`.
+- [ ] **`LazyColumn` item count:** Test with a document that has 30+ root bullets; verify Glance's `LazyColumn` (backed by `ListView`) does not crash or silently truncate items.
+- [ ] **WorkManager unique job:** Add the widget, remove it, add it again; verify only one periodic WorkManager job exists (not duplicates accumulating over time).
+- [ ] **Stale data on manual refresh:** Disable network, tap the manual refresh button; verify the widget shows a meaningful error state rather than silently keeping stale data.
 
 ---
 
@@ -306,12 +350,15 @@ Place the entire Android project in a `/android/` subdirectory with its own `set
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Token refresh race condition shipped to production | HIGH | Replace Authenticator implementation with Mutex version; affects all network calls; full regression test of auth flows including concurrent requests |
-| httpOnly cookie not persisted (user logged out on restart) | MEDIUM | Replace CookieJar implementation; no data loss; test all auth endpoints including cold-start session restore |
-| flattenTree bug (wrong bullets visible) | HIGH | Algorithm underlies all tree operations; fixing requires re-testing collapse, drag, zoom, and indent/outdent |
-| Debounce flush on navigate missing | MEDIUM | Add `onCleared` flush; test all navigation paths that exit a document mid-edit |
-| Missing `key {}` in LazyColumn | LOW | Add `key = { it.id }` to `items()` call; Compose reconciles on next composition |
-| Gradle root pollution from wrong `settings.gradle.kts` location | MEDIUM | Move Android project to `/android/` subdirectory; update all relative paths in build scripts and CI workflows |
+| Wrong Hilt injection pattern (used `@AndroidEntryPoint` on widget) | LOW | Replace with `@EntryPoint` interface + `EntryPointAccessors` — compile-time change, no data migration |
+| In-memory token gap (widget 401s) | MEDIUM | Add DataStore-backed token refresh in WorkManager worker; requires new auth flow logic in the worker and integration testing |
+| Glance/Compose import confusion | LOW | Fix imports; restructure widget composables into a separate `widget/` package with Glance-only imports |
+| Race condition on state update | MEDIUM | Add `Mutex` coordination in repository; switch to `enqueueUniqueWork(REPLACE)` for on-demand refreshes |
+| `updatePeriodMillis` set instead of WorkManager | LOW | Change XML to 0, add WorkManager periodic request — no data migration |
+| Configuration activity not returning `RESULT_OK` | LOW | Add `setResult()` call before `finish()` — one-line fix; test the placement flow end-to-end |
+| `SizeMode.Exact` causing layout jank | MEDIUM | Switch to `SizeMode.Responsive` and redesign layout for 2-3 fixed breakpoints |
+| `update()` called without DataStore write | LOW | Reorder the `onAction` body: write DataStore first, then call `update()` |
+| Single `update()` call missing secondary instances | LOW | Replace with `updateAll()` or the `getGlanceIds()` iterator |
 
 ---
 
@@ -319,34 +366,34 @@ Place the entire Android project in a `/android/` subdirectory with its own `set
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Token refresh race condition (Pitfall 1) | Phase 1 (Foundation) | Unit test: 5 concurrent requests with expired token; assert server receives exactly 1 POST to `/api/auth/refresh` |
-| httpOnly cookie dropped by CookieJar (Pitfall 2) | Phase 1 (Foundation) | Integration test: login, kill app, reopen; assert session restored via `/api/auth/refresh` |
-| flattenTree collapsed subtree leak (Pitfall 3) | Phase 3 (Bullet Tree) | Unit test: collapsed parent with grandchildren; assert grandchildren absent from flat list |
-| computeDragProjection DOM dependency (Pitfall 4) | Phase 3 (Bullet Tree) | Manual test: drag across 3 depth levels; drop target matches visual indicator |
-| Accidental CORS Origin header (Pitfall 5) | Phase 1 (Foundation) | OkHttp logs show no `Origin` header in any request |
-| Debounce flush on navigate (Pitfall 6) | Phase 3 + Phase 4 | E2E test: type → press back immediately → return to document; text is saved |
-| Swipe/scroll gesture conflict (Pitfall 7) | Phase 4 (Reactivity & Polish) | Manual test: vertical scroll through 50 bullets with no accidental completions or deletions |
-| Gradle root pollution (Pitfall 8) | Phase 1 (Foundation) | `./gradlew` at repo root fails or is absent; all Gradle commands run from `/android/` |
-| Missing LazyColumn keys | Phase 3 (Bullet Tree) | Code review: every `items { }` block has `key = { it.id }` |
-| ViewModel scope cancellation drops in-flight saves | Phase 3 + Phase 4 | LeakCanary shows no ViewModel leaks; E2E navigation test confirms content persistence |
+| Hilt entry point pattern | Phase 1: Widget Foundation | `EntryPoint` resolves repository with no NPE when widget placed with app force-stopped |
+| Glance vs. Compose composables | Phase 1: Widget Foundation | No `androidx.compose.material3` or `androidx.compose.foundation` imports inside the `widget/` package |
+| Widget size and SizeMode | Phase 1: Widget Foundation | Widget resizes cleanly from 2-cell to 4-cell on Pixel emulator and Samsung physical device |
+| Configuration activity contract | Phase 1: Widget Foundation | Place widget → pick document → confirm → widget shows data; Back press → no widget placed |
+| In-memory token gap | Phase 2: Auth Integration | Widget makes successful API calls when app is force-stopped via device Settings |
+| WorkManager reliability | Phase 2: WorkManager Sync | Widget updates after 15 minutes with app force-stopped; WorkManager inspector confirms RUNNING state |
+| Multiple widget instances `updateAll()` | Phase 2: WorkManager Sync | Two widget instances placed pointing to different documents; both update independently |
+| Persist-before-update ordering | Phase 3: Action Handling | Add bullet from widget → bullet appears without needing manual refresh |
+| Race condition on state update | Phase 3: Action Handling | Rapid-tap delete 5 times in 2 seconds — no duplicate entries and no bullet reappearance |
 
 ---
 
 ## Sources
 
-- Backend auth contracts (HIGH confidence — direct inspection): `server/src/services/authService.ts` (`sameSite: 'strict'`, `httpOnly: true`, 15-min access TTL), `server/src/routes/auth.ts`, `server/src/middleware/auth.ts`
-- Backend CORS config (HIGH confidence — direct inspection): `server/src/app.ts` lines 23-27 (`origin: false` in production)
-- Tree algorithm (HIGH confidence — direct inspection): `client/src/components/DocumentView/BulletTree.tsx` `flattenTree`, `computeDragProjection`
-- OkHttp httpOnly cookie issue: [square/okhttp GitHub issue #2725](https://github.com/square/okhttp/issues/2725)
-- OkHttp Authenticator + Mutex pattern: [hoc081098/Refresh-Token-Sample](https://github.com/hoc081098/Refresh-Token-Sample) — MEDIUM confidence (widely referenced)
-- LazyColumn keys / performance: [Android Developers — Best practices for Compose](https://developer.android.com/develop/ui/compose/performance/bestpractices) — HIGH confidence (official docs)
-- Gesture conflict in Compose: [Android Developers — Drag, swipe, and fling](https://developer.android.com/develop/ui/compose/touch-input/pointer-input/drag-swipe-fling) — HIGH confidence (official docs)
-- Material 3 theming: [Android Developers — Material Design 3 in Compose](https://developer.android.com/develop/ui/compose/designsystems/material3) — HIGH confidence (official docs)
-- viewModelScope cancellation: [Android Developers — Coroutines with lifecycle-aware components](https://developer.android.com/topic/libraries/architecture/coroutines) — HIGH confidence (official docs)
-- EncryptedSharedPreferences security: [Secure JWT Storage in Android — Jan 2025](https://jyotishgher.medium.com/secure-jwt-storage-in-android-69ed1368ed2c) — MEDIUM confidence
-- Gradle monorepo structure: [Common modularization patterns — Android Developers](https://developer.android.com/topic/modularization/patterns) — HIGH confidence (official docs)
-- Reorderable library: [Calvin-LL/Reorderable on GitHub](https://github.com/Calvin-LL/Reorderable) — MEDIUM confidence (community-maintained, active)
+- [Manage and update GlanceAppWidget — Android Developers](https://developer.android.com/develop/ui/compose/glance/glance-app-widget) — HIGH confidence (official docs)
+- [Build UI with Glance — Android Developers](https://developer.android.com/develop/ui/compose/glance/build-ui) — HIGH confidence (official docs)
+- [Handle user interaction — Glance — Android Developers](https://developer.android.com/develop/ui/compose/glance/user-interaction) — HIGH confidence (official docs)
+- [Use Hilt with other Jetpack libraries — Android Developers](https://developer.android.com/training/dependency-injection/hilt-jetpack) — HIGH confidence (confirms no Glance component listed)
+- [Hilt support for GlanceAppWidget — Google Issue Tracker #218520083](https://issuetracker.google.com/issues/218520083) — HIGH confidence (open feature request, no first-class support confirmed)
+- [Android: Jetpack Glance with Hilt — Medium](https://medium.com/@debuggingisfun/android-jetpack-glance-with-hilt-6dce38cc9ff6) — MEDIUM confidence (practitioner article documenting the EntryPoint workaround)
+- [Taming Glance Widgets: Fast & Reliable Widget Updates — Medium, Nov 2025](https://medium.com/@abdalmoniemalhifnawy/taming-glance-widgets-a-deep-dive-into-fast-reliable-widget-updates-ae44bfc4c75a) — MEDIUM confidence (race condition and update lock analysis)
+- [Jetpack Glance 1.0.0 Widget Update Issues — w3tutorials.net](https://www.w3tutorials.net/blog/android-jetpack-glance-1-0-0-problems-updating-widget/) — MEDIUM confidence (recomposition trigger failure modes)
+- [How to reliably update widgets on Android — arkadiuszchmura.com](https://arkadiuszchmura.com/posts/how-to-reliably-update-widgets-on-android/) — MEDIUM confidence (WorkManager vs. `updatePeriodMillis` with OEM battery restriction analysis)
+- [Demystifying Jetpack Glance for app widgets — Android Developers Medium](https://medium.com/androiddevelopers/demystifying-jetpack-glance-for-app-widgets-8fbc7041955c) — HIGH confidence (official Android Developers publication)
+- [Enable users to configure app widgets — Android Developers](https://developer.android.com/develop/ui/views/appwidgets/configuration) — HIGH confidence (official docs, configuration Activity contract)
+- [Goodbye EncryptedSharedPreferences: A 2026 Migration Guide — ProAndroidDev, Dec 2025](https://proandroiddev.com/goodbye-encryptedsharedpreferences-a-2026-migration-guide-4b819b4a537a) — MEDIUM confidence (confirms DataStore + Tink as the current encrypted storage path)
+- [How to Reliably Refresh Your Widgets — Ackee blog](https://www.ackee.agency/blog/how-to-reliably-refresh-widgets) — MEDIUM confidence (vendor battery restriction patterns)
 
 ---
-*Pitfalls research for: Native Android Kotlin/Jetpack Compose client added to Express + PostgreSQL backend*
-*Researched: 2026-03-12*
+*Pitfalls research for: Jetpack Glance home screen widget added to existing Kotlin/Compose app with Hilt, DataStore+Tink, Retrofit/OkHttp, in-memory access tokens*
+*Researched: 2026-03-14*

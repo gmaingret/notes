@@ -65,8 +65,8 @@ import com.gmaingret.notes.domain.model.FlatBullet
 import kotlinx.coroutines.delay
 
 private const val MAX_DISPLAY_DEPTH = 7
-private val INDENT_DP = 24.dp
-private val GUIDE_LINE_OFFSET_DP = 8.dp
+private val INDENT_DP = 28.dp
+private val GUIDE_LINE_OFFSET_DP = 10.dp
 
 /**
  * Renders a single bullet in the flat list.
@@ -253,11 +253,11 @@ fun BulletRow(
             // Bullet dot — tap to zoom into subtree
             Box(
                 modifier = Modifier
-                    .width(22.dp)
+                    .width(26.dp)
                     .clickable { onBulletIconTap() },
                 contentAlignment = Alignment.TopCenter
             ) {
-                Canvas(modifier = Modifier.padding(top = 8.dp).size(5.dp)) {
+                Canvas(modifier = Modifier.padding(top = 10.dp).size(6.dp)) {
                     drawCircle(
                         color = if (bullet.isComplete)
                             bulletDotColor.copy(alpha = 0.4f)
@@ -272,7 +272,7 @@ fun BulletRow(
                 Icon(
                     imageVector = Icons.Filled.Star,
                     contentDescription = "Bookmarked",
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(14.dp),
                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                 )
             }
@@ -282,7 +282,7 @@ fun BulletRow(
                 Icon(
                     imageVector = Icons.Filled.Attachment,
                     contentDescription = "Has attachments",
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(14.dp),
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
             }
@@ -466,29 +466,29 @@ fun BulletRow(
                     imageVector = Icons.Filled.StickyNote2,
                     contentDescription = "Has note",
                     modifier = Modifier
-                        .size(16.dp)
+                        .size(19.dp)
                         .clickable { onToggleNote() },
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(5.dp))
             }
 
             // Collapse/expand arrow — only shown if bullet has children
             if (flatBullet.hasChildren) {
                 Box(
                     modifier = Modifier
-                        .size(24.dp)
+                        .size(29.dp)
                         .clickable { onCollapseToggle() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = if (bullet.isCollapsed) Icons.Filled.ArrowRight else Icons.Filled.ArrowDropDown,
                         contentDescription = if (bullet.isCollapsed) "Expand" else "Collapse",
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(19.dp)
                     )
                 }
             } else {
-                Spacer(modifier = Modifier.width(24.dp))
+                Spacer(modifier = Modifier.width(29.dp))
             }
         }
 
@@ -551,16 +551,16 @@ internal fun InlineChip(
 
     Box(
         modifier = Modifier
-            .padding(horizontal = 2.dp, vertical = 1.dp)
+            .padding(horizontal = 2.dp, vertical = 2.dp)
             .then(
                 Modifier.drawBehind {
                     drawRoundRect(
                         color = backgroundColor,
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(5.dp.toPx())
                     )
                 }
             )
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .padding(horizontal = 7.dp, vertical = 2.dp)
             .then(
                 if (onChipClick != null) {
                     Modifier.clickable { onChipClick(chip.text) }

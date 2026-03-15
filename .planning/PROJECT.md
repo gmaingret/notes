@@ -12,6 +12,7 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 
 ### Validated
 
+- ✓ Native Android client with full feature parity (auth, documents, bullets, search, bookmarks, attachments) — v2.0
 - ✓ User authentication via email/password and Google SSO — v1.0
 - ✓ User can create, rename, reorder, and delete documents (flat list, no folders) — v1.0
 - ✓ User can create/edit/delete bullets with unlimited nesting — v1.0
@@ -38,16 +39,13 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - ✓ Quick-open palette (Ctrl+F) with recent docs, grouped search, keyboard navigation, mobile search button — v1.1
 - ✓ Sidebar persistent footer with Export all / Logout; + button auto-opens inline rename — v1.1
 - ✓ Ctrl/Cmd+E sidebar toggle on desktop — v1.1
+- ✓ Android home screen widget with document picker, root-level bullet display, Material 3 theming — v2.1
+- ✓ Widget background sync via WorkManager (15-min interval), in-app mutation triggers, independent auth — v2.1
+- ✓ Add and delete bullets directly from widget with optimistic updates and rollback — v2.1
 
 ### Active
 
-- [ ] Native Android client in Kotlin/Jetpack Compose + Material Design 3
-- [ ] Android app talks to existing backend API (no new backend features)
-- [ ] Auth: JWT bearer tokens with refresh via httpOnly cookie, EncryptedSharedPreferences
-- [ ] Document management: list, CRUD, drag reorder, last-opened persistence
-- [ ] Bullet tree: nested bullets, tree flattening, indent/outdent, collapse/expand, complete, drag-drop
-- [ ] Reactivity: optimistic updates, pull-to-refresh, swipe gestures, search, undo/redo
-- [ ] Material Design 3 theme with dark mode, smooth animations
+(No active requirements — planning next milestone)
 
 ### Deferred
 
@@ -57,7 +55,7 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 
 ### Out of Scope
 
-- ~~Native mobile apps~~ — reversed in v2.0: Android client now in scope
+- ~~Native mobile apps~~ — delivered in v2.0: Android client shipped
 - Offline mode — requires service worker complexity, defer
 - Shared documents / collaboration — deliberately no sharing, privacy-first design
 - Folders — flat document list by design (Dynalist/Workflowy pattern)
@@ -71,20 +69,15 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - AI features — out of scope for focused outliner clone
 - Real-time sync / collaboration — privacy-first means no sync
 
-## Current Milestone: v2.0 Native Android Client
+## Current State
 
-**Goal:** Build a native Android client in Kotlin/Jetpack Compose + Material Design 3 that talks to the existing backend API — no new features, focus on reactivity and polish.
-
-**Target features:**
-- Project scaffolding with Clean Architecture + MVVM, Hilt DI, Retrofit + OkHttp
-- Login/Register with JWT auth (token refresh via httpOnly cookie)
-- Document management in ModalNavigationDrawer with CRUD and drag reorder
-- Bullet tree outliner: nested bullets, tree flattening, indent/outdent, collapse/expand, drag-drop
-- Reactivity & polish: optimistic updates, pull-to-refresh, swipe gestures, search, undo/redo, dark theme, Material 3 animations
+**Shipped:** v2.1 Android Home Screen Widget (2026-03-15) — 3 phases, 8 plans, 2,417 LOC Kotlin widget code
+**Live at:** https://notes.gregorymaingret.fr (web) + Android debug APK on device
+**All milestones:** v1.0 MVP, v1.1 Mobile & UI Polish, v2.0 Native Android, v2.1 Widget — 15 phases, 80 plans total
 
 ## Context
 
-- **Shipped:** v1.1 (2026-03-11) — two milestones complete; ~44k+ LOC
+- **Shipped:** v2.1 (2026-03-15) — four milestones complete; ~65k+ LOC (44k web + 15k Android + 4k widget)
 - **Live at:** https://notes.gregorymaingret.fr
 - **Tech stack:** React + Vite + TypeScript (client), Express + Drizzle ORM + PostgreSQL (server), Docker (deployment), Nginx reverse proxy
 - **UI libraries:** lucide-react (icons), @fontsource-variable/inter + jetbrains-mono (fonts), @dnd-kit (drag-and-drop), zustand (state)
@@ -126,6 +119,12 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 | exitDirection + onTransitionEnd pattern for swipe exit | Fires mutation after CSS transition completes — no setTimeout guessing | ✓ Good — exit animation feels intentional and timing-safe |
 | Ctrl+F replaces browser Find bar (capture: true) | Ctrl+F is the universal search shortcut; users already know it | ✓ Good — intuitive; intercepts browser Find cleanly |
 | Inter Variable + JetBrains Mono via @fontsource (no Google Fonts) | Self-hosted fonts maintain privacy-first approach | ✓ Good — no external dependencies, fast load from same server |
+| Jetpack Glance 1.1.1 for widget (not RemoteViews) | Compose-like API, Material 3 theme support, stable release | ✓ Good — clean declarative UI, color scheme switching works |
+| WidgetStateStore as custom DataStore singleton (not Glance state) | Accessible from WidgetConfigActivity and NotesWidgetReceiver.onDeleted | ✓ Good — single source of truth across all widget surfaces |
+| WorkManager exclusively owns widget sync schedule | OEM battery management suppresses broadcast-based polling | ✓ Good — reliable 15-min updates even after force-stop |
+| @EntryPoint for Glance widget, @AndroidEntryPoint for Activity | Hilt cannot inject into GlanceAppWidget directly | ✓ Good — correct DI pattern per component type |
+| Optimistic updates with rollback in widget actions | Widget must feel responsive despite network latency | ✓ Good — instant visual feedback, graceful rollback on failure |
+| AddBulletActivity as transparent overlay (not Dialog fragment) | Activity context needed for Hilt injection + setFinishOnTouchOutside | ✓ Good — lightweight feel, keyboard auto-shows |
 
 ---
-*Last updated: 2026-03-12 after v2.0 milestone started*
+*Last updated: 2026-03-15 after v2.1 milestone shipped*

@@ -5,6 +5,7 @@ import android.view.HapticFeedbackConstants
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -20,8 +21,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,13 +43,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.DisposableEffect
@@ -58,10 +62,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerInputScope
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -201,12 +212,64 @@ fun BulletTreeScreen(
                         val focusedBulletId = state.focusedBulletId
                         val flatList = state.flatList
 
-                        // Scroll to focused bullet instantly (no animation) when it changes
+                        // Scroll to focused bullet when it changes.
+                        // Three cases:
+                        // 1. Already fully visible → do nothing
+                        // 2. Above viewport → scroll to show at top
+                        // 3. Below or partially clipped at bottom (Enter key case) →
+                        //    scroll to show previous bullet at top, new bullet below it
                         LaunchedEffect(focusedBulletId) {
                             if (focusedBulletId != null) {
                                 val idx = flatList.indexOfFirst { it.bullet.id == focusedBulletId }
                                 if (idx >= 0) {
-                                    lazyListState.scrollToItem(idx)
+                                    val layoutInfo = lazyListState.layoutInfo
+                                    val visibleItems = layoutInfo.visibleItemsInfo
+                                    val itemInfo = visibleItems.find { it.index == idx }
+
+                                    val fullyVisible = itemInfo != null &&
+                                        itemInfo.offset >= 0 &&
+                                        (itemInfo.offset + itemInfo.size) <= layoutInfo.viewportEndOffset
+
+                                    if (!fullyVisible) {
+                                        val isAbove = itemInfo == null &&
+                                            visibleItems.isNotEmpty() &&
+                                            idx < visibleItems.first().index
+                                        if (isAbove) {
+                                            // Item is above viewport — scroll to show at top
+                                            lazyListState.scrollToItem(idx)
+                                        } else if (idx > 0) {
+                                            // Item is below viewport OR partially clipped at bottom.
+                                            // Scroll so previous bullet is at top — new bullet
+                                            // will be visible right below it.
+                                            lazyListState.scrollToItem(idx - 1)
+                                        } else {
+                                            lazyListState.scrollToItem(0)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // When IME (keyboard) opens, scroll to keep focused bullet visible.
+                        // With adjustNothing the LazyColumn doesn't resize, so we
+                        // must manually ensure the focused item isn't behind the keyboard.
+                        val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
+                        LaunchedEffect(imeBottom) {
+                            if (imeBottom > 0 && focusedBulletId != null) {
+                                val idx = flatList.indexOfFirst { it.bullet.id == focusedBulletId }
+                                if (idx >= 0) {
+                                    val layoutInfo = lazyListState.layoutInfo
+                                    val visibleItems = layoutInfo.visibleItemsInfo
+                                    val itemInfo = visibleItems.find { it.index == idx }
+                                    // Check if item is behind the keyboard
+                                    val visibleEnd = layoutInfo.viewportEndOffset - imeBottom
+                                    val clipped = itemInfo == null ||
+                                        (itemInfo.offset + itemInfo.size) > visibleEnd
+                                    if (clipped && idx > 0) {
+                                        lazyListState.animateScrollToItem(idx - 1)
+                                    } else if (clipped) {
+                                        lazyListState.animateScrollToItem(0)
+                                    }
                                 }
                             }
                         }
@@ -241,6 +304,8 @@ fun BulletTreeScreen(
                         // Drag state for reparenting
                         val view = LocalView.current
                         val density = LocalDensity.current
+                        val keyboardController = LocalSoftwareKeyboardController.current
+                        val focusManager = LocalFocusManager.current
                         var dragHorizontalOffset by remember { mutableFloatStateOf(0f) }
                         var draggedBulletId by remember { mutableStateOf<String?>(null) }
                         // Index of the dragged item at the START of the drag (to detect no-move long-press)
@@ -272,7 +337,7 @@ fun BulletTreeScreen(
                             viewModel.moveBulletLocally(from.index, to.index)
                         }
 
-                        Column(modifier = Modifier.fillMaxSize().imePadding()) {
+                        Column(modifier = Modifier.fillMaxSize()) {
                             PullToRefreshBox(
                                 isRefreshing = isRefreshing,
                                 onRefresh = { viewModel.refresh() },
@@ -283,14 +348,15 @@ fun BulletTreeScreen(
                             LazyColumn(
                                 state = lazyListState,
                                 modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                verticalArrangement = Arrangement.spacedBy(7.dp),
+                                contentPadding = WindowInsets.ime.asPaddingValues()
                             ) {
                                 items(
                                     items = flatList,
                                     key = { viewModel.stableKeyFor(it.bullet.id) }
                                 ) { flatBullet ->
                                     ReorderableItem(reorderableState, key = viewModel.stableKeyFor(flatBullet.bullet.id)) { isDragging ->
-                                        val indentPerLevel = 24.dp
+                                        val indentPerLevel = 28.dp
                                         val targetDepthDelta = if (isDragging) {
                                             val indentPx = with(density) { indentPerLevel.toPx() }
                                             // Max depth: one level deeper than the bullet directly above.
@@ -307,75 +373,91 @@ fun BulletTreeScreen(
                                         val isFocusedBullet = flatBullet.bullet.id == focusedBulletId
                                         var hapticFired by remember { mutableStateOf(false) }
 
-                                        val dismissState = rememberSwipeToDismissBoxState(
-                                            confirmValueChange = { value ->
-                                                when (value) {
-                                                    SwipeToDismissBoxValue.StartToEnd -> {
-                                                        viewModel.toggleComplete(flatBullet.bullet.id)
-                                                        false // row stays
-                                                    }
-                                                    SwipeToDismissBoxValue.EndToStart -> {
-                                                        viewModel.deleteBullet(flatBullet.bullet.id)
-                                                        true // row slides off
-                                                    }
-                                                    SwipeToDismissBoxValue.Settled -> false
-                                                }
-                                            }
-                                        )
+                                        // Custom swipe: track horizontal offset with full control
+                                        val swipeOffset = remember { Animatable(0f) }
+                                        val swipeScope = rememberCoroutineScope()
+                                        val rowWidthPx = with(density) { 360.dp.toPx() } // fallback; overridden by onSizeChanged
 
-                                        val swipeProgress = dismissState.progress
-                                        LaunchedEffect(swipeProgress) {
-                                            if (swipeProgress >= 1.0f && !hapticFired) {
-                                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                                                hapticFired = true
-                                            } else if (swipeProgress < 1.0f) {
-                                                hapticFired = false
-                                            }
-                                        }
-
-                                        SwipeToDismissBox(
-                                            state = dismissState,
-                                            enableDismissFromStartToEnd = !isDragging,
-                                            enableDismissFromEndToStart = !isDragging,
-                                            backgroundContent = {
-                                                val direction = dismissState.dismissDirection
-                                                val progress = dismissState.progress.coerceIn(0f, 1f)
-                                                val backgroundColor = when (direction) {
-                                                    SwipeToDismissBoxValue.StartToEnd ->
-                                                        lerp(Color.Transparent, Color(0xFF22C55E), progress)
-                                                    SwipeToDismissBoxValue.EndToStart ->
-                                                        lerp(Color.Transparent, Color(0xFFEF4444), progress)
-                                                    else -> Color.Transparent
-                                                }
+                                        Box {
+                                            // Background layer — only visible while actively dragging
+                                            if (swipeOffset.value != 0f) {
+                                                val maxWidthPx = with(density) { 400.dp.toPx() } // approximate
+                                                val progress = (kotlin.math.abs(swipeOffset.value) / (maxWidthPx * 0.25f)).coerceIn(0f, 1f)
+                                                val isRight = swipeOffset.value > 0f
+                                                val bgColor = if (isRight) Color(0xFF22C55E) else Color(0xFFEF4444)
                                                 Box(
                                                     modifier = Modifier
-                                                        .fillMaxSize()
-                                                        .background(backgroundColor),
-                                                    contentAlignment = when (direction) {
-                                                        SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                                                        SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-                                                        else -> Alignment.Center
-                                                    }
+                                                        .matchParentSize()
+                                                        .background(bgColor.copy(alpha = progress)),
+                                                    contentAlignment = if (isRight) Alignment.CenterStart else Alignment.CenterEnd
                                                 ) {
                                                     val iconTint = Color.White.copy(alpha = progress)
-                                                    when (direction) {
-                                                        SwipeToDismissBoxValue.StartToEnd -> Icon(
+                                                    if (isRight) {
+                                                        Icon(
                                                             imageVector = Icons.Filled.Check,
                                                             contentDescription = "Complete",
                                                             tint = iconTint,
                                                             modifier = Modifier.padding(start = 16.dp)
                                                         )
-                                                        SwipeToDismissBoxValue.EndToStart -> Icon(
+                                                    } else {
+                                                        Icon(
                                                             imageVector = Icons.Filled.Delete,
                                                             contentDescription = "Delete",
                                                             tint = iconTint,
                                                             modifier = Modifier.padding(end = 16.dp)
                                                         )
-                                                        else -> {}
                                                     }
                                                 }
                                             }
-                                        ) {
+
+                                            // Foreground row — slides with finger
+                                            Box(
+                                                modifier = Modifier
+                                                    .offset { androidx.compose.ui.unit.IntOffset(swipeOffset.value.roundToInt(), 0) }
+                                                    .pointerInput(isDragging) {
+                                                        if (isDragging) return@pointerInput
+                                                        detectHorizontalDragGestures(
+                                                            onDragEnd = {
+                                                                val widthPx = size.width.toFloat()
+                                                                val threshold = widthPx * 0.25f
+                                                                val offset = swipeOffset.value
+                                                                if (offset > threshold) {
+                                                                    // Swipe right past 50% — complete
+                                                                    viewModel.toggleComplete(flatBullet.bullet.id)
+                                                                } else if (offset < -threshold) {
+                                                                    // Swipe left past 50% — delete
+                                                                    viewModel.deleteBullet(flatBullet.bullet.id)
+                                                                }
+                                                                // Animate back to 0
+                                                                swipeScope.launch {
+                                                                    swipeOffset.animateTo(0f, tween(200))
+                                                                }
+                                                                hapticFired = false
+                                                            },
+                                                            onDragCancel = {
+                                                                swipeScope.launch {
+                                                                    swipeOffset.animateTo(0f, tween(200))
+                                                                }
+                                                                hapticFired = false
+                                                            },
+                                                            onHorizontalDrag = { _, dragAmount ->
+                                                                swipeScope.launch {
+                                                                    swipeOffset.snapTo(swipeOffset.value + dragAmount)
+                                                                }
+                                                                // Haptic at 50% threshold
+                                                                val widthPx = size.width.toFloat()
+                                                                val threshold = widthPx * 0.25f
+                                                                val pastThreshold = kotlin.math.abs(swipeOffset.value) >= threshold
+                                                                if (pastThreshold && !hapticFired) {
+                                                                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                                                    hapticFired = true
+                                                                } else if (!pastThreshold) {
+                                                                    hapticFired = false
+                                                                }
+                                                            }
+                                                        )
+                                                    }
+                                            ) {
                                         BulletRow(
                                             flatBullet = flatBullet,
                                             isFocused = flatBullet.bullet.id == focusedBulletId,
@@ -482,7 +564,7 @@ fun BulletTreeScreen(
 
                                                         // Detect no-drag long-press: same position AND negligible horizontal offset.
                                                         // In this case show context menu instead of committing a move.
-                                                        val indentPx = with(density) { 24.dp.toPx() }
+                                                        val indentPx = with(density) { 28.dp.toPx() }
                                                         val horizontalDeltaSteps = (dragHorizontalOffset / indentPx).roundToInt()
                                                         val didNotMove = currentIndex == dragStartIndex && horizontalDeltaSteps == 0
                                                         if (didNotMove) {
@@ -604,8 +686,24 @@ fun BulletTreeScreen(
                                                     }
                                                 )
                                         )
-                                        } // end SwipeToDismissBox content
+                                        } // end foreground Box
+                                        } // end custom swipe Box
                                     }
+                                }
+                                // Tappable empty zone below bullets — clears focus and hides keyboard
+                                item(key = "__empty_zone__") {
+                                    Spacer(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(800.dp)
+                                            .pointerInput(Unit) {
+                                                detectTapGestures {
+                                                    viewModel.setFocusedBullet(null)
+                                                    keyboardController?.hide()
+                                                    focusManager.clearFocus()
+                                                }
+                                            }
+                                    )
                                 }
                             }
                             } // end PullToRefreshBox
@@ -638,6 +736,7 @@ fun BulletTreeScreen(
                             // Editing toolbar — animated, shown only when a bullet is focused
                             AnimatedVisibility(
                                 visible = focusedBulletId != null,
+                                modifier = Modifier.imePadding(),
                                 enter = slideInVertically { it },
                                 exit = slideOutVertically { it }
                             ) {
@@ -766,34 +865,34 @@ private fun ShimmerBulletRows() {
 
     val indentLevels = listOf(0, 1, 2, 1, 0) // varying depths for visual interest
 
-    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
         indentLevels.forEach { indent ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
-                        start = (indent * 24).dp,
-                        top = 6.dp,
-                        bottom = 6.dp
+                        start = (indent * 28).dp,
+                        top = 7.dp,
+                        bottom = 7.dp
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Bullet circle placeholder
                 Box(
                     modifier = Modifier
-                        .width(8.dp)
-                        .height(8.dp)
+                        .width(10.dp)
+                        .height(10.dp)
                         .background(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
                             shape = androidx.compose.foundation.shape.CircleShape
                         )
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 // Text line placeholder
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.6f + indent * 0.1f)
-                        .height(14.dp)
+                        .height(17.dp)
                         .background(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha * 0.5f),
                             shape = MaterialTheme.shapes.small

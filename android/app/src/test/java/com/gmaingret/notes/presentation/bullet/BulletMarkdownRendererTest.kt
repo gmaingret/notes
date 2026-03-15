@@ -204,4 +204,38 @@ class BulletMarkdownRendererTest {
         val text = segments[1] as ContentSegment.TextSegment
         assertEquals(" after", text.text)
     }
+
+    @Test
+    fun `bracket date format is extracted as DATE ChipSegment`() {
+        val segments = parseContentSegments("flight to batumi !![2026-04-28]")
+        assertEquals(2, segments.size)
+        val text = segments[0] as ContentSegment.TextSegment
+        assertEquals("flight to batumi ", text.text)
+        val chip = segments[1] as ContentSegment.ChipSegment
+        assertEquals(ChipType.DATE, chip.type)
+        assertEquals("!![2026-04-28]", chip.text)
+    }
+
+    @Test
+    fun `bracket date alone is extracted correctly`() {
+        val segments = parseContentSegments("!![2026-04-28]")
+        assertEquals(1, segments.size)
+        val chip = segments[0] as ContentSegment.ChipSegment
+        assertEquals(ChipType.DATE, chip.type)
+        assertEquals("!![2026-04-28]", chip.text)
+    }
+
+    @Test
+    fun `bare date and bracket date both work in same content`() {
+        val segments = parseContentSegments("!!today and !![2026-04-28]")
+        assertEquals(3, segments.size)
+        val chip1 = segments[0] as ContentSegment.ChipSegment
+        assertEquals(ChipType.DATE, chip1.type)
+        assertEquals("!!today", chip1.text)
+        val text = segments[1] as ContentSegment.TextSegment
+        assertEquals(" and ", text.text)
+        val chip2 = segments[2] as ContentSegment.ChipSegment
+        assertEquals(ChipType.DATE, chip2.type)
+        assertEquals("!![2026-04-28]", chip2.text)
+    }
 }

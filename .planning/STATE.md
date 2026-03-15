@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Security Hardening
 status: ready_to_plan
-stopped_at: Completed 16-02-PLAN.md
-last_updated: "2026-03-15T09:11:44.768Z"
+stopped_at: Phase 17 context gathered
+last_updated: "2026-03-15T09:30:16.871Z"
 last_activity: 2026-03-15 — v2.2 roadmap created; phases 16-18 defined
 progress:
   total_phases: 3
@@ -83,6 +83,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-15T09:09:20.194Z
-Stopped at: Completed 16-02-PLAN.md
-Resume file: None
+Last session: 2026-03-15T09:30:16.868Z
+Stopped at: Phase 17 context gathered
+Resume file: .planning/phases/17-auth-and-session-security/17-CONTEXT.md

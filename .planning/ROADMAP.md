@@ -132,4 +132,4 @@ Plans:
 | 15. Interactive Actions | v2.1 | 2/2 | Complete | 2026-03-14 |
 | 16. Injection and Upload Hardening | v2.2 | 2/2 | Complete | 2026-03-15 |
 | 17. Auth and Session Security | v2.2 | 2/2 | Complete | 2026-03-15 |
-| 18. API Protection | 1/1 | Complete   | 2026-03-15 | - |
+| 18. API Protection | 1/1 | Complete    | 2026-03-15 | - |

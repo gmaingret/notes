@@ -125,6 +125,6 @@ Plans:
 | 13. Widget Foundation | v2.1 | 4/4 | Complete | 2026-03-14 |
 | 14. Background Sync and Auth | v2.1 | 2/2 | Complete | 2026-03-14 |
 | 15. Interactive Actions | v2.1 | 2/2 | Complete | 2026-03-14 |
-| 16. Injection and Upload Hardening | 2/2 | Complete   | 2026-03-15 | - |
+| 16. Injection and Upload Hardening | 2/2 | Complete    | 2026-03-15 | - |
 | 17. Auth and Session Security | v2.2 | 0/TBD | Not started | - |
 | 18. API Protection | v2.2 | 0/TBD | Not started | - |

@@ -4,7 +4,7 @@ milestone: v2.2
 milestone_name: Security Hardening
 status: ready_to_plan
 stopped_at: Completed 16-02-PLAN.md
-last_updated: "2026-03-15T09:09:20.198Z"
+last_updated: "2026-03-15T09:11:44.768Z"
 last_activity: 2026-03-15 — v2.2 roadmap created; phases 16-18 defined
 progress:
   total_phases: 3

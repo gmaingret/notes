@@ -39,17 +39,13 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - ✓ Quick-open palette (Ctrl+F) with recent docs, grouped search, keyboard navigation, mobile search button — v1.1
 - ✓ Sidebar persistent footer with Export all / Logout; + button auto-opens inline rename — v1.1
 - ✓ Ctrl/Cmd+E sidebar toggle on desktop — v1.1
+- ✓ Android home screen widget with document picker, root-level bullet display, Material 3 theming — v2.1
+- ✓ Widget background sync via WorkManager (15-min interval), in-app mutation triggers, independent auth — v2.1
+- ✓ Add and delete bullets directly from widget with optimistic updates and rollback — v2.1
 
 ### Active
 
-<!-- v2.1 Android Home Screen Widget -->
-- [ ] User can add a Notes widget to their Android home screen and choose which document it shows
-- [ ] User can see root-level bullet items of the selected document at a glance
-- [ ] User can add a new bullet at the top of the list from the widget via a lightweight overlay dialog
-- [ ] User can delete a bullet directly from the widget
-- [ ] Widget auto-refreshes when changes are made in the Android app
-- [ ] User can manually refresh the widget to pull in changes from other devices
-- [ ] Each widget instance can point to a different document
+(No active requirements — planning next milestone)
 
 ### Deferred
 
@@ -73,25 +69,15 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - AI features — out of scope for focused outliner clone
 - Real-time sync / collaboration — privacy-first means no sync
 
-## Current Milestone: v2.1 Android Home Screen Widget
-
-**Goal:** Add a resizable Android home screen widget that displays root-level bullets of a chosen document with inline add/delete — ideal for grocery lists, shopping lists, or quick task lists.
-
-**Target features:**
-- Pin any document as a home screen widget (Jetpack Glance)
-- Show root-level bullets as a flat scrollable list
-- Add new bullet via lightweight overlay dialog
-- Delete bullet directly from widget
-- Auto-sync with in-app changes + manual refresh + 15-min WorkManager periodic sync
-
 ## Current State
 
-**Shipped:** v2.0 Native Android Client (2026-03-14) — 4 phases, 17 plans, 12,200 LOC Kotlin
+**Shipped:** v2.1 Android Home Screen Widget (2026-03-15) — 3 phases, 8 plans, 2,417 LOC Kotlin widget code
 **Live at:** https://notes.gregorymaingret.fr (web) + Android debug APK on device
+**All milestones:** v1.0 MVP, v1.1 Mobile & UI Polish, v2.0 Native Android, v2.1 Widget — 15 phases, 80 plans total
 
 ## Context
 
-- **Shipped:** v2.0 (2026-03-14) — three milestones complete; ~56k+ LOC (44k web + 12k Android)
+- **Shipped:** v2.1 (2026-03-15) — four milestones complete; ~65k+ LOC (44k web + 15k Android + 4k widget)
 - **Live at:** https://notes.gregorymaingret.fr
 - **Tech stack:** React + Vite + TypeScript (client), Express + Drizzle ORM + PostgreSQL (server), Docker (deployment), Nginx reverse proxy
 - **UI libraries:** lucide-react (icons), @fontsource-variable/inter + jetbrains-mono (fonts), @dnd-kit (drag-and-drop), zustand (state)
@@ -133,6 +119,12 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 | exitDirection + onTransitionEnd pattern for swipe exit | Fires mutation after CSS transition completes — no setTimeout guessing | ✓ Good — exit animation feels intentional and timing-safe |
 | Ctrl+F replaces browser Find bar (capture: true) | Ctrl+F is the universal search shortcut; users already know it | ✓ Good — intuitive; intercepts browser Find cleanly |
 | Inter Variable + JetBrains Mono via @fontsource (no Google Fonts) | Self-hosted fonts maintain privacy-first approach | ✓ Good — no external dependencies, fast load from same server |
+| Jetpack Glance 1.1.1 for widget (not RemoteViews) | Compose-like API, Material 3 theme support, stable release | ✓ Good — clean declarative UI, color scheme switching works |
+| WidgetStateStore as custom DataStore singleton (not Glance state) | Accessible from WidgetConfigActivity and NotesWidgetReceiver.onDeleted | ✓ Good — single source of truth across all widget surfaces |
+| WorkManager exclusively owns widget sync schedule | OEM battery management suppresses broadcast-based polling | ✓ Good — reliable 15-min updates even after force-stop |
+| @EntryPoint for Glance widget, @AndroidEntryPoint for Activity | Hilt cannot inject into GlanceAppWidget directly | ✓ Good — correct DI pattern per component type |
+| Optimistic updates with rollback in widget actions | Widget must feel responsive despite network latency | ✓ Good — instant visual feedback, graceful rollback on failure |
+| AddBulletActivity as transparent overlay (not Dialog fragment) | Activity context needed for Hilt injection + setFinishOnTouchOutside | ✓ Good — lightweight feel, keyboard auto-shows |
 
 ---
-*Last updated: 2026-03-14 after v2.1 milestone started*
+*Last updated: 2026-03-15 after v2.1 milestone shipped*

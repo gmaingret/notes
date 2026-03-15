@@ -1,4 +1,25 @@
 # Milestones
+## v2.1 Android Home Screen Widget (Shipped: 2026-03-15)
+
+**Phases completed:** 3 phases (13-15), 8 plans
+**Timeline:** 2026-03-14 (1 day)
+**Files changed:** 60 | Lines added: 8,600 | Widget Kotlin LOC: 2,417 | Test LOC: 1,492
+**Requirements:** 12/12 satisfied | **Audit:** tech_debt (no blockers) | **Nyquist:** 3/3 compliant
+
+**Key accomplishments:**
+1. Jetpack Glance widget with document picker config activity, auth gate, Material 3 theming (light/dark), and all display states (loading, error, empty, session expired, document not found)
+2. WorkManager 15-minute periodic background sync with Tink-encrypted WidgetStateStore cache, independent auth via persisted refresh token, and graceful SESSION_EXPIRED handling
+3. In-app mutation triggers — BulletTreeViewModel fires widget refresh at 9 mutation call sites; onResume refresh; immediate logout/login state management
+4. Delete bullet directly from widget via ActionCallback with optimistic remove, server rollback on failure, and 401 auth detection
+5. Add bullet via lightweight transparent overlay Activity with pre-focused text field, optimistic insert at top of list, temp-to-real ID replacement on server confirmation
+6. 58 unit tests across 10 test files covering all widget logic with MockK + Robolectric
+
+**Known tech debt:** WidgetEntryPoint.createBulletUseCase() orphaned (AddBulletActivity uses @Inject directly); clearAll() on single widget deletion affects multi-widget scenarios; post-login widget recovery is eventual (up to 15 min)
+
+**Archive:** `.planning/milestones/v2.1-ROADMAP.md` | `.planning/milestones/v2.1-REQUIREMENTS.md` | `.planning/milestones/v2.1-MILESTONE-AUDIT.md`
+
+---
+
 ## v2.0 Native Android Client (Shipped: 2026-03-14)
 
 **Phases completed:** 4 phases (9-12), 17 plans, ~35 tasks

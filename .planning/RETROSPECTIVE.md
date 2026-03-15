@@ -101,9 +101,57 @@
 
 ---
 
+## Milestone: v2.1 — Android Home Screen Widget
+
+**Shipped:** 2026-03-15
+**Phases:** 3 | **Plans:** 8
+
+### What Was Built
+
+- Phase 13 (Widget Foundation): Jetpack Glance widget with document picker config activity, auth gate, Material 3 theming (light/dark), all display states (loading, error, empty, session expired, document not found), tap-to-app navigation
+- Phase 14 (Background Sync and Auth): WorkManager 15-minute periodic WidgetSyncWorker, Tink-encrypted WidgetStateStore bullet cache + display state, in-app mutation triggers at 9 BulletTreeViewModel call sites, onResume refresh, immediate logout/login state management
+- Phase 15 (Interactive Actions): Delete bullet via ActionCallback with optimistic remove and server rollback; add bullet via transparent overlay Activity with pre-focused text field, optimistic insert at top, temp-to-real ID replacement
+
+### What Worked
+
+- **WidgetStateStore as single source of truth** — Custom DataStore singleton with Tink encryption, accessible from every widget surface (Glance, Config Activity, Worker, Receiver). Avoided the split-brain pitfall of Glance's own state definition.
+- **Extracted testable functions** — `fetchWidgetData`, `performDelete`, `performAddBullet`, `refreshWidgetIfDocMatches` are all pure suspend functions testable without Robolectric or Android context. 58 tests, all fast.
+- **Optimistic UI pattern** — Write to store first, push to Glance for instant visual feedback, then call API. On failure, rollback to original list. Users experience zero-latency interaction.
+- **@EntryPoint vs @AndroidEntryPoint** — Correct DI pattern per component: @EntryPoint for ActionCallbacks (not Hilt-supported components), @AndroidEntryPoint for Activities. Clean separation, no workarounds.
+- **provideGlance reads cache only** — No live API calls inside the widget renderer. All data fetching happens in workers/triggers/callbacks. Widget composition is fast and reliable.
+
+### What Was Inefficient
+
+- **SUMMARY frontmatter requirements_completed empty** — All 8 plan summaries had empty `requirements_completed` arrays. Requirement tracking happened only at the phase VERIFICATION level. This complicated the 3-source cross-reference during milestone audit.
+- **Plan checkboxes not updated in ROADMAP.md** — Plans 14-01, 14-02, 15-01, 15-02 still show `[ ]` in the ROADMAP despite being complete. Cosmetic only since SUMMARY.md files exist.
+- **clearAll() on single widget deletion** — NotesWidgetReceiver.onDeleted wipes all widget data regardless of how many instances remain. Single-widget design assumption baked into Phase 13, never revisited when the architecture grew.
+
+### Patterns Established
+
+- **Widget architecture: Store → Glance (never direct API)** — All widget surfaces write to WidgetStateStore, then call pushStateToGlance(). provideGlance only reads cached state.
+- **Optimistic update with rollback** — Save optimistic state, push to Glance, call API, replace temp with real on success, rollback on failure. Pattern applies to both add and delete.
+- **ActionCallback for widget interactions** — Glance actionRunCallback for non-Activity actions (delete), actionStartActivity for Activity-based flows (add dialog).
+- **WorkManager always returns success()** — Periodic worker must never return failure/retry or the schedule dies. Error state communicated via WidgetStateStore.saveDisplayState.
+
+### Key Lessons
+
+1. **Populate SUMMARY frontmatter during execution, not after.** Empty requirements_completed arrays create audit friction. The executor should fill these as plans complete.
+2. **Widget state is a cache, not a source of truth.** WidgetStateStore holds a snapshot that may be stale. Design all flows to tolerate staleness and recover gracefully.
+3. **Multi-widget support needs upfront consideration.** clearAll() was fine for MVP but creates a design debt that grows harder to fix as the widget surface expands.
+4. **Extracted suspend functions are the testing sweet spot for Android.** Robolectric is slow and flaky; pure suspend functions with MockK run in milliseconds and cover 95% of business logic.
+
+### Cost Observations
+
+- Sessions: ~4 AI sessions in 1 day
+- Model: claude-sonnet-4-6 for execution, claude-opus-4-6 for audit/validation
+- Notable: 8 plans in 1 calendar day. The entire widget milestone (foundation → sync → actions → verification → validation → audit) completed in a single day. Fastest milestone yet by plans/day ratio.
+
+---
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Days | Plans/Day |
 |-----------|--------|-------|------|-----------|
 | v1.0 MVP  | 4      | 32    | 2    | 16        |
 | v1.1 Polish | 5    | 23    | 2    | 11.5      |
+| v2.1 Widget | 3    | 8     | 1    | 8         |

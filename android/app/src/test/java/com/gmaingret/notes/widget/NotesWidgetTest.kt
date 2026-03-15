@@ -4,6 +4,7 @@ import com.gmaingret.notes.domain.model.Bullet
 import com.gmaingret.notes.domain.model.Document
 import io.mockk.coEvery
 import io.mockk.mockk
+import java.io.IOException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -152,6 +153,44 @@ class NotesWidgetTest {
 
         val result = widget.fetchWidgetData(mockEntryPoint, docId = docId)
         assertEquals(WidgetUiState.SessionExpired, result)
+    }
+
+    // -------------------------------------------------------------------------
+    // Error — generic (non-401) network failure
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `generic network error on document fetch returns Error state`() = runTest {
+        val docId = "doc-network-err"
+        val networkError = IOException("Connection timed out")
+
+        coEvery { mockDocRepo.getDocuments() } returns Result.failure(networkError)
+
+        val result = widget.fetchWidgetData(mockEntryPoint, docId = docId)
+
+        assertTrue(
+            "Expected WidgetUiState.Error but got $result",
+            result is WidgetUiState.Error
+        )
+    }
+
+    @Test
+    fun `non-401 HTTP error on document fetch returns Error state`() = runTest {
+        val docId = "doc-server-err"
+        val serverError = retrofit2.HttpException(
+            okhttp3.ResponseBody.create(null, "").let {
+                retrofit2.Response.error<Any>(500, it)
+            }
+        )
+
+        coEvery { mockDocRepo.getDocuments() } returns Result.failure(serverError)
+
+        val result = widget.fetchWidgetData(mockEntryPoint, docId = docId)
+
+        assertTrue(
+            "Expected WidgetUiState.Error but got $result",
+            result is WidgetUiState.Error
+        )
     }
 
     // -------------------------------------------------------------------------

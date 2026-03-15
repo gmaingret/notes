@@ -6,6 +6,7 @@
 - ✅ **v1.1 Mobile & UI Polish** — Phases 5-8 (shipped 2026-03-11)
 - ✅ **v2.0 Native Android Client** — Phases 9-12 (shipped 2026-03-14)
 - ✅ **v2.1 Android Home Screen Widget** — Phases 13-15 (shipped 2026-03-15)
+- 🚧 **v2.2 Security Hardening** — Phases 16-18 (in progress)
 
 ## Phases
 
@@ -57,6 +58,50 @@ Full details: [`.planning/milestones/v2.1-ROADMAP.md`](milestones/v2.1-ROADMAP.m
 
 </details>
 
+### 🚧 v2.2 Security Hardening (In Progress)
+
+**Milestone Goal:** Fix all HIGH and MEDIUM severity backend security vulnerabilities — injection, XSS, upload abuse, token exposure, weak auth, and missing API protection.
+
+- [ ] **Phase 16: Injection and Upload Hardening** — Escape ILIKE metacharacters, restrict upload types, sanitize filenames, serve SVG as attachment, verify bullet ownership on upload
+- [ ] **Phase 17: Auth and Session Security** — Move JWT to hash fragment, implement server-side refresh token revocation on logout and password change, strengthen password policy
+- [ ] **Phase 18: API Protection** — Add rate limiting across data endpoints, add CSRF token enforcement on state-changing endpoints
+
+## Phase Details
+
+### Phase 16: Injection and Upload Hardening
+**Goal**: Server correctly defends against query injection and file upload abuse
+**Depends on**: Nothing (first phase of milestone)
+**Requirements**: INJ-01, INJ-02, INJ-03, UPLD-01, UPLD-02, UPLD-03
+**Success Criteria** (what must be TRUE):
+  1. Searching for text containing % or _ returns literal matches without exploding into wildcard results
+  2. Navigating to a tag that contains % or _ shows only bullets tagged with that exact tag
+  3. Uploading a .html, .exe, or .js file is rejected with an error message
+  4. Downloading an uploaded SVG triggers a file-save dialog instead of rendering in the browser
+  5. Uploading a file to a bullet owned by a different user is rejected with a 403 error
+**Plans**: TBD
+
+### Phase 17: Auth and Session Security
+**Goal**: Tokens are never exposed in URLs, sessions are revocable, and weak passwords are rejected at registration
+**Depends on**: Phase 16
+**Requirements**: SESS-01, SESS-02, SESS-03, SESS-04, AUTH-01, AUTH-02
+**Success Criteria** (what must be TRUE):
+  1. After Google OAuth login, the browser URL bar shows no token parameter (hash fragment is cleared immediately)
+  2. After logout, the old refresh token cannot be used to obtain a new access token
+  3. After a password change, existing sessions on other devices are invalidated
+  4. Registering with a common password (e.g., "Password1") is rejected with an informative error
+  5. Registering with a password lacking character diversity is rejected with a clear policy message
+**Plans**: TBD
+
+### Phase 18: API Protection
+**Goal**: Data endpoints are protected against brute-force and cross-site request forgery
+**Depends on**: Phase 17
+**Requirements**: API-01, API-02
+**Success Criteria** (what must be TRUE):
+  1. Sending more than the configured request limit to /api/bullets in a short window returns 429 Too Many Requests
+  2. A state-changing request (create/update/delete) without a valid CSRF token is rejected
+  3. Normal in-app usage (create bullet, edit, delete) continues to work without any visible change for the user
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -77,3 +122,6 @@ Full details: [`.planning/milestones/v2.1-ROADMAP.md`](milestones/v2.1-ROADMAP.m
 | 13. Widget Foundation | v2.1 | 4/4 | Complete | 2026-03-14 |
 | 14. Background Sync and Auth | v2.1 | 2/2 | Complete | 2026-03-14 |
 | 15. Interactive Actions | v2.1 | 2/2 | Complete | 2026-03-14 |
+| 16. Injection and Upload Hardening | v2.2 | 0/TBD | Not started | - |
+| 17. Auth and Session Security | v2.2 | 0/TBD | Not started | - |
+| 18. API Protection | v2.2 | 0/TBD | Not started | - |

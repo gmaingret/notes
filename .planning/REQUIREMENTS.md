@@ -65,26 +65,26 @@ Requirements for security hardening. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INJ-01 | — | Pending |
-| INJ-02 | — | Pending |
-| INJ-03 | — | Pending |
-| SESS-01 | — | Pending |
-| SESS-02 | — | Pending |
-| SESS-03 | — | Pending |
-| SESS-04 | — | Pending |
-| UPLD-01 | — | Pending |
-| UPLD-02 | — | Pending |
-| UPLD-03 | — | Pending |
-| AUTH-01 | — | Pending |
-| AUTH-02 | — | Pending |
-| API-01 | — | Pending |
-| API-02 | — | Pending |
+| INJ-01 | Phase 16 | Pending |
+| INJ-02 | Phase 16 | Pending |
+| INJ-03 | Phase 16 | Pending |
+| UPLD-01 | Phase 16 | Pending |
+| UPLD-02 | Phase 16 | Pending |
+| UPLD-03 | Phase 16 | Pending |
+| SESS-01 | Phase 17 | Pending |
+| SESS-02 | Phase 17 | Pending |
+| SESS-03 | Phase 17 | Pending |
+| SESS-04 | Phase 17 | Pending |
+| AUTH-01 | Phase 17 | Pending |
+| AUTH-02 | Phase 17 | Pending |
+| API-01 | Phase 18 | Pending |
+| API-02 | Phase 18 | Pending |
 
 **Coverage:**
 - v2.2 requirements: 14 total
-- Mapped to phases: 0
-- Unmapped: 14 ⚠️
+- Mapped to phases: 14
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-15*
-*Last updated: 2026-03-15 after initial definition*
+*Last updated: 2026-03-15 after roadmap creation*

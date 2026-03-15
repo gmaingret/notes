@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Security Hardening
-status: defining_requirements
+status: ready_to_plan
 stopped_at: null
 last_updated: "2026-03-15T12:00:00Z"
-last_activity: 2026-03-15 — Milestone v2.2 started
+last_activity: 2026-03-15 — Roadmap created; phases 16-18 defined
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
-**Current focus:** v2.2 Security Hardening
+**Current focus:** Phase 16 — Injection and Upload Hardening
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-15 — Milestone v2.2 started
+Phase: 16 of 18 (Injection and Upload Hardening)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
+Last activity: 2026-03-15 — v2.2 roadmap created; phases 16-18 defined
+
+Progress: [████████░░] ~83% (15/18 phases complete across all milestones)
 
 ## Performance Metrics
 
@@ -47,9 +49,8 @@ Last activity: 2026-03-15 — Milestone v2.2 started
 
 Decisions are logged in PROJECT.md Key Decisions table.
 
-### Research Flags
-
-None.
+Recent decisions affecting current work:
+- All security fixes are backend-only (Express/Node server) except SESS-01/SESS-02 which require a client-side change to the OAuth callback handler
 
 ### Pending Todos
 
@@ -57,10 +58,10 @@ None.
 
 ### Blockers/Concerns
 
-None.
+- Server disk reached 100% during Phase 8 deploy — run `docker builder prune` before building if disk is tight
 
 ## Session Continuity
 
 Last session: 2026-03-15
-Stopped at: Defining v2.2 requirements
+Stopped at: Roadmap created for v2.2 Security Hardening — ready to plan Phase 16
 Resume file: None

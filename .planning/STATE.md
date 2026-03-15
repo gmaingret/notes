@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Security Hardening
 status: ready_to_plan
-stopped_at: Phase 17 context gathered
-last_updated: "2026-03-15T09:30:16.871Z"
+stopped_at: Completed 17-auth-and-session-security 17-01-PLAN.md
+last_updated: "2026-03-15T09:40:02.464Z"
 last_activity: 2026-03-15 — v2.2 roadmap created; phases 16-18 defined
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
 ---
 
 ---
@@ -59,6 +59,7 @@ Progress: [████████░░] ~83% (15/18 phases complete across al
 | **Total** | **16** | **80** | **8** | **10** |
 | Phase 16-injection-and-upload-hardening P01 | 6m | 2 tasks | 6 files |
 | Phase 16-injection-and-upload-hardening P02 | 6m | 1 tasks | 3 files |
+| Phase 17-auth-and-session-security P01 | 525533m | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,9 @@ Recent decisions affecting current work:
 - [Phase 16-01]: SVG force-download chosen over sanitization; filename sanitization applied to all attachments in Content-Disposition header
 - [Phase 16-02]: Return 404 (not 403) when bullet not owned by user — hides bullet existence
 - [Phase 16-02]: Multer ALLOWED_EXTENSIONS Set pattern for file type allowlist; fileFilter rejects with plain Error returning 400 directly
+- [Phase 17-auth-and-session-security]: Common password check runs before character-diversity rules for better UX on well-known breached passwords
+- [Phase 17-auth-and-session-security]: Static in-process common password blocklist chosen over npm package for self-hosted single-user app
+- [Phase 17-auth-and-session-security]: Password policy enforced at registration only (not login) per plan specification
 
 ### Pending Todos
 
@@ -83,6 +87,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-15T09:30:16.868Z
-Stopped at: Phase 17 context gathered
-Resume file: .planning/phases/17-auth-and-session-security/17-CONTEXT.md
+Last session: 2026-03-15T09:40:02.462Z
+Stopped at: Completed 17-auth-and-session-security 17-01-PLAN.md
+Resume file: None

@@ -15,8 +15,8 @@ Requirements for security hardening. Each maps to roadmap phases.
 
 ### Token & Session Security
 
-- [ ] **SESS-01**: OAuth callback passes JWT via URL hash fragment (#token=) instead of query string (?token=)
-- [ ] **SESS-02**: Client reads token from hash fragment and clears it from URL
+- [x] **SESS-01**: OAuth callback passes JWT via URL hash fragment (#token=) instead of query string (?token=)
+- [x] **SESS-02**: Client reads token from hash fragment and clears it from URL
 - [ ] **SESS-03**: Refresh tokens are stored server-side and invalidated on logout
 - [ ] **SESS-04**: Refresh tokens are invalidated on password change
 
@@ -28,8 +28,8 @@ Requirements for security hardening. Each maps to roadmap phases.
 
 ### Authentication Hardening
 
-- [ ] **AUTH-01**: Password policy enforces character diversity (uppercase, lowercase, digit, or special char)
-- [ ] **AUTH-02**: Passwords are checked against a list of commonly breached passwords
+- [x] **AUTH-01**: Password policy enforces character diversity (uppercase, lowercase, digit, or special char)
+- [x] **AUTH-02**: Passwords are checked against a list of commonly breached passwords
 
 ### API Protection
 
@@ -71,12 +71,12 @@ Requirements for security hardening. Each maps to roadmap phases.
 | UPLD-01 | Phase 16 | Complete |
 | UPLD-02 | Phase 16 | Complete |
 | UPLD-03 | Phase 16 | Complete |
-| SESS-01 | Phase 17 | Pending |
-| SESS-02 | Phase 17 | Pending |
+| SESS-01 | Phase 17 | Complete |
+| SESS-02 | Phase 17 | Complete |
 | SESS-03 | Phase 17 | Pending |
 | SESS-04 | Phase 17 | Pending |
-| AUTH-01 | Phase 17 | Pending |
-| AUTH-02 | Phase 17 | Pending |
+| AUTH-01 | Phase 17 | Complete |
+| AUTH-02 | Phase 17 | Complete |
 | API-01 | Phase 18 | Pending |
 | API-02 | Phase 18 | Pending |
 

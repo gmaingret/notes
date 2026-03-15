@@ -55,6 +55,21 @@ export function createApp() {
   });
   app.use('/api/auth/refresh', refreshLimiter);
 
+  // Rate limit data endpoints (abuse / exfiltration protection)
+  const dataLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use('/api/documents', dataLimiter);
+  app.use('/api/bullets', dataLimiter);
+  app.use('/api/undo', dataLimiter);
+  app.use('/api/bookmarks', dataLimiter);
+  app.use('/api/tags', dataLimiter);
+  app.use('/api/search', dataLimiter);
+  app.use('/api/attachments', dataLimiter);
+
   // Health check
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 

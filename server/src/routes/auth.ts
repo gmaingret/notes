@@ -14,6 +14,7 @@ import {
   hashPassword,
   createInboxIfNotExists,
 } from '../services/authService.js';
+import { validatePasswordPolicy } from '../services/passwordPolicy.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -37,6 +38,13 @@ authRouter.post('/register', async (req, res) => {
   }
 
   const { email, password } = result.data;
+
+  // AUTH-01/AUTH-02: Enforce password policy before checking for duplicates
+  const policyError = validatePasswordPolicy(password);
+  if (policyError) {
+    return res.status(400).json({ errors: { password: [policyError] } });
+  }
+
   const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
   if (existing) {
     return res.status(409).json({ field: 'email', message: 'Email already registered' });
@@ -162,6 +170,7 @@ authRouter.get(
     setRefreshCookie(res, user.id);
 
     // Redirect to app root with token in hash fragment (never sent to server)
-    return res.redirect(`/?token=${encodeURIComponent(accessToken)}`);
+    // SESS-01: use #token= not ?token= so the JWT is never in the URL query string
+    return res.redirect(`/#token=${encodeURIComponent(accessToken)}`);
   }
 );

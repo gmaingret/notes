@@ -68,7 +68,7 @@ describe('AUTH-01: Register with email/password', () => {
     const app = buildApp();
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ email: 'test@example.com', password: 'password123' });
+      .send({ email: 'test@example.com', password: 'ValidPass1' });
 
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('accessToken');
@@ -84,10 +84,41 @@ describe('AUTH-01: Register with email/password', () => {
     const app = buildApp();
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ email: 'test@example.com', password: 'password123' });
+      .send({ email: 'test@example.com', password: 'ValidPass1' });
 
     expect(res.status).toBe(409);
     expect(res.body).toMatchObject({ field: 'email', message: 'Email already registered' });
+  });
+
+  it('POST /api/auth/register with weak password (no uppercase) returns 400 with policy error', async () => {
+    const app = buildApp();
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'test@example.com', password: 'password123' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errors.password[0]).toContain('common');
+  });
+
+  it('POST /api/auth/register with common password returns 400 with policy error', async () => {
+    const app = buildApp();
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'test@example.com', password: 'Password1' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errors.password[0]).toContain('common');
+  });
+
+  it('POST /api/auth/register with strong valid password returns 201', async () => {
+    mockDb.query.users.findFirst.mockResolvedValue(null);
+
+    const app = buildApp();
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'test@example.com', password: 'V4l!dPass99' });
+
+    expect(res.status).toBe(201);
   });
 
   it('POST /api/auth/register with invalid email returns 400', async () => {
@@ -164,7 +195,7 @@ describe('AUTH-02: Login with email/password', () => {
     const app = buildApp();
     const registerRes = await request(app)
       .post('/api/auth/register')
-      .send({ email: 'test@example.com', password: 'password123' });
+      .send({ email: 'test@example.com', password: 'ValidPass1' });
 
     const cookies = registerRes.headers['set-cookie'];
     expect(cookies).toBeDefined();
@@ -225,7 +256,7 @@ describe('AUTH-05: Inbox document on first login', () => {
     const app = buildApp();
     await request(app)
       .post('/api/auth/register')
-      .send({ email: 'test@example.com', password: 'password123' });
+      .send({ email: 'test@example.com', password: 'ValidPass1' });
 
     // insert called twice: once for user, once for Inbox document
     expect(mockDb.insert).toHaveBeenCalledTimes(2);

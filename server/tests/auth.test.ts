@@ -28,6 +28,8 @@ vi.mock('../db/index.js', () => ({
 
 import { db } from '../db/index.js';
 import { authRouter } from '../src/routes/auth.js';
+import { configurePassport } from '../src/middleware/auth.js';
+import passport from 'passport';
 
 const mockDb = db as {
   query: {
@@ -39,10 +41,14 @@ const mockDb = db as {
   update: ReturnType<typeof vi.fn>;
 };
 
+// Configure passport once for all tests (JWT strategy needs to be registered)
+configurePassport();
+
 function buildApp() {
   const app = express();
   app.use(express.json());
   app.use(cookieParser());
+  app.use(passport.initialize());
   app.use('/api/auth', authRouter);
   return app;
 }
@@ -272,8 +278,8 @@ describe('AUTH-05: Inbox document on first login', () => {
       .post('/api/auth/register')
       .send({ email: 'test@example.com', password: 'ValidPass1' });
 
-    // insert called twice: once for user, once for Inbox document
-    expect(mockDb.insert).toHaveBeenCalledTimes(2);
+    // insert called 3 times: once for user, once for refresh token (setRefreshCookie), once for Inbox document
+    expect(mockDb.insert).toHaveBeenCalledTimes(3);
   });
 
   it('Calling createInboxIfNotExists twice for same user creates only one Inbox (idempotent)', async () => {

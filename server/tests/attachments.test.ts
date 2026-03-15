@@ -20,6 +20,7 @@ import {
   getAttachmentsByBullet,
   getAttachment,
   deleteAttachment,
+  verifyBulletOwnership,
 } from '../src/services/attachmentService.js';
 
 const mockAttachment = {
@@ -111,5 +112,41 @@ describe('attachmentService.deleteAttachment', () => {
     const result = await deleteAttachment('user-uuid-1', 'att-uuid-1');
 
     expect(result).toEqual({ deleted: true });
+  });
+});
+
+describe('attachmentService.verifyBulletOwnership', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns true when bullet belongs to user', async () => {
+    const where = vi.fn().mockResolvedValue([{ id: 'bullet-uuid-1' }]);
+    const from = vi.fn().mockReturnValue({ where });
+    (db.select as any).mockReturnValue({ from });
+
+    const result = await verifyBulletOwnership('user-uuid-1', 'bullet-uuid-1');
+
+    expect(result).toBe(true);
+  });
+
+  it('returns false when bullet does not belong to user', async () => {
+    const where = vi.fn().mockResolvedValue([]);
+    const from = vi.fn().mockReturnValue({ where });
+    (db.select as any).mockReturnValue({ from });
+
+    const result = await verifyBulletOwnership('user-uuid-1', 'bullet-uuid-other');
+
+    expect(result).toBe(false);
+  });
+
+  it('returns false when bullet does not exist', async () => {
+    const where = vi.fn().mockResolvedValue([]);
+    const from = vi.fn().mockReturnValue({ where });
+    (db.select as any).mockReturnValue({ from });
+
+    const result = await verifyBulletOwnership('user-uuid-1', 'nonexistent-bullet');
+
+    expect(result).toBe(false);
   });
 });

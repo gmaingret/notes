@@ -77,7 +77,7 @@ Full details: [`.planning/milestones/v2.1-ROADMAP.md`](milestones/v2.1-ROADMAP.m
   2. Navigating to a tag that contains % or _ shows only bullets tagged with that exact tag
   3. Uploading a .html, .exe, or .js file is rejected with an error message
   4. Downloading an uploaded SVG triggers a file-save dialog instead of rendering in the browser
-  5. Uploading a file to a bullet owned by a different user is rejected with a 403 error
+  5. Uploading a file to a bullet owned by a different user is rejected with a 404 error
 **Plans**: 2 plans
 Plans:
 - [ ] 16-01-PLAN.md — ILIKE escaping and SVG force-download

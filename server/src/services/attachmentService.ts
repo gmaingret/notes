@@ -1,7 +1,15 @@
 import { db } from '../../db/index.js';
-import { attachments } from '../../db/schema.js';
+import { attachments, bullets } from '../../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { unlink } from 'node:fs/promises';
+
+export async function verifyBulletOwnership(userId: string, bulletId: string): Promise<boolean> {
+  const [bullet] = await db
+    .select({ id: bullets.id })
+    .from(bullets)
+    .where(and(eq(bullets.id, bulletId), eq(bullets.userId, userId)));
+  return !!bullet;
+}
 
 export interface AttachmentFile {
   filename: string;

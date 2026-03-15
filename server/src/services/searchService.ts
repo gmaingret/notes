@@ -1,6 +1,7 @@
 import { db } from '../../db/index.js';
 import { bullets, documents } from '../../db/schema.js';
 import { eq, and, isNull, ilike } from 'drizzle-orm';
+import { escapeIlike } from './utils/escapeIlike.js';
 
 /**
  * Full-text search across a user's non-deleted bullets using case-insensitive ILIKE.
@@ -14,7 +15,7 @@ export async function searchBullets(
   const normalized = query.replace(/^[#@!]+/, '').trim();
   if (normalized === '') return [];
 
-  const pattern = `%${normalized}%`;
+  const pattern = `%${escapeIlike(normalized)}%`;
 
   return db
     .select({

@@ -45,7 +45,16 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 
 ### Active
 
-(No active requirements — planning next milestone)
+- [ ] Fix ILIKE wildcard injection in search and tag queries
+- [ ] Fix JWT token exposure via URL query string (use hash fragment)
+- [ ] Restrict file upload types and validate extensions
+- [ ] Sanitize filenames in Content-Disposition headers
+- [ ] Serve SVG as attachment (not inline) to prevent stored XSS
+- [ ] Add bullet ownership check on attachment upload
+- [ ] Add rate limiting on data endpoints
+- [ ] Strengthen password policy beyond minimum length
+- [ ] Implement server-side refresh token revocation
+- [ ] Add CSRF protection beyond SameSite cookie
 
 ### Deferred
 
@@ -68,6 +77,22 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - Custom domains — self-hosted, user manages their own domain
 - AI features — out of scope for focused outliner clone
 - Real-time sync / collaboration — privacy-first means no sync
+
+## Current Milestone: v2.2 Security Hardening
+
+**Goal:** Fix all HIGH and MEDIUM severity backend security vulnerabilities identified in security audit.
+
+**Target fixes:**
+- ILIKE wildcard injection in search/tags (HIGH)
+- JWT token in URL query string instead of hash fragment (HIGH)
+- Unrestricted file upload types (HIGH)
+- Content-Disposition header injection via filename (HIGH)
+- Inline SVG serving enables stored XSS (HIGH)
+- No CSRF token beyond SameSite cookie (MEDIUM)
+- Missing bullet ownership check on attachment upload (MEDIUM)
+- No rate limiting on data endpoints (MEDIUM)
+- Weak password policy (MEDIUM)
+- No server-side refresh token revocation (MEDIUM)
 
 ## Current State
 
@@ -127,4 +152,4 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 | AddBulletActivity as transparent overlay (not Dialog fragment) | Activity context needed for Hilt injection + setFinishOnTouchOutside | ✓ Good — lightweight feel, keyboard auto-shows |
 
 ---
-*Last updated: 2026-03-15 after v2.1 milestone shipped*
+*Last updated: 2026-03-15 after v2.2 milestone started*

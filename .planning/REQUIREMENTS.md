@@ -33,7 +33,7 @@ Requirements for security hardening. Each maps to roadmap phases.
 
 ### API Protection
 
-- [ ] **API-01**: Rate limiting is applied to data endpoints (/api/bullets, /api/documents, /api/search, /api/tags, /api/attachments)
+- [x] **API-01**: Rate limiting is applied to data endpoints (/api/bullets, /api/documents, /api/search, /api/tags, /api/attachments)
 - [x] **API-02**: CSRF protection resolved by design — all data endpoints use Bearer token auth (Authorization header), which browsers never auto-send on cross-origin requests. The only cookie-authenticated endpoint (POST /api/auth/refresh) uses SameSite=Strict. No CSRF token implementation needed.
 
 ## Future Requirements (Deferred — LOW severity)
@@ -77,7 +77,7 @@ Requirements for security hardening. Each maps to roadmap phases.
 | SESS-04 | Phase 17 | Complete |
 | AUTH-01 | Phase 17 | Complete |
 | AUTH-02 | Phase 17 | Complete |
-| API-01 | Phase 18 | Pending |
+| API-01 | Phase 18 | Complete |
 | API-02 | Phase 18 | Resolved (by design) |
 
 **Coverage:**

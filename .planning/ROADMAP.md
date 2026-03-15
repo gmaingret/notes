@@ -64,7 +64,7 @@ Full details: [`.planning/milestones/v2.1-ROADMAP.md`](milestones/v2.1-ROADMAP.m
 
 - [x] **Phase 16: Injection and Upload Hardening** — Escape ILIKE metacharacters, restrict upload types, sanitize filenames, serve SVG as attachment, verify bullet ownership on upload (completed 2026-03-15)
 - [x] **Phase 17: Auth and Session Security** — Move JWT to hash fragment, implement server-side refresh token revocation on logout and password change, strengthen password policy (completed 2026-03-15)
-- [ ] **Phase 18: API Protection** — Add rate limiting across data endpoints, document CSRF mitigation by Bearer token architecture
+- [x] **Phase 18: API Protection** — Add rate limiting across data endpoints, document CSRF mitigation by Bearer token architecture (completed 2026-03-15)
 
 ## Phase Details
 
@@ -132,4 +132,4 @@ Plans:
 | 15. Interactive Actions | v2.1 | 2/2 | Complete | 2026-03-14 |
 | 16. Injection and Upload Hardening | v2.2 | 2/2 | Complete | 2026-03-15 |
 | 17. Auth and Session Security | v2.2 | 2/2 | Complete | 2026-03-15 |
-| 18. API Protection | v2.2 | 0/1 | Not started | - |
+| 18. API Protection | 1/1 | Complete   | 2026-03-15 | - |

@@ -100,11 +100,17 @@ attachmentsRouter.get('/:id/file', requireAuth, async (req, res) => {
     if (!attachment) {
       return res.status(404).json({ error: 'Attachment not found' });
     }
+    // Sanitize filename for use in Content-Disposition header:
+    // replace double quotes with single quotes, strip control characters (0x00-0x1F)
+    const safeFilename = attachment.filename
+      .replace(/[\x00-\x1F]/g, '')
+      .replace(/"/g, "'");
+
+    // SVG files must be forced to download (not rendered inline) to prevent stored XSS
+    const disposition = attachment.mimeType === 'image/svg+xml' ? 'attachment' : 'inline';
+
     res.setHeader('Content-Type', attachment.mimeType);
-    res.setHeader(
-      'Content-Disposition',
-      `inline; filename="${attachment.filename}"`
-    );
+    res.setHeader('Content-Disposition', `${disposition}; filename="${safeFilename}"`);
     res.sendFile(attachment.storagePath, { root: '/' });
   } catch (err) {
     console.error(err);

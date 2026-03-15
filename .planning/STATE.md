@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
-milestone: null
-milestone_name: null
-status: milestone_complete
+milestone: v2.2
+milestone_name: Security Hardening
+status: defining_requirements
 stopped_at: null
-last_updated: "2026-03-15T10:00:00Z"
-last_activity: 2026-03-15 — v2.1 Android Home Screen Widget shipped
+last_updated: "2026-03-15T12:00:00Z"
+last_activity: 2026-03-15 — Milestone v2.2 started
 progress:
   total_phases: 0
   completed_phases: 0
@@ -20,16 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
-**Current focus:** Planning next milestone
+**Current focus:** v2.2 Security Hardening
 
 ## Current Position
 
-Phase: —
+Phase: Not started (defining requirements)
 Plan: —
-Status: v2.1 shipped, ready for next milestone
-Last activity: 2026-03-15 — v2.1 Android Home Screen Widget shipped
-
-Progress: All milestones complete (v1.0, v1.1, v2.0, v2.1)
+Status: Defining requirements
+Last activity: 2026-03-15 — Milestone v2.2 started
 
 ## Performance Metrics
 
@@ -64,5 +62,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-15
-Stopped at: v2.1 milestone complete
+Stopped at: Defining v2.2 requirements
 Resume file: None

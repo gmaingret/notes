@@ -3,6 +3,21 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Security Hardening
 status: ready_to_plan
+stopped_at: Phase 16 context gathered
+last_updated: "2026-03-15T08:45:42.171Z"
+last_activity: 2026-03-15 — v2.2 roadmap created; phases 16-18 defined
+progress:
+  total_phases: 3
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+---
+
+---
+gsd_state_version: 1.0
+milestone: v2.2
+milestone_name: Security Hardening
+status: ready_to_plan
 stopped_at: null
 last_updated: "2026-03-15T12:00:00Z"
 last_activity: 2026-03-15 — Roadmap created; phases 16-18 defined
@@ -62,6 +77,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-15
-Stopped at: Roadmap created for v2.2 Security Hardening — ready to plan Phase 16
-Resume file: None
+Last session: 2026-03-15T08:45:42.167Z
+Stopped at: Phase 16 context gathered
+Resume file: .planning/phases/16-injection-and-upload-hardening/16-CONTEXT.md

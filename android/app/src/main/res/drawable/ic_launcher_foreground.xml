@@ -1,52 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- White notepad outline icon on transparent background -->
-<!-- Displays on blue adaptive icon background (#2563EB) -->
+<!-- Notes icon foreground: bullet points and lines -->
+<!-- Uses 300-unit viewport with content offset by +30 for adaptive icon safe zone padding -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
+    android:viewportWidth="300"
+    android:viewportHeight="300">
 
-    <!-- Notepad outline: rectangle body -->
+    <!-- Purple bullet + line (top) -->
     <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="3"
-        android:pathData="M30,28 L78,28 L78,84 L30,84 Z" />
+        android:fillColor="#7F77DD"
+        android:pathData="M90,102 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+    <path
+        android:fillColor="#7F77DD"
+        android:pathData="M108,94 h100 a4,4 0 0,1 0,8 h-100 a4,4 0 0,1 0,-8" />
 
-    <!-- Spiral binding at top -->
+    <!-- Teal bullet + line (second) -->
     <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="3"
-        android:pathData="M30,24 L78,24" />
+        android:fillColor="#5DCAA5"
+        android:alpha="0.85"
+        android:pathData="M112,138 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <path
+        android:fillColor="#5DCAA5"
+        android:alpha="0.85"
+        android:pathData="M128,131 h75 a3.5,3.5 0 0,1 0,7 h-75 a3.5,3.5 0 0,1 0,-7" />
 
-    <!-- Hole punches for spiral -->
+    <!-- Teal bullet + line (third) -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M40,24 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+        android:fillColor="#5DCAA5"
+        android:alpha="0.6"
+        android:pathData="M112,170 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,24 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M68,24 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+        android:fillColor="#5DCAA5"
+        android:alpha="0.6"
+        android:pathData="M128,163 h90 a3.5,3.5 0 0,1 0,7 h-90 a3.5,3.5 0 0,1 0,-7" />
 
-    <!-- Lines representing text on the notepad -->
+    <!-- Purple bullet + line (bottom) -->
     <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2.5"
-        android:pathData="M38,42 L70,42" />
+        android:fillColor="#7F77DD"
+        android:alpha="0.7"
+        android:pathData="M90,206 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
     <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2.5"
-        android:pathData="M38,52 L70,52" />
-    <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2.5"
-        android:pathData="M38,62 L60,62" />
+        android:fillColor="#7F77DD"
+        android:alpha="0.7"
+        android:pathData="M108,198 h80 a4,4 0 0,1 0,8 h-80 a4,4 0 0,1 0,-8" />
 
 </vector>

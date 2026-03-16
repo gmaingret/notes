@@ -13,14 +13,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -49,7 +46,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.gmaingret.notes.MainActivity
@@ -78,7 +74,6 @@ fun MainScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    var menuExpanded by remember { mutableStateOf(false) }
     var deleteConfirmation by remember { mutableStateOf<Document?>(null) }
 
     // Search state
@@ -171,7 +166,7 @@ fun MainScreen(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
-        gesturesEnabled = false,
+        gesturesEnabled = drawerState.isOpen,
         drawerContent = {
             ModalDrawerSheet {
                 DocumentDrawerContent(
@@ -216,6 +211,9 @@ fun MainScreen(
                     onTagsClick = {
                         viewModel.showTags()
                         scope.launch { drawerState.close() }
+                    },
+                    onLogout = {
+                        viewModel.logout(onComplete = onLogout)
                     },
                     isRefreshing = isDrawerRefreshing,
                     onRefresh = { viewModel.refreshDocuments() }
@@ -295,29 +293,10 @@ fun MainScreen(
                                 }
                             }
                         } else {
-                            // Search icon (before MoreVert)
                             IconButton(onClick = { isSearchActive = true }) {
                                 Icon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = "Search"
-                                )
-                            }
-                            IconButton(onClick = { menuExpanded = true }) {
-                                Icon(
-                                    imageVector = Icons.Default.MoreVert,
-                                    contentDescription = "More options"
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = menuExpanded,
-                                onDismissRequest = { menuExpanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Log out") },
-                                    onClick = {
-                                        menuExpanded = false
-                                        viewModel.logout(onComplete = onLogout)
-                                    }
                                 )
                             }
                         }

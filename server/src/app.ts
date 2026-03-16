@@ -58,7 +58,7 @@ export function createApp() {
   // Rate limit data endpoints (abuse / exfiltration protection)
   const dataLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 600,
     standardHeaders: true,
     legacyHeaders: false,
   });

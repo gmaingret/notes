@@ -60,6 +60,10 @@ class MainViewModel @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    /** Timestamp of last successful document fetch — used to debounce rapid refreshes. */
+    private var lastFetchMillis = 0L
+    private companion object { const val REFRESH_DEBOUNCE_MS = 5_000L }
+
     // -----------------------------------------------------------------------
     // Init
     // -----------------------------------------------------------------------
@@ -109,6 +113,7 @@ class MainViewModel @Inject constructor(
     fun loadDocuments() {
         viewModelScope.launch {
             _uiState.value = MainUiState.Loading
+            lastFetchMillis = System.currentTimeMillis()
             val result = getDocumentsUseCase()
             result.fold(
                 onSuccess = { documents ->
@@ -336,7 +341,12 @@ class MainViewModel @Inject constructor(
      */
     fun refreshDocuments() {
         viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            if (now - lastFetchMillis < REFRESH_DEBOUNCE_MS) {
+                return@launch
+            }
             _isRefreshing.value = true
+            lastFetchMillis = now
             val current = _uiState.value as? MainUiState.Success
             val result = getDocumentsUseCase()
             result.fold(

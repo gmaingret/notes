@@ -88,7 +88,7 @@ class NotesWidgetTest {
         coEvery { mockBulletRepo.getBullets(docId) } returns Result.success(listOf(childBullet))
 
         val result = widget.fetchWidgetData(mockEntryPoint, docId = docId)
-        assertEquals(WidgetUiState.Empty, result)
+        assertEquals(WidgetUiState.Empty(documentId = docId, documentTitle = "Empty Doc"), result)
     }
 
     @Test
@@ -100,7 +100,7 @@ class NotesWidgetTest {
         coEvery { mockBulletRepo.getBullets(docId) } returns Result.success(emptyList())
 
         val result = widget.fetchWidgetData(mockEntryPoint, docId = docId)
-        assertEquals(WidgetUiState.Empty, result)
+        assertEquals(WidgetUiState.Empty(documentId = docId, documentTitle = "Empty Doc 2"), result)
     }
 
     // -------------------------------------------------------------------------

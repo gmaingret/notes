@@ -73,6 +73,7 @@ class NotesWidget : GlanceAppWidget() {
                     }
                     is WidgetUiState.Empty -> {
                         displayState = DisplayState.EMPTY
+                        docTitle = result.documentTitle
                     }
                     is WidgetUiState.SessionExpired -> displayState = DisplayState.SESSION_EXPIRED
                     is WidgetUiState.DocumentNotFound -> displayState = DisplayState.DOCUMENT_NOT_FOUND
@@ -165,7 +166,7 @@ class NotesWidget : GlanceAppWidget() {
 
             val uiState = when (displayState) {
                 DisplayState.CONTENT -> WidgetUiState.Content(docId ?: "", docTitle, bullets)
-                DisplayState.EMPTY -> WidgetUiState.Empty
+                DisplayState.EMPTY -> WidgetUiState.Empty(docId ?: "", docTitle)
                 DisplayState.SESSION_EXPIRED -> WidgetUiState.SessionExpired
                 DisplayState.DOCUMENT_NOT_FOUND -> WidgetUiState.DocumentNotFound
                 DisplayState.ERROR -> WidgetUiState.Error("Sync failed")
@@ -248,7 +249,7 @@ class NotesWidget : GlanceAppWidget() {
             }
 
         return if (rootBullets.isEmpty()) {
-            WidgetUiState.Empty
+            WidgetUiState.Empty(documentId = docId, documentTitle = document.title)
         } else {
             WidgetUiState.Content(
                 documentId = docId,

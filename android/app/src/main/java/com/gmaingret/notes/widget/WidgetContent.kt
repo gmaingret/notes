@@ -84,7 +84,7 @@ fun WidgetContent(uiState: WidgetUiState, context: Context) {
         when (uiState) {
             is WidgetUiState.Content -> ContentView(uiState, context)
             is WidgetUiState.Loading -> LoadingContent()
-            is WidgetUiState.Empty -> EmptyContent()
+            is WidgetUiState.Empty -> EmptyContent(uiState, context)
             is WidgetUiState.Error -> ErrorContent(uiState.message)
             is WidgetUiState.DocumentNotFound -> DocumentNotFoundContent()
             is WidgetUiState.SessionExpired -> SessionExpiredContent(context)
@@ -100,57 +100,22 @@ fun WidgetContent(uiState: WidgetUiState, context: Context) {
 @androidx.compose.runtime.Composable
 fun ContentView(state: WidgetUiState.Content, context: Context) {
     Column(modifier = GlanceModifier.fillMaxSize()) {
-        HeaderRow(title = state.documentTitle, documentId = state.documentId, context = context)
-        LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
+        LazyColumn(modifier = GlanceModifier.defaultWeight().fillMaxWidth()) {
             items(state.bullets) { bullet ->
                 BulletRow(bullet = bullet, context = context, documentId = state.documentId)
             }
         }
+        FooterRow(documentId = state.documentId, context = context)
     }
 }
 
 @androidx.compose.runtime.Composable
-fun HeaderRow(title: String, documentId: String, context: Context) {
-    val openAppIntent = Intent(context, MainActivity::class.java).apply {
-        flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TOP
-        putExtra(OPEN_DOCUMENT_ID, documentId)
+fun FooterRow(documentId: String, context: Context) {
+    val addIntent = Intent(context, AddBulletActivity::class.java).apply {
+        flags = FLAG_ACTIVITY_NEW_TASK
+        putExtra("doc_id", documentId)
     }
     Column(modifier = GlanceModifier.fillMaxWidth()) {
-        Row(
-            modifier = GlanceModifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = title,
-                maxLines = 1,
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = GlanceTheme.colors.onSurface
-                ),
-                modifier = GlanceModifier
-                    .defaultWeight()
-                    .clickable(actionStartActivity(openAppIntent))
-            )
-            Spacer(GlanceModifier.width(4.dp))
-            val addIntent = Intent(context, AddBulletActivity::class.java).apply {
-                flags = FLAG_ACTIVITY_NEW_TASK
-                putExtra("doc_id", documentId)
-            }
-            Text(
-                text = "+",
-                style = TextStyle(
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = GlanceTheme.colors.primary
-                ),
-                modifier = GlanceModifier
-                    .padding(2.dp)
-                    .clickable(actionStartActivity(addIntent))
-            )
-        }
         // Thin divider
         Box(
             modifier = GlanceModifier
@@ -158,6 +123,22 @@ fun HeaderRow(title: String, documentId: String, context: Context) {
                 .height(1.dp)
                 .background(GlanceTheme.colors.outline)
         ) {}
+        Box(
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .clickable(actionStartActivity(addIntent)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "+",
+                style = TextStyle(
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GlanceTheme.colors.primary
+                )
+            )
+        }
     }
 }
 
@@ -297,18 +278,21 @@ private fun PlaceholderRow(textWidth: Dp) {
 }
 
 @androidx.compose.runtime.Composable
-fun EmptyContent() {
-    Box(
-        modifier = GlanceModifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "No bullets yet",
-            style = TextStyle(
-                fontSize = 14.sp,
-                color = GlanceTheme.colors.onSurfaceVariant
+fun EmptyContent(state: WidgetUiState.Empty, context: Context) {
+    Column(modifier = GlanceModifier.fillMaxSize()) {
+        Box(
+            modifier = GlanceModifier.defaultWeight().fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No bullets yet",
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    color = GlanceTheme.colors.onSurfaceVariant
+                )
             )
-        )
+        }
+        FooterRow(documentId = state.documentId, context = context)
     }
 }
 

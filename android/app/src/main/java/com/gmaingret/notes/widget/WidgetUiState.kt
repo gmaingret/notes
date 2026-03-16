@@ -29,7 +29,10 @@ sealed interface WidgetUiState {
     data object Loading : WidgetUiState
 
     /** Document selected and fetched, but contains no root-level bullets. */
-    data object Empty : WidgetUiState
+    data class Empty(
+        val documentId: String,
+        val documentTitle: String
+    ) : WidgetUiState
 
     /** Successfully loaded with at least one root bullet. */
     data class Content(

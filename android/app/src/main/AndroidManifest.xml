@@ -46,10 +46,15 @@
             </intent-filter>
         </activity>
 
-        <!-- Overlay activity for adding bullets directly from the widget -->
+        <!-- Overlay activity for adding bullets directly from the widget.
+             taskAffinity="" gives it its own task so it floats over the home screen
+             instead of joining the main app task when the app is already running.
+             excludeFromRecents keeps it out of the recent-apps list. -->
         <activity
             android:name=".widget.add.AddBulletActivity"
             android:exported="false"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
             android:theme="@style/Theme.Notes.Overlay" />
 
         <!-- Disable the default WorkManager auto-initializer so we can wire HiltWorkerFactory

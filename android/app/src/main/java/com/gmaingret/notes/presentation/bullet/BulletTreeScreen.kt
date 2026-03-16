@@ -153,12 +153,26 @@ fun BulletTreeScreen(
         }
     }
 
-    // Flush pending edits when app is backgrounded (ON_STOP)
+    // Flush pending edits on background, reload bullets on foreground resume.
+    // ON_START fires when the app returns from the background (e.g. after using
+    // the widget's add-bullet overlay), ensuring externally-created bullets appear.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, viewModel) {
+        var hasStoppedOnce = false
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) {
-                viewModel.flushAllPendingEdits()
+            when (event) {
+                Lifecycle.Event.ON_STOP -> {
+                    viewModel.flushAllPendingEdits()
+                    hasStoppedOnce = true
+                }
+                Lifecycle.Event.ON_START -> {
+                    // Only reload after the screen has been backgrounded at least once
+                    // to avoid double-loading on initial composition.
+                    if (hasStoppedOnce) {
+                        viewModel.loadBullets(documentId)
+                    }
+                }
+                else -> {}
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

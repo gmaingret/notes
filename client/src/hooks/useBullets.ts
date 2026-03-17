@@ -210,8 +210,11 @@ export function useMarkComplete() {
 
 export function useBulletUndoCheckpoint() {
   return useMutation({
-    mutationFn: (vars: { id: string; content: string }) =>
-      apiClient.post<void>(`/api/bullets/${vars.id}/undo-checkpoint`, { content: vars.content }),
+    mutationFn: (vars: { id: string; content: string; previousContent: string }) =>
+      apiClient.post<void>(`/api/bullets/${vars.id}/undo-checkpoint`, {
+        content: vars.content,
+        previousContent: vars.previousContent,
+      }),
   });
 }
 

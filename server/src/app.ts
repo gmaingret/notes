@@ -10,6 +10,10 @@ import { configurePassport } from './middleware/auth.js';
 export function createApp() {
   const app = express();
 
+  // Trust first proxy (Nginx on 192.168.1.206) so req.ip resolves to the
+  // real client IP and express-rate-limit works correctly behind the reverse proxy.
+  app.set('trust proxy', 1);
+
   // Security headers — allow blob: for images (needed for attachment preview via URL.createObjectURL)
   app.use(helmet({
     contentSecurityPolicy: {
@@ -55,12 +59,15 @@ export function createApp() {
   });
   app.use('/api/auth/refresh', refreshLimiter);
 
-  // Rate limit data endpoints (abuse / exfiltration protection)
+  // Rate limit data endpoints — 100 req/min per endpoint per HTTP method
+  // keyGenerator combines IP + path + method so each (endpoint, method) pair
+  // has its own independent 100/min bucket.
   const dataLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 600,
+    windowMs: 60 * 1000,
+    max: 100,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req) => `${req.ip}:${req.baseUrl || req.path}:${req.method}`,
   });
   app.use('/api/documents', dataLimiter);
   app.use('/api/bullets', dataLimiter);

@@ -133,16 +133,31 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   const undoCheckpoint = useBulletUndoCheckpoint();
   const uploadAttachment = useUploadAttachment();
 
+  // Track the last saved content so undo-checkpoint can record the previous value
+  const lastSavedContentRef = useRef(bullet.content);
+
   const { setSidebarTab, setCanvasView, setFocusedBulletId } = useUiStore();
 
   const handleUndo = useCallback(async () => {
+    // Cancel any pending save — we're about to undo
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
     await apiClient.post('/api/undo', {});
     await queryClient.invalidateQueries({ queryKey: ['bullets'] });
+    // Exit edit mode so the refetched content is displayed
+    setIsEditing(false);
   }, [queryClient]);
 
   const handleRedo = useCallback(async () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
     await apiClient.post('/api/redo', {});
     await queryClient.invalidateQueries({ queryKey: ['bullets'] });
+    setIsEditing(false);
   }, [queryClient]);
 
   // Sync content from server when bullet.content changes and we're not editing.
@@ -151,6 +166,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   useEffect(() => {
     if (!isEditing) {
       setLocalContent(bullet.content);
+      lastSavedContentRef.current = bullet.content;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bullet.content]);
@@ -195,15 +211,17 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     const content = el.textContent ?? '';
     setLocalContent(content);
 
-    if (content.includes('!!') && !content.includes('!![')) {
+    if (/!!(?!\[)/.test(content)) {
       triggerDatePicker((date: string) => {
         if (!divRef.current) return;
-        const updated = divRef.current.textContent!.replace('!!', `!![${date}]`);
+        const updated = divRef.current.textContent!.replace(/!!(?!\[)/, `!![${date}]`);
         divRef.current.textContent = updated;
         setLocalContent(updated);
         if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        const prevContent = lastSavedContentRef.current;
         patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: updated });
-        undoCheckpoint.mutate({ id: bullet.id, content: updated });
+        undoCheckpoint.mutate({ id: bullet.id, content: updated, previousContent: prevContent });
+        lastSavedContentRef.current = updated;
       });
       return;
     }
@@ -211,8 +229,10 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       saveTimerRef.current = null;
+      const prevContent = lastSavedContentRef.current;
       patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content });
-      undoCheckpoint.mutate({ id: bullet.id, content });
+      undoCheckpoint.mutate({ id: bullet.id, content, previousContent: prevContent });
+      lastSavedContentRef.current = content;
     }, 1000);
   }
 
@@ -252,10 +272,19 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     if (onFocus) onFocus();
   }
 
-  // Handle chip clicks in view mode without entering edit mode
+  // Handle chip/link clicks in view mode without entering edit mode
   function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
     if (isEditing) return;
     const target = e.target as HTMLElement;
+
+    // Open markdown links in a new tab without entering edit mode
+    const anchor = target.closest('a') as HTMLAnchorElement | null;
+    if (anchor?.href) {
+      e.preventDefault();
+      window.open(anchor.href, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
     const chipType = target.dataset.chipType as 'tag' | 'mention' | 'date' | undefined;
     const chipValue = target.dataset.chipValue;
     if (chipType && chipValue) {
@@ -641,9 +670,17 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     // For non-image content: paste as plain text to avoid pasting rich HTML
     e.preventDefault();
     const text = e.clipboardData.getData('text/plain');
-    if (text) {
-      document.execCommand('insertText', false, text);
+    if (!text) return;
+
+    // If pasting a URL while text is selected, wrap as markdown link
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed && /^https?:\/\/\S+$/.test(text.trim())) {
+      const selected = sel.toString();
+      document.execCommand('insertText', false, `[${selected}](${text.trim()})`);
+      return;
     }
+
+    document.execCommand('insertText', false, text);
   }
 
   function wrapSelection(marker: string) {

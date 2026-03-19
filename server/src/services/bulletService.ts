@@ -414,7 +414,7 @@ export async function softDeleteBullet(
 
 /**
  * Mark or unmark a bullet complete.
- * No undo recording per BULL-12 — markComplete is not listed in undo requirements.
+ * Records an undo event so Ctrl+Z restores the previous completion state.
  */
 export async function markComplete(
   userId: string,
@@ -422,13 +422,31 @@ export async function markComplete(
   isComplete: boolean,
   dbInstance: DB = defaultDb
 ): Promise<Bullet | null> {
-  const rows = await dbInstance
-    .update(bullets)
-    .set({ isComplete })
-    .where(and(eq(bullets.id, bulletId), eq(bullets.userId, userId)))
-    .returning();
+  const bullet = await dbInstance.query.bullets.findFirst({
+    where: and(eq(bullets.id, bulletId), eq(bullets.userId, userId)),
+  });
+  if (!bullet) return null;
 
-  return (rows[0] as Bullet) ?? null;
+  let updated: Bullet | undefined;
+
+  await dbInstance.transaction(async (tx) => {
+    const rows = await tx
+      .update(bullets)
+      .set({ isComplete })
+      .where(eq(bullets.id, bulletId))
+      .returning();
+    updated = rows[0] as Bullet;
+
+    await recordUndoEvent(
+      tx,
+      userId,
+      'mark_complete',
+      { type: 'update_bullet', id: bulletId, fields: { isComplete } },
+      { type: 'update_bullet', id: bulletId, fields: { isComplete: bullet.isComplete } }
+    );
+  });
+
+  return updated ?? null;
 }
 
 /**

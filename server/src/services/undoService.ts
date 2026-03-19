@@ -75,6 +75,7 @@ async function applyOp(dbInstance: DB, op: UndoOp): Promise<void> {
       if ('isComplete' in fields) set['isComplete'] = fields['isComplete'];
       if ('isCollapsed' in fields) set['isCollapsed'] = fields['isCollapsed'];
       if ('deletedAt' in fields) set['deletedAt'] = fields['deletedAt'];
+      if ('note' in fields) set['note'] = fields['note'];
       if (Object.keys(set).length > 0) {
         await dbInstance
           .update(bullets)

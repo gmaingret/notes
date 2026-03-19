@@ -35,7 +35,7 @@ Requirements for the Robustness & Quality milestone. Each maps to roadmap phases
 
 ### Code Quality
 
-- [ ] **QUAL-01**: BulletContent component (768 lines) decomposed into focused, testable sub-components
+- [x] **QUAL-01**: BulletContent component (768 lines) decomposed into focused, testable sub-components
 - [ ] **QUAL-02**: BulletNode component (487 lines) decomposed into focused, testable sub-components
 
 ## Future Requirements
@@ -78,7 +78,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UNDO-01 | Phase 22 | Pending |
 | UNDO-02 | Phase 22 | Pending |
 | UNDO-03 | Phase 22 | Pending |
-| QUAL-01 | Phase 23 | Pending |
+| QUAL-01 | Phase 23 | Complete |
 | QUAL-02 | Phase 23 | Pending |
 
 **Coverage:**

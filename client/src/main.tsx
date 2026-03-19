@@ -22,7 +22,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <App />
         </AuthProvider>
-        <Toaster position="bottom-right" theme="system" />
+        <Toaster position="bottom-right" theme="system" visibleToasts={3} duration={5000} />
       </QueryClientProvider>
     </BrowserRouter>
   </React.StrictMode>,

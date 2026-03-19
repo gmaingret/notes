@@ -42,19 +42,27 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - ✓ Android home screen widget with document picker, root-level bullet display, Material 3 theming — v2.1
 - ✓ Widget background sync via WorkManager (15-min interval), in-app mutation triggers, independent auth — v2.1
 - ✓ Add and delete bullets directly from widget with optimistic updates and rollback — v2.1
+- ✓ Fix ILIKE wildcard injection in search and tag queries — v2.2
+- ✓ Fix JWT token exposure via URL query string (use hash fragment) — v2.2
+- ✓ Restrict file upload types and validate extensions — v2.2
+- ✓ Sanitize filenames in Content-Disposition headers — v2.2
+- ✓ Serve SVG as attachment (not inline) to prevent stored XSS — v2.2
+- ✓ Add bullet ownership check on attachment upload — v2.2
+- ✓ Add rate limiting on data endpoints — v2.2
+- ✓ Strengthen password policy beyond minimum length — v2.2
+- ✓ Implement server-side refresh token revocation — v2.2
+- ✓ Add CSRF protection beyond SameSite cookie (resolved-by-design: Bearer auth) — v2.2
 
 ### Active
 
-- [ ] Fix ILIKE wildcard injection in search and tag queries
-- [ ] Fix JWT token exposure via URL query string (use hash fragment)
-- [ ] Restrict file upload types and validate extensions
-- [ ] Sanitize filenames in Content-Disposition headers
-- [ ] Serve SVG as attachment (not inline) to prevent stored XSS
-- [ ] Add bullet ownership check on attachment upload
-- [ ] Add rate limiting on data endpoints
-- [ ] Strengthen password policy beyond minimum length
-- [ ] Implement server-side refresh token revocation
-- [ ] Add CSRF protection beyond SameSite cookie
+- [ ] Add CI/CD workflows for server and client (lint, test, build validation on PRs)
+- [ ] Add 401 interceptor with automatic token refresh in web client
+- [ ] Standardize API error response format across all endpoints
+- [ ] Add undo/redo error handling with user-friendly responses
+- [ ] Add React error boundary and toast notification system for mutation failures
+- [ ] Extend undo coverage to mark-complete, note edits, and bulk delete
+- [ ] Wire up UPLOAD_MAX_SIZE_MB and UPLOAD_PATH env vars (currently hardcoded)
+- [ ] Refactor BulletContent and BulletNode into smaller, testable components
 
 ### Deferred
 
@@ -78,31 +86,29 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - AI features — out of scope for focused outliner clone
 - Real-time sync / collaboration — privacy-first means no sync
 
-## Current Milestone: v2.2 Security Hardening
+## Current Milestone: v2.3 Robustness & Quality
 
-**Goal:** Fix all HIGH and MEDIUM severity backend security vulnerabilities identified in security audit.
+**Goal:** Improve reliability, error handling, developer experience, and code quality across the full stack.
 
-**Target fixes:**
-- ILIKE wildcard injection in search/tags (HIGH)
-- JWT token in URL query string instead of hash fragment (HIGH)
-- Unrestricted file upload types (HIGH)
-- Content-Disposition header injection via filename (HIGH)
-- Inline SVG serving enables stored XSS (HIGH)
-- No CSRF token beyond SameSite cookie (MEDIUM)
-- Missing bullet ownership check on attachment upload (MEDIUM)
-- No rate limiting on data endpoints (MEDIUM)
-- Weak password policy (MEDIUM)
-- No server-side refresh token revocation (MEDIUM)
+**Target improvements:**
+- CI/CD pipelines for server and client (HIGH)
+- Web client 401 interceptor with automatic token refresh (HIGH)
+- React error boundary and toast notifications for mutation failures (HIGH)
+- Standardized API error response format (MEDIUM)
+- Undo route error handling with user-friendly responses (MEDIUM)
+- Extended undo coverage for mark-complete, note edits, bulk delete (MEDIUM)
+- Environment variable wiring for upload config (LOW)
+- BulletContent/BulletNode refactor with test coverage (MEDIUM)
 
 ## Current State
 
-**Shipped:** v2.1 Android Home Screen Widget (2026-03-15) — 3 phases, 8 plans, 2,417 LOC Kotlin widget code
+**Shipped:** v2.2 Security Hardening (2026-03-15) — 3 phases, 5 plans, all HIGH/MEDIUM vulnerabilities fixed
 **Live at:** https://notes.gregorymaingret.fr (web) + Android debug APK on device
-**All milestones:** v1.0 MVP, v1.1 Mobile & UI Polish, v2.0 Native Android, v2.1 Widget — 15 phases, 80 plans total
+**All milestones:** v1.0 MVP, v1.1 Mobile & UI Polish, v2.0 Native Android, v2.1 Widget, v2.2 Security — 18 phases, 85 plans total
 
 ## Context
 
-- **Shipped:** v2.1 (2026-03-15) — four milestones complete; ~65k+ LOC (44k web + 15k Android + 4k widget)
+- **Shipped:** v2.2 (2026-03-15) — five milestones complete; ~65k+ LOC (44k web + 15k Android + 4k widget)
 - **Live at:** https://notes.gregorymaingret.fr
 - **Tech stack:** React + Vite + TypeScript (client), Express + Drizzle ORM + PostgreSQL (server), Docker (deployment), Nginx reverse proxy
 - **UI libraries:** lucide-react (icons), @fontsource-variable/inter + jetbrains-mono (fonts), @dnd-kit (drag-and-drop), zustand (state)
@@ -152,4 +158,4 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 | AddBulletActivity as transparent overlay (not Dialog fragment) | Activity context needed for Hilt injection + setFinishOnTouchOutside | ✓ Good — lightweight feel, keyboard auto-shows |
 
 ---
-*Last updated: 2026-03-15 after v2.2 milestone started*
+*Last updated: 2026-03-19 after v2.3 milestone started*

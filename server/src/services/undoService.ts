@@ -10,7 +10,8 @@ export type UndoOp =
   | { type: 'restore_bullet'; id: string }
   | { type: 'restore_bullet_delete'; id: string }
   | { type: 'update_bullet'; id: string; fields: Partial<BulletRow> }
-  | { type: 'move_bullet'; id: string; parentId: string | null; position: number };
+  | { type: 'move_bullet'; id: string; parentId: string | null; position: number }
+  | { type: 'batch'; ops: UndoOp[] };
 
 export type BulletRow = {
   id: string;
@@ -89,6 +90,12 @@ async function applyOp(dbInstance: DB, op: UndoOp): Promise<void> {
         .update(bullets)
         .set({ parentId: op.parentId, position: op.position })
         .where(eq(bullets.id, op.id));
+      break;
+    }
+    case 'batch': {
+      for (const subOp of op.ops) {
+        await applyOp(dbInstance, subOp);
+      }
       break;
     }
   }

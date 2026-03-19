@@ -75,7 +75,7 @@ Full details: [`.planning/milestones/v2.2-ROADMAP.md`](milestones/v2.2-ROADMAP.m
 **Milestone Goal:** Improve reliability, error handling, developer experience, and code quality across the full stack — CI/CD pipelines, automatic token refresh, error boundaries, toast notifications, undo coverage extension, and component refactoring.
 
 - [ ] **Phase 19: Server Foundation** — Standardize API error format, fix undo route error handling, add CI/CD workflows, wire upload env vars
-- [ ] **Phase 20: Client Infrastructure** — Add React error boundary at document level and global toast notifications for mutation failures
+- [x] **Phase 20: Client Infrastructure** — Add React error boundary at document level and global toast notifications for mutation failures (completed 2026-03-19)
 - [ ] **Phase 21: Token Refresh Interceptor** — Automatic silent token refresh on 401 with race condition prevention and retry guard
 - [ ] **Phase 22: Undo Coverage Extension** — Extend undo/redo to cover mark-complete, note edits, and bulk delete of completed bullets
 - [ ] **Phase 23: Component Refactoring** — Decompose BulletContent and BulletNode into focused, testable sub-components
@@ -177,7 +177,7 @@ Plans:
 | 17. Auth and Session Security | v2.2 | 2/2 | Complete | 2026-03-15 |
 | 18. API Protection | v2.2 | 1/1 | Complete | 2026-03-15 |
 | 19. Server Foundation | v2.3 | 0/2 | Planning | - |
-| 20. Client Infrastructure | v2.3 | 0/TBD | Not started | - |
+| 20. Client Infrastructure | v2.3 | Complete    | 2026-03-19 | - |
 | 21. Token Refresh Interceptor | v2.3 | 0/TBD | Not started | - |
 | 22. Undo Coverage Extension | v2.3 | 0/TBD | Not started | - |
 | 23. Component Refactoring | v2.3 | 0/TBD | Not started | - |

@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode, useCallback } from 'react';
+import { toast } from 'sonner';
 import { apiClient } from '../api/client';
 
 type User = { id: string; email: string };
@@ -58,6 +59,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   }, []);
+
+  // Refresh handler for 401 interceptor: calls POST /api/auth/refresh and returns new token or null
+  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
+    try {
+      const res = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data?.accessToken) {
+        // Update React state — handleUnauthorized in client.ts will call setToken()
+        setAccessToken(data.accessToken);
+        return data.accessToken;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // Logout handler for 401 interceptor: shows toast and clears auth state
+  const handleSessionExpired = useCallback(() => {
+    toast.error('Session expired — please log in again');
+    clearAuth();
+  }, [clearAuth]);
+
+  // Inject refresh and logout handlers into apiClient on mount
+  useEffect(() => {
+    apiClient.setRefreshHandler(refreshAccessToken);
+    apiClient.setLogoutHandler(handleSessionExpired);
+    return () => {
+      apiClient.setRefreshHandler(null);
+      apiClient.setLogoutHandler(null);
+    };
+  }, [refreshAccessToken, handleSessionExpired]);
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await apiClient.post<{ accessToken: string; user: User }>(

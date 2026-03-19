@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v2.3
 milestone_name: Robustness & Quality
-status: defining_requirements
+status: ready_to_plan
 stopped_at: null
 last_updated: "2026-03-19T00:00:00Z"
-last_activity: 2026-03-19 — Milestone v2.3 started
+last_activity: 2026-03-19 — Roadmap created for v2.3, 5 phases (19-23), ready to plan Phase 19
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
-**Current focus:** Defining requirements for v2.3 Robustness & Quality
+**Current focus:** Phase 19 — Server Foundation (v2.3)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-19 — Milestone v2.3 started
+Phase: 19 of 23 (Server Foundation)
+Plan: — (not yet planned)
+Status: Ready to plan
+Last activity: 2026-03-19 — Roadmap created for v2.3 Robustness & Quality
 
-Progress: [████████░░] ~83% (18/18+N phases complete across all milestones)
+Progress: [████████░░] ~83% (18 phases complete across all milestones; 0/5 v2.3 phases started)
 
 ## Performance Metrics
 
@@ -51,8 +51,11 @@ Progress: [████████░░] ~83% (18/18+N phases complete across 
 Decisions are logged in PROJECT.md Key Decisions table.
 
 Recent decisions affecting current work:
-- All security fixes are backend-only (Express/Node server) except SESS-01/SESS-02 which require a client-side change to the OAuth callback handler
-- CSRF API-02 closed as resolved-by-design: Bearer token auth never auto-sent by browsers; refresh endpoint uses SameSite=Strict
+- v2.3 uses `sonner@2.0.7` for toast notifications (keep distinct from existing UndoToast component)
+- v2.3 uses `react-error-boundary@6.1.1` for declarative error boundaries with `resetKeys`
+- CI workflows must be validation-only — no SSH deploy step (would fill 30GB server disk)
+- Token refresh interceptor must use shared promise lock to prevent concurrent refresh race condition
+- `_isRetry` flag required on retry to prevent infinite 401 loops (reference: Android commit `0457017`)
 
 ### Pending Todos
 
@@ -61,9 +64,10 @@ None.
 ### Blockers/Concerns
 
 - Server disk reached 100% during Phase 8 deploy — run `docker builder prune` before building if disk is tight
+- Server tests may need a live PostgreSQL connection for CI — verify before finalizing server-ci.yml
 
 ## Session Continuity
 
 Last session: 2026-03-19
-Stopped at: Milestone v2.3 initialization
+Stopped at: Roadmap created — Phase 19 ready to plan
 Resume file: None

@@ -67,25 +67,25 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CICD-01 | TBD | Pending |
-| CICD-02 | TBD | Pending |
-| ERR-01 | TBD | Pending |
-| ERR-02 | TBD | Pending |
-| ERR-03 | TBD | Pending |
-| RES-01 | TBD | Pending |
-| RES-02 | TBD | Pending |
-| UNDO-01 | TBD | Pending |
-| UNDO-02 | TBD | Pending |
-| UNDO-03 | TBD | Pending |
-| CONF-01 | TBD | Pending |
-| QUAL-01 | TBD | Pending |
-| QUAL-02 | TBD | Pending |
+| CICD-01 | Phase 19 | Pending |
+| CICD-02 | Phase 19 | Pending |
+| ERR-01 | Phase 19 | Pending |
+| ERR-02 | Phase 19 | Pending |
+| CONF-01 | Phase 19 | Pending |
+| ERR-03 | Phase 20 | Pending |
+| RES-02 | Phase 20 | Pending |
+| RES-01 | Phase 21 | Pending |
+| UNDO-01 | Phase 22 | Pending |
+| UNDO-02 | Phase 22 | Pending |
+| UNDO-03 | Phase 22 | Pending |
+| QUAL-01 | Phase 23 | Pending |
+| QUAL-02 | Phase 23 | Pending |
 
 **Coverage:**
 - v2.3 requirements: 13 total
-- Mapped to phases: 0
-- Unmapped: 13
+- Mapped to phases: 13
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-19*
-*Last updated: 2026-03-19 after initial definition*
+*Last updated: 2026-03-19 after roadmap creation — all 13 requirements mapped*

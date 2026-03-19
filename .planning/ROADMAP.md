@@ -6,7 +6,8 @@
 - ✅ **v1.1 Mobile & UI Polish** — Phases 5-8 (shipped 2026-03-11)
 - ✅ **v2.0 Native Android Client** — Phases 9-12 (shipped 2026-03-14)
 - ✅ **v2.1 Android Home Screen Widget** — Phases 13-15 (shipped 2026-03-15)
-- 🚧 **v2.2 Security Hardening** — Phases 16-18 (in progress)
+- ✅ **v2.2 Security Hardening** — Phases 16-18 (shipped 2026-03-15)
+- 🚧 **v2.3 Robustness & Quality** — Phases 19-23 (in progress)
 
 ## Phases
 
@@ -58,57 +59,84 @@ Full details: [`.planning/milestones/v2.1-ROADMAP.md`](milestones/v2.1-ROADMAP.m
 
 </details>
 
-### 🚧 v2.2 Security Hardening (In Progress)
+<details>
+<summary>✅ v2.2 Security Hardening (Phases 16-18) — SHIPPED 2026-03-15</summary>
 
-**Milestone Goal:** Fix all HIGH and MEDIUM severity backend security vulnerabilities — injection, XSS, upload abuse, token exposure, weak auth, and missing API protection.
+- [x] Phase 16: Injection and Upload Hardening (2/2 plans) — completed 2026-03-15
+- [x] Phase 17: Auth and Session Security (2/2 plans) — completed 2026-03-15
+- [x] Phase 18: API Protection (1/1 plans) — completed 2026-03-15
 
-- [x] **Phase 16: Injection and Upload Hardening** — Escape ILIKE metacharacters, restrict upload types, sanitize filenames, serve SVG as attachment, verify bullet ownership on upload (completed 2026-03-15)
-- [x] **Phase 17: Auth and Session Security** — Move JWT to hash fragment, implement server-side refresh token revocation on logout and password change, strengthen password policy (completed 2026-03-15)
-- [x] **Phase 18: API Protection** — Add rate limiting across data endpoints, document CSRF mitigation by Bearer token architecture (completed 2026-03-15)
+Full details: [`.planning/milestones/v2.2-ROADMAP.md`](milestones/v2.2-ROADMAP.md)
+
+</details>
+
+### 🚧 v2.3 Robustness & Quality (In Progress)
+
+**Milestone Goal:** Improve reliability, error handling, developer experience, and code quality across the full stack — CI/CD pipelines, automatic token refresh, error boundaries, toast notifications, undo coverage extension, and component refactoring.
+
+- [ ] **Phase 19: Server Foundation** — Standardize API error format, fix undo route error handling, add CI/CD workflows, wire upload env vars
+- [ ] **Phase 20: Client Infrastructure** — Add React error boundary at document level and global toast notifications for mutation failures
+- [ ] **Phase 21: Token Refresh Interceptor** — Automatic silent token refresh on 401 with race condition prevention and retry guard
+- [ ] **Phase 22: Undo Coverage Extension** — Extend undo/redo to cover mark-complete, note edits, and bulk delete of completed bullets
+- [ ] **Phase 23: Component Refactoring** — Decompose BulletContent and BulletNode into focused, testable sub-components
 
 ## Phase Details
 
-### Phase 16: Injection and Upload Hardening
-**Goal**: Server correctly defends against query injection and file upload abuse
-**Depends on**: Nothing (first phase of milestone)
-**Requirements**: INJ-01, INJ-02, INJ-03, UPLD-01, UPLD-02, UPLD-03
+### Phase 19: Server Foundation
+**Goal**: Server consistently returns structured errors, CI validates PRs automatically, and upload config is controlled by environment variables
+**Depends on**: Phase 18 (last completed phase)
+**Requirements**: ERR-01, ERR-02, CICD-01, CICD-02, CONF-01
 **Success Criteria** (what must be TRUE):
-  1. Searching for text containing % or _ returns literal matches without exploding into wildcard results
-  2. Navigating to a tag that contains % or _ shows only bullets tagged with that exact tag
-  3. Uploading a .html, .exe, or .js file is rejected with an error message
-  4. Downloading an uploaded SVG triggers a file-save dialog instead of rendering in the browser
-  5. Uploading a file to a bullet owned by a different user is rejected with a 404 error
-**Plans**: 2 plans
-Plans:
-- [ ] 16-01-PLAN.md — ILIKE escaping and SVG force-download
-- [ ] 16-02-PLAN.md — File type allowlist and bullet ownership verification
+  1. Every API endpoint returns errors as `{ error: string }` JSON — no raw HTML, no mixed `{ errors }` format
+  2. Calling undo when there is nothing to undo returns a 422 with a human-readable message instead of a 500
+  3. A PR to main triggers a GitHub Actions workflow that runs server lint and tests and fails the PR if they fail
+  4. A PR to main triggers a GitHub Actions workflow that runs client lint and Vite build validation and fails the PR if they fail
+  5. Changing UPLOAD_MAX_SIZE_MB or UPLOAD_PATH in .env changes the actual upload behavior without a code change
+**Plans**: TBD
 
-### Phase 17: Auth and Session Security
-**Goal**: Tokens are never exposed in URLs, sessions are revocable, and weak passwords are rejected at registration
-**Depends on**: Phase 16
-**Requirements**: SESS-01, SESS-02, SESS-03, SESS-04, AUTH-01, AUTH-02
+### Phase 20: Client Infrastructure
+**Goal**: The web client has a global error boundary that prevents full-screen crashes and a toast notification layer that surfaces mutation failures to the user
+**Depends on**: Phase 19
+**Requirements**: ERR-03, RES-02
 **Success Criteria** (what must be TRUE):
-  1. After Google OAuth login, the browser URL bar shows no token parameter (hash fragment is cleared immediately)
-  2. After logout, the old refresh token cannot be used to obtain a new access token
-  3. After a password change, existing sessions on other devices are invalidated
-  4. Registering with a common password (e.g., "Password1") is rejected with an informative error
-  5. Registering with a password lacking character diversity is rejected with a clear policy message
-**Plans**: 2 plans
-Plans:
-- [ ] 17-01-PLAN.md — Password policy and OAuth hash fragment fix
-- [ ] 17-02-PLAN.md — Refresh token revocation and password change endpoint
+  1. A rendering crash inside a document shows an error card for that document instead of blanking the whole application
+  2. Navigating from a crashed document to a healthy one clears the error card and renders the new document normally
+  3. When a bullet save, delete, or reorder fails on the server, a toast notification appears describing the failure
+  4. Toast notifications disappear automatically and do not stack into an unreadable pile
+**Plans**: TBD
 
-### Phase 18: API Protection
-**Goal**: Data endpoints are protected against brute-force abuse, and CSRF is mitigated by Bearer token architecture
-**Depends on**: Phase 17
-**Requirements**: API-01, API-02
+### Phase 21: Token Refresh Interceptor
+**Goal**: Expired access tokens are refreshed silently in the background so the user never sees a failed mutation due to token expiry
+**Depends on**: Phase 20
+**Requirements**: RES-01
 **Success Criteria** (what must be TRUE):
-  1. Sending more than the configured request limit to /api/bullets in a short window returns 429 Too Many Requests
-  2. CSRF is mitigated by design: all data endpoints require Bearer token auth (not auto-sent by browsers), and the refresh endpoint uses SameSite=Strict cookies
-  3. Normal in-app usage (create bullet, edit, delete) continues to work without any visible change for the user
-**Plans**: 1 plan
-Plans:
-- [ ] 18-01-PLAN.md — Rate limiting and CSRF documentation
+  1. After an access token expires, the next mutation (create bullet, edit, delete) succeeds without any visible interruption
+  2. If multiple requests are in-flight when the token expires, only one refresh call is made to the server (not one per request)
+  3. If the refresh token is also expired, the user is logged out and redirected to the login page with a notification
+  4. A request that has already been retried once does not trigger another refresh — it fails cleanly instead of looping
+**Plans**: TBD
+
+### Phase 22: Undo Coverage Extension
+**Goal**: Users can undo and redo marking bullets complete, editing notes, and bulk-deleting completed bullets — consistent with the existing 50-level global undo promise
+**Depends on**: Phase 19, Phase 20
+**Requirements**: UNDO-01, UNDO-02, UNDO-03
+**Success Criteria** (what must be TRUE):
+  1. Marking a bullet complete and pressing Ctrl+Z restores it to incomplete
+  2. Editing a bullet's note text and pressing Ctrl+Z restores the previous note content
+  3. Bulk-deleting all completed bullets and pressing Ctrl+Z restores all of them in a single undo step
+  4. Redo works correctly after each of the above undos (Ctrl+Y re-applies the action)
+**Plans**: TBD
+
+### Phase 23: Component Refactoring
+**Goal**: BulletContent and BulletNode are decomposed into focused sub-components that can be read, tested, and modified independently
+**Depends on**: Phase 22
+**Requirements**: QUAL-01, QUAL-02
+**Success Criteria** (what must be TRUE):
+  1. BulletContent no longer exceeds 300 lines — cursor helpers and keyboard logic live in separate, importable modules
+  2. BulletNode no longer exceeds 250 lines — swipe gesture logic is extracted into a reusable hook
+  3. All existing bullet interactions (edit, indent, drag, swipe, complete, zoom) continue to work identically after refactoring
+  4. At least one extracted module (e.g., cursorUtils) has standalone unit tests that pass without mounting a React component
+**Plans**: TBD
 
 ## Progress
 
@@ -132,4 +160,9 @@ Plans:
 | 15. Interactive Actions | v2.1 | 2/2 | Complete | 2026-03-14 |
 | 16. Injection and Upload Hardening | v2.2 | 2/2 | Complete | 2026-03-15 |
 | 17. Auth and Session Security | v2.2 | 2/2 | Complete | 2026-03-15 |
-| 18. API Protection | 1/1 | Complete    | 2026-03-15 | - |
+| 18. API Protection | v2.2 | 1/1 | Complete | 2026-03-15 |
+| 19. Server Foundation | v2.3 | 0/TBD | Not started | - |
+| 20. Client Infrastructure | v2.3 | 0/TBD | Not started | - |
+| 21. Token Refresh Interceptor | v2.3 | 0/TBD | Not started | - |
+| 22. Undo Coverage Extension | v2.3 | 0/TBD | Not started | - |
+| 23. Component Refactoring | v2.3 | 0/TBD | Not started | - |

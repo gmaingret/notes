@@ -149,8 +149,8 @@ Plans:
   4. At least one extracted module (e.g., cursorUtils) has standalone unit tests that pass without mounting a React component
 **Plans**: 2 plans
 Plans:
-- [ ] 23-01-PLAN.md — [To be planned]
-- [ ] 23-02-PLAN.md — [To be planned]
+- [ ] 23-01-PLAN.md — Extract cursorUtils, datePicker, useKeyboardHandlers from BulletContent + unit tests
+- [ ] 23-02-PLAN.md — Extract useSwipeGesture hook from BulletNode
 
 ## Progress
 
@@ -179,4 +179,4 @@ Plans:
 | 20. Client Infrastructure | v2.3 | 2/2 | Complete | 2026-03-19 |
 | 21. Token Refresh Interceptor | 1/1 | Complete    | 2026-03-19 | - |
 | 22. Undo Coverage Extension | 2/2 | Complete    | 2026-03-19 | - |
-| 23. Component Refactoring | v2.3 | 0/TBD | Not started | - |
+| 23. Component Refactoring | v2.3 | 0/2 | Planning | - |

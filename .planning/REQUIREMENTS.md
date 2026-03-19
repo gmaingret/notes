@@ -20,7 +20,7 @@ Requirements for the Robustness & Quality milestone. Each maps to roadmap phases
 
 ### Client Resilience
 
-- [ ] **RES-01**: Web client automatically retries failed requests after refreshing an expired access token (401 interceptor with shared promise lock and retry guard)
+- [x] **RES-01**: Web client automatically retries failed requests after refreshing an expired access token (401 interceptor with shared promise lock and retry guard)
 - [x] **RES-02**: Mutation failures display toast notifications to the user (sonner-based, separate from existing UndoToast)
 
 ### Undo Coverage
@@ -74,7 +74,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONF-01 | Phase 19 | Pending |
 | ERR-03 | Phase 20 | Complete |
 | RES-02 | Phase 20 | Complete |
-| RES-01 | Phase 21 | Pending |
+| RES-01 | Phase 21 | Complete |
 | UNDO-01 | Phase 22 | Pending |
 | UNDO-02 | Phase 22 | Pending |
 | UNDO-03 | Phase 22 | Pending |

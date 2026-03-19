@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.3
 milestone_name: Robustness & Quality
 status: unknown
-stopped_at: Phase 21 context gathered
-last_updated: "2026-03-19T16:37:34.153Z"
+stopped_at: Completed 21-01-PLAN.md
+last_updated: "2026-03-19T16:45:15.129Z"
 progress:
   total_phases: 5
-  completed_phases: 0
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 1
+  total_plans: 3
+  completed_plans: 3
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
-**Current focus:** Phase 20 — client-infrastructure
+**Current focus:** Phase 21 — token-refresh-interceptor
 
 ## Current Position
 
-Phase: 20 (client-infrastructure) — COMPLETE
-Plan: 2 of 2
+Phase: 21 (token-refresh-interceptor) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
@@ -41,6 +41,7 @@ Plan: 2 of 2
 | Phase 19 P01 | 5 | 2 tasks | 4 files |
 | Phase 20 P01 | 2 | 2 tasks | 5 files |
 | Phase 20 P02 | 5 | 2 tasks | 3 files |
+| Phase 21 P01 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,9 @@ Recent decisions affecting current work:
 - [Phase 20]: resetKeys on document.id for automatic error boundary reset on document navigation
 - [Phase 20]: visibleToasts=3 and duration=5000ms on Toaster prevents toast stacking
 - [Phase 20]: All bullet mutations in useBullets.ts follow uniform toast.error() onError pattern
+- [Phase 21]: Handler injection via setRefreshHandler/setLogoutHandler avoids circular ES module imports between client.ts and AuthContext.tsx
+- [Phase 21]: Shared promise lock (refreshPromise) prevents duplicate refresh calls for concurrent 401s; cleared in finally() to allow future refreshes
+- [Phase 21]: _isRetry flag on request() and isRetry param on upload/download() prevent infinite 401 retry loops
 
 ### Pending Todos
 
@@ -75,6 +79,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-19T16:37:34.149Z
-Stopped at: Phase 21 context gathered
-Resume file: .planning/phases/21-token-refresh-interceptor/21-CONTEXT.md
+Last session: 2026-03-19T16:45:15.126Z
+Stopped at: Completed 21-01-PLAN.md
+Resume file: None

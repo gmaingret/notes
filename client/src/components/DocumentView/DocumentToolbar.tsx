@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { apiClient } from '../../api/client';
 
 type Props = {
@@ -16,8 +17,12 @@ export function DocumentToolbar({ documentId, hideCompleted, onToggleHideComplet
     );
     if (!confirmed) return;
 
-    await apiClient.delete<void>(`/api/bullets/documents/${documentId}/completed`);
-    queryClient.invalidateQueries({ queryKey: ['bullets', documentId] });
+    try {
+      await apiClient.delete<void>(`/api/bullets/documents/${documentId}/completed`);
+      queryClient.invalidateQueries({ queryKey: ['bullets', documentId] });
+    } catch (err) {
+      toast.error('Failed to delete completed bullets', { description: (err as Error).message });
+    }
   }
 
   return (

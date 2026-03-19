@@ -158,4 +158,4 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 | AddBulletActivity as transparent overlay (not Dialog fragment) | Activity context needed for Hilt injection + setFinishOnTouchOutside | ✓ Good — lightweight feel, keyboard auto-shows |
 
 ---
-*Last updated: 2026-03-19 after Phase 21 (Token Refresh Interceptor) complete*
+*Last updated: 2026-03-19 after Phase 22 (Undo Coverage Extension) complete*

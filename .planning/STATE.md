@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.3
 milestone_name: Robustness & Quality
 status: unknown
-stopped_at: Completed 22-01-PLAN.md
-last_updated: "2026-03-19T17:26:05.802Z"
+stopped_at: Completed 22-02-PLAN.md
+last_updated: "2026-03-19T17:28:50.603Z"
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -43,6 +43,7 @@ Plan: 2 of 2
 | Phase 20 P02 | 5 | 2 tasks | 3 files |
 | Phase 21 P01 | 5 | 2 tasks | 2 files |
 | Phase 22-undo-coverage-extension P01 | 10 | 2 tasks | 2 files |
+| Phase 22-undo-coverage-extension P02 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,8 @@ Recent decisions affecting current work:
 - [Phase 21]: _isRetry flag on request() and isRetry param on upload/download() prevent infinite 401 retry loops
 - [Phase 22-01]: markComplete now wraps in transaction with recordUndoEvent, matching the setCollapsed pattern
 - [Phase 22-01]: patchBullet uses 'as unknown as Partial<BulletRow>' cast because BulletRow type omits note but applyOp accesses fields generically
+- [Phase 22-02]: Batch UndoOp variant is recursive (UndoOp[]) enabling arbitrary compound operations in a single undo step
+- [Phase 22-02]: Bulk delete snapshots IDs before soft delete and wraps both operations in db.transaction for atomicity
 
 ### Pending Todos
 
@@ -82,6 +85,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-19T17:26:05.799Z
-Stopped at: Completed 22-01-PLAN.md
+Last session: 2026-03-19T17:28:50.600Z
+Stopped at: Completed 22-02-PLAN.md
 Resume file: None

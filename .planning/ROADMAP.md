@@ -77,7 +77,7 @@ Full details: [`.planning/milestones/v2.2-ROADMAP.md`](milestones/v2.2-ROADMAP.m
 - [ ] **Phase 19: Server Foundation** — Standardize API error format, fix undo route error handling, add CI/CD workflows, wire upload env vars
 - [x] **Phase 20: Client Infrastructure** — Add React error boundary at document level and global toast notifications for mutation failures (completed 2026-03-19)
 - [x] **Phase 21: Token Refresh Interceptor** — Automatic silent token refresh on 401 with race condition prevention and retry guard (completed 2026-03-19)
-- [ ] **Phase 22: Undo Coverage Extension** — Extend undo/redo to cover mark-complete, note edits, and bulk delete of completed bullets
+- [x] **Phase 22: Undo Coverage Extension** — Extend undo/redo to cover mark-complete, note edits, and bulk delete of completed bullets (completed 2026-03-19)
 - [ ] **Phase 23: Component Refactoring** — Decompose BulletContent and BulletNode into focused, testable sub-components
 
 ## Phase Details
@@ -178,5 +178,5 @@ Plans:
 | 19. Server Foundation | v2.3 | 0/2 | Planning | - |
 | 20. Client Infrastructure | v2.3 | 2/2 | Complete | 2026-03-19 |
 | 21. Token Refresh Interceptor | 1/1 | Complete    | 2026-03-19 | - |
-| 22. Undo Coverage Extension | 1/2 | In Progress|  | - |
+| 22. Undo Coverage Extension | 2/2 | Complete   | 2026-03-19 | - |
 | 23. Component Refactoring | v2.3 | 0/TBD | Not started | - |

@@ -14,6 +14,9 @@ export function createApp() {
   // real client IP and express-rate-limit works correctly behind the reverse proxy.
   app.set('trust proxy', 1);
 
+  // Serve user-uploaded static pages BEFORE helmet so they aren't restricted by CSP
+  app.use('/s', express.static('/data/static'));
+
   // Security headers — allow blob: for images (needed for attachment preview via URL.createObjectURL)
   app.use(helmet({
     contentSecurityPolicy: {

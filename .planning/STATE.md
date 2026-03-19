@@ -3,27 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.3
 milestone_name: Robustness & Quality
 status: unknown
-stopped_at: Completed 23-02-PLAN.md
-last_updated: "2026-03-19T17:50:58.829Z"
+stopped_at: Phase 23 context gathered
+last_updated: "2026-03-19T17:32:59.560Z"
 progress:
   total_phases: 5
-  completed_phases: 0
-  total_plans: 2
-  completed_plans: 2
-  percent: 100
----
-
----
-gsd_state_version: 1.0
-milestone: v2.3
-milestone_name: Robustness & Quality
-status: unknown
-stopped_at: Phase 23 context gathered
-last_updated: "2026-03-19T17:38:55.026Z"
-progress:
-  [██████████] 100%
   completed_phases: 2
-  total_plans: 7
+  total_plans: 5
   completed_plans: 5
 ---
 
@@ -34,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
-**Current focus:** Phase 23 — component-refactoring
+**Current focus:** Phase 22 — undo-coverage-extension
 
 ## Current Position
 
-Phase: 23 (component-refactoring) — EXECUTING
-Plan: 1 of 2
+Phase: 22 (undo-coverage-extension) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -59,8 +44,6 @@ Plan: 1 of 2
 | Phase 21 P01 | 5 | 2 tasks | 2 files |
 | Phase 22-undo-coverage-extension P01 | 10 | 2 tasks | 2 files |
 | Phase 22-undo-coverage-extension P02 | 2 | 2 tasks | 2 files |
-| Phase 23 P01 | 6 | 2 tasks | 6 files |
-| Phase 23 P02 | 7 | 1 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -90,11 +73,6 @@ Recent decisions affecting current work:
 - [Phase 22-01]: patchBullet uses 'as unknown as Partial<BulletRow>' cast because BulletRow type omits note but applyOp accesses fields generically
 - [Phase 22-02]: Batch UndoOp variant is recursive (UndoOp[]) enabling arbitrary compound operations in a single undo step
 - [Phase 22-02]: Bulk delete snapshots IDs before soft delete and wraps both operations in db.transaction for atomicity
-- [Phase 23]: saveTimerRef/lastSavedContentRef passed as params to useKeyboardHandlers, not created inside it — preserves save lifecycle ownership in BulletContent
-- [Phase 23]: BulletContent re-exports isCursorAtStart, isCursorAtEnd, splitAtCursor from cursorUtils for backward compatibility
-- [Phase 23]: isDragActiveRef passed from useDotDrag to useSwipeGesture for cross-hook coordination
-- [Phase 23]: onContextMenu callback in SwipeActions avoids circular dependency between hook and BulletNode state
-- [Phase 23]: useDotDrag hook created (beyond plan scope) to meet BulletNode 250-line must_have truth
 
 ### Pending Todos
 
@@ -107,6 +85,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-19T17:47:15.415Z
-Stopped at: Completed 23-02-PLAN.md
-Resume file: None
+Last session: 2026-03-19T17:32:59.556Z
+Stopped at: Phase 23 context gathered
+Resume file: .planning/phases/23-component-refactoring/23-CONTEXT.md

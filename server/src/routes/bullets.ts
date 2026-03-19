@@ -124,14 +124,16 @@ bulletsRouter.patch('/:id', async (req, res) => {
   }
 });
 
-// BULL-14: Hard-delete all completed bullets in a document (no undo)
+// BULL-14: Soft-delete all completed bullets in a document (with undo)
 // DELETE /api/bullets/documents/:docId/completed
 // NOTE: Must be defined BEFORE /:id to avoid Express param collision
 bulletsRouter.delete('/documents/:docId/completed', async (req, res) => {
   const user = req.user as { id: string };
   try {
-    await db
-      .delete(bullets)
+    // Snapshot affected bullets BEFORE deleting so we can build the undo event
+    const completedBullets = await db
+      .select({ id: bullets.id })
+      .from(bullets)
       .where(
         and(
           eq(bullets.documentId, req.params.docId),
@@ -140,6 +142,38 @@ bulletsRouter.delete('/documents/:docId/completed', async (req, res) => {
           isNull(bullets.deletedAt)
         )
       );
+
+    if (completedBullets.length === 0) {
+      return res.json({ ok: true });
+    }
+
+    await db.transaction(async (tx) => {
+      // Soft delete instead of hard delete
+      await tx
+        .update(bullets)
+        .set({ deletedAt: new Date() })
+        .where(
+          and(
+            eq(bullets.documentId, req.params.docId),
+            eq(bullets.userId, user.id),
+            eq(bullets.isComplete, true),
+            isNull(bullets.deletedAt)
+          )
+        );
+
+      // Record a single undo event with batch ops so one Ctrl+Z restores all
+      const forwardOps = completedBullets.map(b => ({ type: 'delete_bullet' as const, id: b.id }));
+      const inverseOps = completedBullets.map(b => ({ type: 'restore_bullet' as const, id: b.id }));
+
+      await recordUndoEvent(
+        tx,
+        user.id,
+        'bulk_delete_completed',
+        { type: 'batch', ops: forwardOps },
+        { type: 'batch', ops: inverseOps }
+      );
+    });
+
     return res.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message.toLowerCase() : '';

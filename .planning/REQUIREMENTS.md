@@ -16,18 +16,18 @@ Requirements for the Robustness & Quality milestone. Each maps to roadmap phases
 
 - [ ] **ERR-01**: All API endpoints return errors in a consistent format (`{ error, code?, details? }`)
 - [ ] **ERR-02**: Undo/redo routes return user-friendly error responses (e.g., 422 "nothing to undo") instead of raw 500s
-- [ ] **ERR-03**: React error boundary at DocumentView level catches rendering crashes and auto-resets on document navigation
+- [x] **ERR-03**: React error boundary at DocumentView level catches rendering crashes and auto-resets on document navigation
 
 ### Client Resilience
 
-- [ ] **RES-01**: Web client automatically retries failed requests after refreshing an expired access token (401 interceptor with shared promise lock and retry guard)
-- [ ] **RES-02**: Mutation failures display toast notifications to the user (sonner-based, separate from existing UndoToast)
+- [x] **RES-01**: Web client automatically retries failed requests after refreshing an expired access token (401 interceptor with shared promise lock and retry guard)
+- [x] **RES-02**: Mutation failures display toast notifications to the user (sonner-based, separate from existing UndoToast)
 
 ### Undo Coverage
 
-- [ ] **UNDO-01**: User can undo/redo toggling bullet complete/incomplete
-- [ ] **UNDO-02**: User can undo/redo changes to bullet notes
-- [ ] **UNDO-03**: User can undo/redo bulk deletion of completed bullets
+- [x] **UNDO-01**: User can undo/redo toggling bullet complete/incomplete
+- [x] **UNDO-02**: User can undo/redo changes to bullet notes
+- [x] **UNDO-03**: User can undo/redo bulk deletion of completed bullets
 
 ### Configuration
 
@@ -35,8 +35,8 @@ Requirements for the Robustness & Quality milestone. Each maps to roadmap phases
 
 ### Code Quality
 
-- [x] **QUAL-01**: BulletContent component (768 lines) decomposed into focused, testable sub-components
-- [x] **QUAL-02**: BulletNode component (487 lines) decomposed into focused, testable sub-components
+- [ ] **QUAL-01**: BulletContent component (768 lines) decomposed into focused, testable sub-components
+- [ ] **QUAL-02**: BulletNode component (487 lines) decomposed into focused, testable sub-components
 
 ## Future Requirements
 
@@ -72,14 +72,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ERR-01 | Phase 19 | Pending |
 | ERR-02 | Phase 19 | Pending |
 | CONF-01 | Phase 19 | Pending |
-| ERR-03 | Phase 20 | Pending |
-| RES-02 | Phase 20 | Pending |
-| RES-01 | Phase 21 | Pending |
-| UNDO-01 | Phase 22 | Pending |
-| UNDO-02 | Phase 22 | Pending |
-| UNDO-03 | Phase 22 | Pending |
-| QUAL-01 | Phase 23 | Complete |
-| QUAL-02 | Phase 23 | Complete |
+| ERR-03 | Phase 20 | Complete |
+| RES-02 | Phase 20 | Complete |
+| RES-01 | Phase 21 | Complete |
+| UNDO-01 | Phase 22 | Complete |
+| UNDO-02 | Phase 22 | Complete |
+| UNDO-03 | Phase 22 | Complete |
+| QUAL-01 | Phase 23 | Pending |
+| QUAL-02 | Phase 23 | Pending |
 
 **Coverage:**
 - v2.3 requirements: 13 total

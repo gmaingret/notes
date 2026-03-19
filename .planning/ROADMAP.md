@@ -177,6 +177,6 @@ Plans:
 | 18. API Protection | v2.2 | 1/1 | Complete | 2026-03-15 |
 | 19. Server Foundation | v2.3 | 0/2 | Planning | - |
 | 20. Client Infrastructure | v2.3 | 2/2 | Complete | 2026-03-19 |
-| 21. Token Refresh Interceptor | 1/1 | Complete   | 2026-03-19 | - |
+| 21. Token Refresh Interceptor | 1/1 | Complete    | 2026-03-19 | - |
 | 22. Undo Coverage Extension | v2.3 | 0/TBD | Not started | - |
 | 23. Component Refactoring | v2.3 | 0/TBD | Not started | - |

@@ -1,11 +1,13 @@
 package com.gmaingret.notes.data.api
 
 import android.util.Base64
+import android.util.Log
 import com.gmaingret.notes.data.local.TokenStore
 import dagger.Lazy
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
+import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,6 +30,7 @@ class TokenRefresher @Inject constructor(
     private val mutex = Mutex()
 
     companion object {
+        private const val TAG = "TokenRefresher"
         /** Refresh proactively if token expires within this many seconds. */
         private const val EXPIRY_BUFFER_SECONDS = 60L
     }
@@ -90,8 +93,15 @@ class TokenRefresher @Inject constructor(
             val newToken = response.accessToken
             tokenStore.saveAccessToken(newToken)
             newToken
-        } catch (e: Exception) {
+        } catch (e: HttpException) {
+            // Definitive auth failure (401/403) — session is truly dead, clear tokens
+            Log.w(TAG, "Token refresh failed with HTTP ${e.code()}, clearing session")
             tokenStore.clearAll()
+            null
+        } catch (e: Exception) {
+            // Transient error (network timeout, DNS, etc.) — keep tokens so the next
+            // request can retry the refresh instead of logging the user out
+            Log.w(TAG, "Token refresh failed (transient): ${e.javaClass.simpleName}", e)
             null
         }
     }

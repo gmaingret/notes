@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.3
 milestone_name: Robustness & Quality
 status: unknown
-stopped_at: Phase 22 context gathered
-last_updated: "2026-03-19T17:17:47.008Z"
+stopped_at: Completed 22-01-PLAN.md
+last_updated: "2026-03-19T17:26:05.802Z"
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
-**Current focus:** Phase 21 — token-refresh-interceptor
+**Current focus:** Phase 22 — undo-coverage-extension
 
 ## Current Position
 
-Phase: 21 (token-refresh-interceptor) — EXECUTING
-Plan: 1 of 1
+Phase: 22 (undo-coverage-extension) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -42,6 +42,7 @@ Plan: 1 of 1
 | Phase 20 P01 | 2 | 2 tasks | 5 files |
 | Phase 20 P02 | 5 | 2 tasks | 3 files |
 | Phase 21 P01 | 5 | 2 tasks | 2 files |
+| Phase 22-undo-coverage-extension P01 | 10 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,8 @@ Recent decisions affecting current work:
 - [Phase 21]: Handler injection via setRefreshHandler/setLogoutHandler avoids circular ES module imports between client.ts and AuthContext.tsx
 - [Phase 21]: Shared promise lock (refreshPromise) prevents duplicate refresh calls for concurrent 401s; cleared in finally() to allow future refreshes
 - [Phase 21]: _isRetry flag on request() and isRetry param on upload/download() prevent infinite 401 retry loops
+- [Phase 22-01]: markComplete now wraps in transaction with recordUndoEvent, matching the setCollapsed pattern
+- [Phase 22-01]: patchBullet uses 'as unknown as Partial<BulletRow>' cast because BulletRow type omits note but applyOp accesses fields generically
 
 ### Pending Todos
 
@@ -79,6 +82,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-19T17:17:47.005Z
-Stopped at: Phase 22 context gathered
-Resume file: .planning/phases/22-undo-coverage-extension/22-CONTEXT.md
+Last session: 2026-03-19T17:26:05.799Z
+Stopped at: Completed 22-01-PLAN.md
+Resume file: None

@@ -25,8 +25,8 @@ Requirements for the Robustness & Quality milestone. Each maps to roadmap phases
 
 ### Undo Coverage
 
-- [ ] **UNDO-01**: User can undo/redo toggling bullet complete/incomplete
-- [ ] **UNDO-02**: User can undo/redo changes to bullet notes
+- [x] **UNDO-01**: User can undo/redo toggling bullet complete/incomplete
+- [x] **UNDO-02**: User can undo/redo changes to bullet notes
 - [ ] **UNDO-03**: User can undo/redo bulk deletion of completed bullets
 
 ### Configuration
@@ -75,8 +75,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ERR-03 | Phase 20 | Complete |
 | RES-02 | Phase 20 | Complete |
 | RES-01 | Phase 21 | Complete |
-| UNDO-01 | Phase 22 | Pending |
-| UNDO-02 | Phase 22 | Pending |
+| UNDO-01 | Phase 22 | Complete |
+| UNDO-02 | Phase 22 | Complete |
 | UNDO-03 | Phase 22 | Pending |
 | QUAL-01 | Phase 23 | Pending |
 | QUAL-02 | Phase 23 | Pending |

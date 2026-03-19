@@ -9,6 +9,7 @@ services:
         condition: service_healthy
     volumes:
       - attachments:/data/attachments
+      - ./static:/data/static:ro
     restart: unless-stopped
 
   db:

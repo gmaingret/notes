@@ -1,541 +1,490 @@
 # Architecture Research
 
-**Domain:** Jetpack Glance home screen widget integrated into existing Clean Architecture Android app
-**Researched:** 2026-03-14
-**Confidence:** HIGH (official Android docs + official Glance codelab + verified Hilt docs)
-
----
+**Domain:** Robustness & Quality improvements to existing Notes app (v2.3)
+**Researched:** 2026-03-19
+**Confidence:** HIGH (based on direct source-code inspection)
 
 ## Standard Architecture
 
-### System Overview
+### System Overview (Existing + New Components)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        HOME SCREEN PROCESS                           │
-│  ┌──────────────────────────────────────────────────────────────┐   │
-│  │  NotesGlanceWidget (GlanceAppWidget)                          │   │
-│  │    provideGlance() → EntryPointAccessors → repos              │   │
-│  │    → reads WidgetStateStore → fetches bullets                 │   │
-│  │    → provideContent { LazyColumn of root bullets }            │   │
-│  └──────────────────────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────────────────────┘
-         ↑ Android OS renders RemoteViews; calls provideGlance on update
-         │
-┌────────────────────────────────────────────────────────────────────────┐
-│                         APP PROCESS (existing + new widget layer)       │
-│                                                                         │
-│  ┌──────────────────────┐   ┌─────────────────────────────────────┐    │
-│  │  WIDGET LAYER (NEW)  │   │  PRESENTATION LAYER (existing)       │    │
-│  │                      │   │                                      │    │
-│  │  NotesWidgetReceiver │   │  BulletTreeViewModel ← MODIFIED      │    │
-│  │  (@AndroidEntryPoint)│   │    after successful mutation:        │    │
-│  │  @Inject repo for    │   │    viewModelScope.launch {           │    │
-│  │  onDeleted cleanup   │   │      NotesGlanceWidget()             │    │
-│  │                      │   │        .updateAll(context)           │    │
-│  │  WidgetConfigActivity│   │    }                                 │    │
-│  │  (doc picker)        │   │                                      │    │
-│  │                      │   │  MainViewModel, AuthViewModel, etc.  │    │
-│  │  WidgetSyncWorker    │   │  (unchanged)                         │    │
-│  │  (@HiltWorker, 15m)  │   │                                      │    │
-│  └──────────┬───────────┘   └──────────────────────────────────────┘   │
-│             │ @Inject / EntryPointAccessors.fromApplication()           │
-│  ┌──────────▼──────────────────────────────────────────────────────┐   │
-│  │                    DOMAIN LAYER (existing, unchanged)            │   │
-│  │                                                                  │   │
-│  │  GetBulletsUseCase  CreateBulletUseCase  DeleteBulletUseCase     │   │
-│  │  GetDocumentsUseCase                                             │   │
-│  └──────────┬───────────────────────────────────────────────────────┘  │
-│             │                                                            │
-│  ┌──────────▼──────────────────────────────────────────────────────┐   │
-│  │                    DATA LAYER (existing + minor addition)         │   │
-│  │                                                                  │   │
-│  │  BulletRepositoryImpl  DocumentRepositoryImpl  (unchanged)       │   │
-│  │  TokenStore (DataStore/Tink — shared, unchanged)                 │   │
-│  │  AuthInterceptor → OkHttpClient (shared, unchanged)              │   │
-│  │                                                                  │   │
-│  │  WidgetStateStore (NEW)                                          │   │
-│  │    DataStore Preferences: appWidgetId → documentId mapping       │   │
-│  └──────────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────────────┘
+│                          GitHub Actions CI                           │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────────┐  │
+│  │  android-ci.yml  │  │  server-ci.yml   │  │  client-ci.yml   │  │
+│  │  (existing)      │  │  (NEW)           │  │  (NEW)           │  │
+│  └──────────────────┘  └──────────────────┘  └───────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                         React Client (Vite)                          │
+├─────────────────────────────────────────────────────────────────────┤
+│  main.tsx                                                            │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │  BrowserRouter > QueryClientProvider > AuthProvider            │  │
+│  │  ┌──────────────────────────────────────────────────────────┐  │  │
+│  │  │  ErrorBoundary (NEW — wraps App)                         │  │  │
+│  │  │  ┌────────────────────────────────────────────────────┐  │  │  │
+│  │  │  │  ToastProvider (NEW — wraps App for toast context) │  │  │  │
+│  │  │  │  ┌──────────────────────────────────────────────┐  │  │  │  │
+│  │  │  │  │  App → Routes → RequireAuth → AppPage        │  │  │  │  │
+│  │  │  │  └──────────────────────────────────────────────┘  │  │  │  │
+│  │  │  └────────────────────────────────────────────────────┘  │  │  │
+│  │  └──────────────────────────────────────────────────────────┘  │  │
+│  └────────────────────────────────────────────────────────────────┘  │
+│                                                                       │
+│  ApiClient (client/src/api/client.ts) — MODIFIED                    │
+│  ┌──────────────────────────────────────────────────────────────┐    │
+│  │  request() → 401 detected → POST /api/auth/refresh           │    │
+│  │           → apply new token → retry original request once    │    │
+│  │           → second 401 → onAuthFailure() → redirect /login   │    │
+│  └──────────────────────────────────────────────────────────────┘    │
+│                                                                       │
+│  BulletNode (MODIFIED — swipe gesture shell only after refactor)    │
+│  BulletContent (MODIFIED — editing logic; toast on undo failure)    │
+│  ┌──────────────────────┐  ┌───────────────────────────────────┐     │
+│  │  Cursor helpers      │  │  Keyboard handler logic           │     │
+│  │  (extracted, tested) │  │  (extractable sub-unit)           │     │
+│  └──────────────────────┘  └───────────────────────────────────┘     │
+└─────────────────────────────────────────────────────────────────────┘
+          │  fetch + httpOnly cookie
+          ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Express Server                                │
+├─────────────────────────────────────────────────────────────────────┤
+│  app.ts → Routes → Services → Drizzle ORM                           │
+│                                                                       │
+│  Middleware stack (ORDER MATTERS):                                   │
+│  helmet → cors → morgan → json → cookieParser                       │
+│  → rateLimiters → passport → [routes] → errorMiddleware (NEW)       │
+│                                                                       │
+│  errorMiddleware (NEW — server/src/middleware/errors.ts)            │
+│  ┌──────────────────────────────────────────────────────────────┐    │
+│  │  (err, req, res, next): void → { error: string } JSON        │    │
+│  └──────────────────────────────────────────────────────────────┘    │
+│                                                                       │
+│  undoRouter (MODIFIED — return structured error when stack empty)   │
+│  bulletService (MODIFIED — add recordUndoEvent for mark_complete,   │
+│                             note edits, bulk delete)                │
+└─────────────────────────────────────────────────────────────────────┘
+          │  SQL
+          ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  PostgreSQL + Drizzle ORM                                            │
+│  undo_events, undo_cursors, bullets, documents, …                   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Component Responsibilities
 
-| Component | New or Modified | Responsibility |
-|-----------|----------------|----------------|
-| `NotesGlanceWidget` | NEW | Renders widget UI. Uses `EntryPointAccessors` to get repos from Hilt singleton graph. Reads selected `documentId` from `WidgetStateStore`. Fetches root bullets in `provideGlance()` before calling `provideContent {}`. |
-| `NotesWidgetReceiver` | NEW | `GlanceAppWidgetReceiver` subclass. Annotated `@AndroidEntryPoint` for lifecycle callbacks. Injects `WidgetStateStore` for `onDeleted` cleanup. Starts/stops `WidgetSyncWorker` in `onEnabled`/`onDisabled`. |
-| `WidgetConfigActivity` | NEW | Standard Activity launched by Android on first widget placement. User picks a document. Saves `appWidgetId → documentId` to `WidgetStateStore`. Calls `NotesGlanceWidget().updateAll()`. Returns `RESULT_OK` to Android. |
-| `WidgetStateStore` | NEW | DataStore Preferences singleton. Stores `appWidgetId → documentId` as string key-value pairs. Accessible from all three widget components (unlike Glance's built-in session state). |
-| `WidgetSyncWorker` | NEW | `@HiltWorker` CoroutineWorker. Scheduled as `PeriodicWorkRequest` with 15-minute minimum interval. Injects `BulletRepository` and `DocumentRepository`. Calls `NotesGlanceWidget().updateAll(context)` which triggers `provideGlance()` for each placed instance. |
-| `BulletTreeViewModel` | MODIFIED (minor) | After each successful bullet mutation (create, delete, patch), launch a fire-and-forget coroutine that calls `NotesGlanceWidget().updateAll(applicationContext)`. |
-| `NotesApplication` | MODIFIED (minor) | Implement `Configuration.Provider` to supply `HiltWorkerFactory`. Required for `@HiltWorker` to work. Two additions: `@Inject lateinit var workerFactory: HiltWorkerFactory` and `override val workManagerConfiguration`. |
-| `BulletRepositoryImpl` | UNCHANGED | Already provides suspend API the widget can consume. |
-| `DocumentRepositoryImpl` | UNCHANGED | `WidgetConfigActivity` and `WidgetSyncWorker` use existing interface. |
-| `TokenStore` | UNCHANGED | Widget HTTP requests flow through the same `AuthInterceptor → OkHttpClient` path. No separate token mechanism. |
-| `NetworkModule` | UNCHANGED | Singleton `OkHttpClient` already configured with `AuthInterceptor` and `TokenAuthenticator`. |
-| `DataModule` | UNCHANGED | All existing `@Binds` repository bindings remain. |
+| Component | Responsibility | Status |
+|-----------|----------------|--------|
+| `ApiClient.request()` | HTTP transport with auth header | MODIFIED — add 401 retry loop |
+| `AuthContext` | Holds accessToken, manages session | MODIFIED — expose `refreshToken()` callable |
+| `ErrorBoundary` | Catch render-phase React errors, show fallback UI | NEW |
+| `ToastProvider` + `useToast` | Global ephemeral notifications for mutation failures | NEW |
+| `BulletNode` | Swipe gestures, drag handle, layout shell | MODIFIED — wire toast on failures |
+| `BulletContent` | Contenteditable editing, keyboard shortcuts | MODIFIED — call `useToast` on undo/redo failure |
+| `UndoToast` | Per-bullet delete undo prompt (existing, fixed position) | UNCHANGED — different purpose |
+| `server/middleware/errors.ts` | Express 4-arg error handler | NEW |
+| `server/routes/undo.ts` | Undo/redo routes | MODIFIED — structured 422 when stack empty |
+| `server/services/bulletService.ts` | Bullet CRUD + undo recording | MODIFIED — add undo events for new action types |
+| `.github/workflows/server-ci.yml` | Lint + test + build for Express server | NEW |
+| `.github/workflows/client-ci.yml` | Lint + type-check + build for React client | NEW |
 
----
-
-## Recommended Project Structure
+## Recommended Project Structure Changes
 
 ```
-android/app/src/main/java/com/gmaingret/notes/
-├── di/
-│   ├── DataModule.kt               # unchanged
-│   └── NetworkModule.kt            # unchanged
-├── data/
-│   ├── local/
-│   │   ├── TokenStore.kt           # unchanged
-│   │   ├── EncryptedDataStoreFactory.kt  # unchanged
-│   │   └── WidgetStateStore.kt     # NEW — appWidgetId → docId mapping
-│   └── repository/                 # unchanged
-├── domain/                         # unchanged
-├── presentation/
-│   └── bullet/
-│       └── BulletTreeViewModel.kt  # MODIFIED — add updateAll after mutations
-└── widget/                         # NEW package
-    ├── NotesGlanceWidget.kt        # GlanceAppWidget subclass with EntryPoint
-    ├── NotesWidgetReceiver.kt      # GlanceAppWidgetReceiver + @AndroidEntryPoint
-    ├── WidgetConfigActivity.kt     # Document picker, saves to WidgetStateStore
-    └── WidgetSyncWorker.kt         # @HiltWorker periodic 15-min sync
+.github/workflows/
+├── android-ci.yml          # existing — unchanged
+├── server-ci.yml           # NEW
+└── client-ci.yml           # NEW
 
-android/app/src/main/res/xml/
-└── notes_widget_info.xml           # NEW — appwidget-provider metadata
+server/src/
+├── app.ts                  # MODIFIED — register errorMiddleware last
+├── middleware/
+│   ├── auth.ts             # existing — unchanged
+│   └── errors.ts           # NEW — Express error handler
+├── routes/
+│   └── undo.ts             # MODIFIED — return 422 on empty stack
+└── services/
+    └── bulletService.ts    # MODIFIED — add recordUndoEvent for new actions
 
-android/app/src/main/AndroidManifest.xml
-    # ADD: <receiver> for NotesWidgetReceiver
-    # ADD: <activity> for WidgetConfigActivity
+client/src/
+├── api/
+│   └── client.ts           # MODIFIED — 401 interceptor + refresh retry
+├── contexts/
+│   └── AuthContext.tsx     # MODIFIED — expose refreshToken(), wire callback
+├── components/
+│   ├── ErrorBoundary.tsx   # NEW
+│   ├── ToastProvider.tsx   # NEW (context + portal ToastContainer)
+│   └── DocumentView/
+│       ├── BulletNode.tsx  # MODIFIED (minor — use toast on failures)
+│       └── BulletContent.tsx # MODIFIED — useToast on undo/redo failure
+└── main.tsx                # MODIFIED — add ErrorBoundary + ToastProvider
 ```
 
----
+### Structure Rationale
+
+- **`server/src/middleware/errors.ts`:** Isolated so it can be imported and tested independently. Registered last in `app.ts` — Express identifies error middleware by the 4-argument `(err, req, res, next)` signature, and it must come after all route registrations.
+- **`client/src/components/ErrorBoundary.tsx`:** React class component (error boundaries cannot be function components). Lives as a standalone file outside `App.tsx` to avoid re-mounting the app tree on re-renders.
+- **`client/src/components/ToastProvider.tsx`:** Context-based so any component can call `useToast().show(...)` without prop drilling. Separate from `UndoToast` — that is a per-bullet positioned element with its own lifecycle; `ToastProvider` is a global notification layer rendered via portal.
+- **`client/src/api/client.ts`:** All HTTP goes through this single class. 401 interception belongs here, not in individual mutation hooks — one change propagates to all callers automatically.
 
 ## Architectural Patterns
 
-### Pattern 1: EntryPointAccessors for GlanceAppWidget Dependencies
+### Pattern 1: 401 Interceptor with Refresh Retry
 
-`GlanceAppWidget.provideGlance()` is not an Android component. `@AndroidEntryPoint` cannot annotate it. The correct pattern is a `@EntryPoint` interface scoped to `SingletonComponent`, accessed via `EntryPointAccessors.fromApplication()` inside `provideGlance()`.
+**What:** When `ApiClient.request()` receives a 401, attempt `POST /api/auth/refresh` once using a shared `isRefreshing` flag to prevent parallel refresh races. Apply the new token, then retry the original request. On second 401, treat as definitive auth failure.
 
-**When to use:** Inside `GlanceAppWidget.provideGlance()` — the only Glance class that cannot use `@AndroidEntryPoint`.
+**When to use:** Any SPA with short-lived access tokens and httpOnly refresh cookies.
 
-**Trade-offs:** More boilerplate than field injection, but the only correct approach. Verified by official Glance codelab (SociaLite sample) and Dagger docs.
+**Trade-offs:** Adds one extra round trip on the first 401 after token expiry. Prevents the user from ever seeing an invisible session expiry error as long as the refresh token is valid.
 
-```kotlin
-class NotesGlanceWidget : GlanceAppWidget() {
+**Key integration — avoid circular import:**
+```typescript
+// client/src/api/client.ts
+class ApiClient {
+  private refreshCallback: (() => Promise<boolean>) | null = null;
+  private authFailureCallback: (() => void) | null = null;
 
-    @EntryPoint
-    @InstallIn(SingletonComponent::class)
-    interface WidgetEntryPoint {
-        fun bulletRepository(): BulletRepository
-        fun documentRepository(): DocumentRepository
-        fun widgetStateStore(): WidgetStateStore
+  setRefreshCallback(fn: () => Promise<boolean>) { this.refreshCallback = fn; }
+  setAuthFailureCallback(fn: () => void) { this.authFailureCallback = fn; }
+
+  async request<T>(path: string, options: RequestOptions & { _isRetry?: boolean } = {}): Promise<T> {
+    // ... existing logic ...
+    if (!res.ok && res.status === 401 && !options._isRetry && this.refreshCallback) {
+      const ok = await this.refreshCallback();
+      if (ok) return this.request(path, { ...options, _isRetry: true });
+      this.authFailureCallback?.();
+      throw Object.assign(new Error('Session expired'), { status: 401 });
     }
-
-    override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val ep = EntryPointAccessors.fromApplication(
-            context.applicationContext,
-            WidgetEntryPoint::class.java
-        )
-        val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
-        val docId = ep.widgetStateStore().getDocumentId(appWidgetId)
-        val bullets = if (docId != null) {
-            withContext(Dispatchers.IO) {
-                ep.bulletRepository().getRootBullets(docId)
-            }
-        } else emptyList()
-
-        provideContent {
-            NotesWidgetContent(docId, bullets, appWidgetId)
-        }
-    }
+    // ... rest of existing logic ...
+  }
 }
 ```
 
-**Critical detail:** Data fetching must happen in `provideGlance()` using `withContext(Dispatchers.IO)`, not inside the `@Composable` lambda passed to `provideContent {}`. Blocking the composition thread in the lambda causes rendering failures.
-
-### Pattern 2: @AndroidEntryPoint on GlanceAppWidgetReceiver
-
-`GlanceAppWidgetReceiver` is a `BroadcastReceiver` subclass, so `@AndroidEntryPoint` works directly. Use it for lifecycle callbacks where injected dependencies are needed.
-
-**When to use:** `GlanceAppWidgetReceiver` only — never on `GlanceAppWidget`.
-
-```kotlin
-@AndroidEntryPoint
-class NotesWidgetReceiver : GlanceAppWidgetReceiver() {
-    override val glanceAppWidget: GlanceAppWidget = NotesGlanceWidget()
-
-    @Inject
-    lateinit var widgetStateStore: WidgetStateStore
-
-    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
-        super.onDeleted(context, appWidgetIds)
-        CoroutineScope(Dispatchers.IO).launch {
-            appWidgetIds.forEach { widgetStateStore.removeDocumentId(it) }
-        }
+```typescript
+// client/src/contexts/AuthContext.tsx — in AuthProvider useEffect
+useEffect(() => {
+  apiClient.setRefreshCallback(async () => {
+    const r = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
+    if (r.ok) {
+      const data = await r.json();
+      applyToken(data.accessToken, data.user);
+      return true;
     }
-
-    override fun onEnabled(context: Context) {
-        super.onEnabled(context)
-        WidgetSyncWorker.enqueue(context)
-    }
-
-    override fun onDisabled(context: Context) {
-        super.onDisabled(context)
-        WidgetSyncWorker.cancel(context)
-    }
-}
+    return false;
+  });
+  apiClient.setAuthFailureCallback(() => {
+    clearAuth();
+  });
+}, [applyToken, clearAuth]);
 ```
 
-### Pattern 3: @HiltWorker for WidgetSyncWorker
+This avoids a circular import: `client.ts` imports nothing from React; `AuthContext.tsx` passes function references at runtime.
 
-WorkManager workers support Hilt injection via `@HiltWorker` + `@AssistedInject`. This is the documented pattern in `hilt-work` (`androidx.hilt:hilt-work`). It avoids manual `EntryPointAccessors` boilerplate inside the worker.
+### Pattern 2: Express Centralized Error Middleware
 
-**When to use:** Any `CoroutineWorker` needing Hilt-provided singletons.
+**What:** A single `(err, req, res, next)` handler registered as the last middleware in `app.ts`. Catches any error thrown by route handlers that isn't already handled inline.
 
-**Prerequisite:** `NotesApplication` must implement `Configuration.Provider` supplying `HiltWorkerFactory`. This is the one required change to the existing `NotesApplication`.
+**When to use:** Any Express app beyond a few routes. Currently routes use a mix of inline try/catch with manual status decisions and bare `throw err` for fallthrough. The central handler catches the fallthrough cases.
 
-```kotlin
-@HiltWorker
-class WidgetSyncWorker @AssistedInject constructor(
-    @Assisted context: Context,
-    @Assisted params: WorkerParameters,
-    private val bulletRepository: BulletRepository,
-    private val widgetStateStore: WidgetStateStore
-) : CoroutineWorker(context, params) {
+**Trade-offs:** Inline status-code decisions (404 from "not found" string matching) stay in routes — the middleware only handles 500-class unhandled errors. Routes must `throw` or call `next(err)` rather than swallowing errors silently.
 
-    override suspend fun doWork(): Result {
-        return try {
-            NotesGlanceWidget().updateAll(applicationContext)
-            Result.success()
-        } catch (e: Exception) {
-            Result.retry()
-        }
-    }
+**Example:**
+```typescript
+// server/src/middleware/errors.ts
+import type { ErrorRequestHandler } from 'express';
 
-    companion object {
-        private const val WORK_NAME = "notes_widget_sync"
+export const errorMiddleware: ErrorRequestHandler = (err, _req, res, _next) => {
+  const status = (err as { status?: number }).status ?? 500;
+  const message = err instanceof Error ? err.message : 'Internal server error';
+  res.status(status).json({ error: message });
+};
 
-        fun enqueue(context: Context) {
-            val request = PeriodicWorkRequestBuilder<WidgetSyncWorker>(
-                15, TimeUnit.MINUTES
-            ).setConstraints(
-                Constraints.Builder()
-                    .setRequiredNetworkType(NetworkType.CONNECTED)
-                    .build()
-            ).build()
-
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                WORK_NAME,
-                ExistingPeriodicWorkPolicy.KEEP,
-                request
-            )
-        }
-
-        fun cancel(context: Context) {
-            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
-        }
-    }
-}
+// server/src/app.ts — after all app.use('/api/...') route registrations
+import { errorMiddleware } from './middleware/errors.js';
+app.use(errorMiddleware);  // MUST be last
 ```
 
-The `NotesApplication` additions required:
+### Pattern 3: React Error Boundary
 
-```kotlin
-@HiltAndroidApp
-class NotesApplication : Application(), SingletonImageLoader.Factory,
-    Configuration.Provider {   // ADD
+**What:** A class component wrapping the application tree. Catches render-phase errors that would otherwise crash the entire UI. Shows a user-friendly fallback with a "reload" action.
 
-    @Inject lateinit var okHttpClient: OkHttpClient
-    @Inject lateinit var workerFactory: HiltWorkerFactory  // ADD
+**When to use:** Every production React app. Especially valuable around complex derived-state components like `BulletTree` and `BulletContent`.
 
-    override val workManagerConfiguration: Configuration   // ADD
-        get() = Configuration.Builder()
-            .setWorkerFactory(workerFactory)
-            .build()
+**Trade-offs:** Cannot catch async errors (those go through React Query `onError` callbacks and the toast system). Cannot be a function component — must be a class.
 
-    // newImageLoader() unchanged
-}
+**Placement in `main.tsx`:**
+```tsx
+// ErrorBoundary wraps the App but is inside BrowserRouter/QueryClientProvider/AuthProvider
+// so if recovery is needed those hooks remain available in the fallback.
+<ErrorBoundary>
+  <ToastProvider>
+    <App />
+  </ToastProvider>
+</ErrorBoundary>
 ```
 
-### Pattern 4: WidgetStateStore — Shared DataStore for Per-Instance Document Selection
+### Pattern 4: Context-Based Toast System
 
-Each widget instance needs its own document. The mapping (`appWidgetId → documentId`) lives in a regular DataStore Preferences singleton — not in Glance's built-in session state.
+**What:** A React context that exposes `showToast(message, type)`. A `ToastContainer` component renders stacked toasts at a fixed viewport position via `createPortal`. Mutation `onError` callbacks and undo/redo failure handlers call `showToast`.
 
-**Why not Glance's built-in `PreferencesGlanceStateDefinition`:** Glance's internal state lives inside the rendering session. It is not accessible from `WidgetConfigActivity` (which must write the selection before the widget has rendered) or from `NotesWidgetReceiver.onDeleted()`. A shared DataStore singleton is accessible from all three call sites.
+**When to use:** Global async failure notifications. Distinct from the existing `UndoToast`, which is a bullet-local confirmation prompt with its own dismiss/undo action.
 
-```kotlin
-private val Context.widgetDataStore by preferencesDataStore(name = "widget_state")
+**Trade-offs:** Multiple simultaneous toasts can stack — needs a bounded queue (e.g., max 3 visible). Auto-dismiss timers must be cleared in cleanup to avoid memory leaks.
 
-@Singleton
-class WidgetStateStore @Inject constructor(
-    @ApplicationContext private val context: Context
-) {
-    suspend fun getDocumentId(appWidgetId: Int): String? =
-        context.widgetDataStore.data.firstOrNull()
-            ?.get(stringPreferencesKey("doc_$appWidgetId"))
+### Pattern 5: Extended Undo Coverage via New UndoOp Calls
 
-    suspend fun saveDocumentId(appWidgetId: Int, docId: String) {
-        context.widgetDataStore.edit { prefs ->
-            prefs[stringPreferencesKey("doc_$appWidgetId")] = docId
-        }
-    }
+**What:** The undo system uses a discriminated union `UndoOp` and a `recordUndoEvent` function called inside db transactions. Adding coverage for `mark_complete`, note edits, and bulk delete means calling `recordUndoEvent` inside the corresponding service functions, following the exact pattern used for `create_bullet`, `indent`, etc.
 
-    suspend fun removeDocumentId(appWidgetId: Int) {
-        context.widgetDataStore.edit { prefs ->
-            prefs.remove(stringPreferencesKey("doc_$appWidgetId"))
-        }
-    }
-}
+**When to use:** Any bullet mutation a user would want to reverse.
+
+**Example — mark_complete (inside existing transaction in bulletService):**
+```typescript
+await recordUndoEvent(tx, userId, 'mark_complete',
+  { type: 'update_bullet', id, fields: { isComplete: newValue } },    // forwardOp
+  { type: 'update_bullet', id, fields: { isComplete: prevValue } }    // inverseOp
+);
 ```
 
-The `preferencesDataStore` delegate requires a top-level `val` in a file (not inside the class). Follow the same pattern as the existing `Context.authTokenDataStore` in `TokenStore.kt`.
-
----
+The existing `UndoOp` union already includes `update_bullet` with a `fields` partial — no schema migration or new op types required.
 
 ## Data Flow
 
-### Flow 1: Widget First Placement (Configuration)
+### Request Flow — Before v2.3 (Current)
 
 ```
-User long-presses home screen → selects Notes widget
+[User action in BulletContent / hook]
     ↓
-Android OS launches WidgetConfigActivity with EXTRA_APPWIDGET_ID intent extra
+[React Query mutation — onError not wired to any user feedback]
     ↓
-WidgetConfigActivity (@AndroidEntryPoint, @Inject GetDocumentsUseCase + WidgetStateStore)
-    → shows document list
-    → user taps a document
-    → widgetStateStore.saveDocumentId(appWidgetId, docId)
-    → NotesGlanceWidget().updateAll(context)
-    → setResult(RESULT_OK, Intent().putExtra(EXTRA_APPWIDGET_ID, appWidgetId))
-    → finish()
+[ApiClient.request()]
     ↓
-Android OS places widget on home screen
+fetch() → [Express route] → [Service] → [Drizzle] → [PostgreSQL]
+    ↑
+[Error thrown → React Query catches it → swallowed silently]
+```
+
+### Request Flow — After v2.3
+
+```
+[User action]
     ↓
-NotesGlanceWidget.provideGlance(context, glanceId)
-    → EntryPointAccessors.fromApplication(context, WidgetEntryPoint::class.java)
-    → widgetStateStore.getDocumentId(appWidgetId)   // returns docId just saved
-    → withContext(Dispatchers.IO) { bulletRepository.getRootBullets(docId) }
-        → same OkHttpClient → AuthInterceptor → TokenStore → API call
-    → provideContent { NotesWidgetContent(bullets) }
-```
-
-### Flow 2: In-App Bullet Mutation Triggers Widget Refresh
-
-```
-User creates/deletes/patches bullet in BulletTreeScreen
+[React Query mutation hook — onError → useToast().show(err.message)]
     ↓
-BulletTreeViewModel.createBullet() / deleteBullet() / patchBullet()
-    → use case executes (optimistic update already applied)
-    → on API success:
-        viewModelScope.launch {
-            NotesGlanceWidget().updateAll(applicationContext)
-        }
+[ApiClient.request()]
+    │ 401? → POST /api/auth/refresh (once, guarded by _isRetry flag)
+    │   OK → apply new token → retry original request
+    │   Fail → clearAuth() → redirect /login
     ↓
-Android OS calls provideGlance() for each placed widget instance
-    → fresh bullet fetch from API
-    → widget recomposes
+fetch() → [Express route] → [Service] → [Drizzle] → [PostgreSQL]
+    ↑
+[Response — on error: standardized { error: string } JSON from errorMiddleware]
+    ↑
+[ApiClient throws Error with .status and .data.error populated]
+    ↑
+[React Query onError → useToast().show(err.message, 'error')]
 ```
 
-`updateAll()` is a suspend function. Launch in a fire-and-forget `viewModelScope.launch` block — do not await it on the mutation path. The widget update is best-effort; mutation success is independent of widget refresh success.
-
-**Why not a custom BroadcastReceiver:** `NotesGlanceWidget().updateAll()` is the idiomatic Glance mechanism. A custom broadcast adds indirection with no benefit in a single-process app. Custom broadcasts are only necessary when the update source runs in a different process (e.g., a remote push).
-
-### Flow 3: Periodic Background Sync (WorkManager)
+### Undo Data Flow (Extended Actions)
 
 ```
-WorkManager fires WidgetSyncWorker every 15 minutes (when network available)
+[Ctrl+Z or undo button]
     ↓
-WidgetSyncWorker.doWork()
-    → NotesGlanceWidget().updateAll(applicationContext)
+[POST /api/undo]
     ↓
-For each placed widget instance:
-    provideGlance() runs → widgetStateStore.getDocumentId() → bulletRepository.getRootBullets()
-    → fresh network fetch via shared OkHttpClient
-    → provideContent { ... }
+[undoService.undo(db, userId)]
+    ├── fetch event at currentSeq
+    ├── applyOp(inverseOp)  ← now includes: mark_complete, note_edit, bulk_delete
+    └── decrement cursor → return UndoStatus
+    ↓
+[Client: queryClient.invalidateQueries(['bullets'])]
+    ↓
+[React re-renders with restored state]
+    │
+    if (error) → useToast().show('Nothing left to undo', 'info')
 ```
 
-The 15-minute interval is an Android OS minimum, not a product choice. Manual pull-to-refresh in the widget (button that calls `updateAll`) handles on-demand sync.
-
-### Flow 4: Auth Token (Unchanged — Zero Widget-Specific Work)
+### CI Data Flow (New)
 
 ```
-Widget HTTP request (bulletRepository → Retrofit → OkHttpClient)
-    → AuthInterceptor.intercept()
-        → runBlocking { tokenStore.getAccessToken() }   // same Tink-encrypted DataStore
-        → adds Authorization: Bearer header
-    → If 401: TokenAuthenticator refreshes token (existing logic)
-    → If refresh fails: clearAll() → widget receives empty/error response
-        → widget UI shows "Please log in to the app" empty state
+[git push to phase-* branch]
+    ↓
+GitHub Actions triggers — path-filtered:
+    ├── android-ci.yml  (paths: android/**)  → unit tests + assembleDebug
+    ├── server-ci.yml   (paths: server/**)   → lint + tests + build
+    └── client-ci.yml   (paths: client/**)   → lint + type-check + build
+    ↓
+[PR to main: all three CIs run on changed paths]
+    ↓
+[All checks green → human reviews → merge to main]
+    ↓
+[Manual deploy: scp + docker compose up + confirm + git pull]
 ```
-
-The widget shares the same `TokenStore`, `OkHttpClient`, and `Retrofit` singletons as the main app. No separate credential storage or auth flow is needed.
-
-### Widget UI State Machine
-
-```
-Not configured (no docId in WidgetStateStore)
-    → WidgetConfigActivity shown automatically by Android (android:configure in metadata)
-    ↓ user picks document + saveDocumentId() + updateAll()
-Configured, loading
-    → provideGlance() fetching bullets
-    ↓ success
-Showing bullets (root-level flat list)
-    → user taps "+" → launches WidgetAddBulletActivity (thin overlay Activity)
-    → user taps delete icon on bullet → actionRunCallback<DeleteBulletCallback>()
-        (DeleteBulletCallback: GlanceAppWidgetReceiver action callback, injects repo via EntryPoint)
-    ↓ mutation complete
-Back to "Configured, loading" → fresh fetch → rerender
-    ↓ WorkManager tick OR in-app mutation
-Same loop
-```
-
----
 
 ## Integration Points
 
-### New vs Modified Components
+### New vs. Modified Components
 
-| Build Order | Component | Status | Integrates With |
-|-------------|-----------|--------|-----------------|
-| 1 | `WidgetStateStore` | NEW | Nothing new — standalone DataStore singleton; follows existing `TokenStore` pattern |
-| 2 | `NotesGlanceWidget` | NEW | `WidgetStateStore`, `BulletRepository`, `DocumentRepository` via `EntryPointAccessors` |
-| 3 | `NotesWidgetReceiver` | NEW | `NotesGlanceWidget`, `WidgetStateStore`, `WidgetSyncWorker` |
-| 4 | `WidgetConfigActivity` | NEW | `GetDocumentsUseCase`, `WidgetStateStore`, `NotesGlanceWidget.updateAll()` |
-| 5 | `WidgetSyncWorker` | NEW | `BulletRepository`, `WidgetStateStore`, `NotesGlanceWidget.updateAll()` |
-| 6 | `BulletTreeViewModel` | MODIFIED | Adds `NotesGlanceWidget().updateAll()` call after successful mutations |
-| 7 | `NotesApplication` | MODIFIED | Adds `Configuration.Provider` + `HiltWorkerFactory` injection |
+| Component | Change | Integration Point |
+|-----------|--------|------------------|
+| `client/src/api/client.ts` | MODIFIED | Add `setRefreshCallback` and `setAuthFailureCallback` methods; 401 guard inside `request()` |
+| `client/src/contexts/AuthContext.tsx` | MODIFIED | Wire callbacks in `useEffect`; add `refreshToken()` logic reused from existing mount effect |
+| `client/src/main.tsx` | MODIFIED | Add `<ErrorBoundary>` and `<ToastProvider>` wrapping `<App />` |
+| `client/src/components/ErrorBoundary.tsx` | NEW | Standalone; plugs into `main.tsx` provider stack |
+| `client/src/components/ToastProvider.tsx` | NEW | Context + portal container; all mutation hooks inside `App` subtree can call `useToast()` |
+| `client/src/components/DocumentView/BulletContent.tsx` | MODIFIED | `handleUndo`/`handleRedo` catch block calls `useToast` |
+| `server/src/middleware/errors.ts` | NEW | Registered in `app.ts` after all route `app.use()` calls |
+| `server/src/app.ts` | MODIFIED | `app.use(errorMiddleware)` as final statement before `return app` |
+| `server/src/routes/undo.ts` | MODIFIED | Return `res.status(422).json({ error: 'Nothing to undo' })` when stack is empty |
+| `server/src/services/bulletService.ts` | MODIFIED | Add `recordUndoEvent` calls in `markComplete`, `patchBullet` (for note field), and any bulk-delete path |
+| `.github/workflows/server-ci.yml` | NEW | Triggers on `push: paths: ['server/**']` and `pull_request: branches: [main]` |
+| `.github/workflows/client-ci.yml` | NEW | Triggers on `push: paths: ['client/**']` and `pull_request: branches: [main]` |
 
-### New Gradle Dependencies
+### Internal Boundaries and Constraints
 
-```toml
-# libs.versions.toml additions
-glance = "1.1.1"
-workManager = "2.10.0"
-hiltWork = "1.2.0"
+| Boundary | Communication | Constraint |
+|----------|---------------|-----------|
+| `ApiClient` ↔ `AuthContext` | Callback injection at runtime | `client.ts` must not import React or AuthContext — circular dependency. Use `setRefreshCallback()` pattern. |
+| `ToastProvider` ↔ mutation hooks | React context via `useToast()` | Hook must be called within `ToastProvider` subtree. All mutations run inside `App`, which is inside `ToastProvider`. |
+| `errorMiddleware` ↔ routes | Express `throw` or `next(err)` | Must be registered AFTER all `app.use('/api/...')` route registrations. |
+| `bulletService` ↔ `undoService` | Direct function calls inside db transaction | Existing pattern. New undo event calls must stay inside the same `db.transaction()` as the mutation. |
+| `BulletContent.handleUndo()` ↔ undo route | Direct `apiClient.post('/api/undo')` | Intentionally bypasses React Query cache to avoid optimistic state conflicts. |
+| `UndoToast` ↔ `ToastProvider` | Independent — no connection | Keep `UndoToast` as-is. It handles per-bullet delete confirmation. `ToastProvider` handles system-level errors. |
 
-[libraries]
-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
-workmanager-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }
-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
-hilt-work-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltWork" }
+## Suggested Build Order
+
+Build order is determined by dependencies between layers. Independent streams can proceed in parallel.
+
+### Phase A — Server Foundation (no cross-dependencies)
+
+1. **`server/src/middleware/errors.ts` + register in `app.ts`**
+   Zero-risk additive change. All routes already `throw` unhandled errors; currently Express returns HTML. After this they return JSON. No route changes needed.
+
+2. **`server/src/routes/undo.ts` structured error response**
+   Small change: add `if (currentSeq === 0) return res.status(422).json({ error: 'Nothing to undo' })` before calling the service. Alternatively this can be handled by the service throwing a structured error caught by the new errorMiddleware.
+
+3. **`.github/workflows/server-ci.yml` and `client-ci.yml`**
+   Purely additive. Touch no source files.
+
+### Phase B — Client Infrastructure (independent of Phase A)
+
+4. **`client/src/components/ToastProvider.tsx` + `useToast` hook**
+   New file, zero breakage risk.
+
+5. **`client/src/components/ErrorBoundary.tsx`**
+   New file, zero breakage risk.
+
+6. **Update `client/src/main.tsx`**
+   Wrap existing `<App />` with `<ErrorBoundary><ToastProvider>...</ToastProvider></ErrorBoundary>`. Two lines added.
+
+### Phase C — 401 Token Refresh (depends on B.4 for toast on auth failure)
+
+7. **Extend `AuthContext` with `refreshToken()` and callback wiring**
+   Add a `useEffect` that calls `apiClient.setRefreshCallback(...)` and `apiClient.setAuthFailureCallback(...)`. The `refreshToken` logic reuses the existing silent-refresh fetch pattern.
+
+8. **Modify `ApiClient.request()` with 401 interceptor**
+   Add `setRefreshCallback`, `setAuthFailureCallback`, `isRefreshing` flag, and `_isRetry` option. The auth failure callback triggers `clearAuth()` which already redirects to `/login` via `RequireAuth`.
+
+### Phase D — Undo Extension (depends on Phase A.1 for error propagation)
+
+9. **Extend `bulletService.ts` with `recordUndoEvent` for `markComplete`, note patch, bulk delete**
+   Each addition is atomic inside an existing transaction. Follow the existing `create_bullet` recording pattern. No schema migration needed — `update_bullet` op type already exists.
+
+10. **Wire `useToast` in `BulletContent.handleUndo/handleRedo`**
+    Catch errors from `apiClient.post('/api/undo')` and show toast. Depends on Phase B.4.
+
+### Phase E — Component Refactor (independent, run last — regression risk)
+
+11. **`BulletContent` / `BulletNode` decomposition**
+    Extract cursor helpers (`isCursorAtStart`, `isCursorAtEnd`, `splitAtCursor`, `setCursorAtPosition`) into a `cursorUtils.ts` utility file. Add unit tests. No behavior change — pure refactor. Run after all other phases so a refactor regression doesn't block other work.
+
+### Dependency Graph
+
 ```
-
-`hilt-work-compiler` must be added as a `ksp(...)` dependency (not `implementation`) in `app/build.gradle.kts`, alongside the existing `ksp(libs.hilt.android.compiler)`.
-
-### AndroidManifest.xml Additions
-
-```xml
-<!-- Widget receiver -->
-<receiver
-    android:name=".widget.NotesWidgetReceiver"
-    android:exported="true"
-    android:label="Notes Widget">
-    <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-    </intent-filter>
-    <meta-data
-        android:name="android.appwidget.provider"
-        android:resource="@xml/notes_widget_info" />
-</receiver>
-
-<!-- Widget configuration activity -->
-<activity
-    android:name=".widget.WidgetConfigActivity"
-    android:exported="true">
-    <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
-    </intent-filter>
-</activity>
+A.1 (errorMiddleware)  ────────────────────────────────────────→ D.9 (undo extension)
+A.2 (undo route 422)   ────────────────────────────────────────→ D.10 (toast on failure)
+A.3 (CI workflows)     → independent
+B.4 (ToastProvider)    ──→ B.6 (main.tsx wiring) ──→ C.7/C.8 (auth failure toast)
+                                                   ──→ D.10 (undo failure toast)
+B.5 (ErrorBoundary)    ──→ B.6 (main.tsx wiring)
+C.7 (AuthContext)      ──→ C.8 (ApiClient 401)
+E   (refactor)         → independent (run last)
 ```
-
-### res/xml/notes_widget_info.xml
-
-```xml
-<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:targetCellWidth="3"
-    android:targetCellHeight="3"
-    android:minWidth="180dp"
-    android:minHeight="180dp"
-    android:minResizeWidth="140dp"
-    android:minResizeHeight="140dp"
-    android:resizeMode="horizontal|vertical"
-    android:updatePeriodMillis="0"
-    android:configure="com.gmaingret.notes.widget.WidgetConfigActivity"
-    android:widgetFeatures="configuration_optional|reconfigurable"
-    android:initialLayout="@layout/glance_default_loading_layout">
-</appwidget-provider>
-```
-
-`updatePeriodMillis="0"` because WorkManager owns the refresh schedule. Setting this to non-zero causes redundant Android OS wake-ups alongside WorkManager.
-
----
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: @AndroidEntryPoint on GlanceAppWidget
+### Anti-Pattern 1: Circular Import Between ApiClient and AuthContext
 
-**What people try:** Annotating `GlanceAppWidget` with `@AndroidEntryPoint` or declaring `@Inject lateinit var` fields inside it.
+**What people do:** Import `apiClient` from `client.ts` inside `AuthContext.tsx`, then import `AuthContext` functions back into `client.ts` to call `clearAuth()` on 401.
 
-**Why it fails:** `GlanceAppWidget` is not an Android component. Hilt's `@AndroidEntryPoint` only applies to Activity, Fragment, Service, BroadcastReceiver, and View. The annotation will compile; the injection will never run. Fields will be null at runtime.
+**Why it's wrong:** Creates a circular ES module dependency. Vite handles some circular imports but initialization order is undefined — `apiClient` may be `undefined` when `AuthContext` first imports it.
 
-**Do this instead:** Use `EntryPointAccessors.fromApplication()` inside `provideGlance()` with a `@InstallIn(SingletonComponent::class)` entry point interface (Pattern 1 above).
+**Do this instead:** Callback injection. `ApiClient` exposes `setRefreshCallback(fn)` and `setAuthFailureCallback(fn)`. `AuthContext` calls these inside `useEffect` after mounting, passing its own functions. `client.ts` imports nothing from React.
 
-### Anti-Pattern 2: Storing Selected Document in Glance Built-In State
+### Anti-Pattern 2: Error Middleware Registered Before Routes
 
-**What people try:** Using `updateAppWidgetState()` and `currentState<Preferences>()` to store the selected `documentId` as Glance's internal per-widget state.
+**What people do:** Call `app.use(errorMiddleware)` near the top of `app.ts` setup alongside other middleware.
 
-**Why it's wrong:** Glance's built-in state is scoped to the rendering session and is not accessible outside `provideGlance()`. `WidgetConfigActivity` cannot write to it before the widget has first rendered. `NotesWidgetReceiver.onDeleted()` cannot read it to clean up. This forces an impossible initialization order.
+**Why it's wrong:** Express only invokes a 4-argument middleware when an error has been passed via `next(err)`. If registered before routes, the regular request flow never passes through it. Errors fall through to Express's default HTML error handler.
 
-**Do this instead:** Use a plain DataStore singleton (`WidgetStateStore`) keyed by `appWidgetId`. Accessible from any app component.
+**Do this instead:** Register `app.use(errorMiddleware)` as the very last `app.use()` call, after all route registrations. The current `app.ts` factory returns `app` after routes are mounted in `index.ts` — errorMiddleware must be registered in `app.ts` after the health check but before `return app`, then routes are mounted on top in `index.ts`. Actually: since routes are mounted in `index.ts` after `createApp()`, errorMiddleware in `app.ts` would register before routes. The correct fix is to either move errorMiddleware registration to `index.ts` (after route mounting) or use a late-binding pattern. Register it in `index.ts` as the last `app.use()` call.
 
-### Anti-Pattern 3: Fetching Data Inside the provideContent Composable Lambda
+### Anti-Pattern 3: Merging ToastProvider with UndoToast
 
-**What people try:** `provideContent { val bullets = runBlocking { repo.getBullets() } ... }` or using `LaunchedEffect` inside the Glance composable lambda.
+**What people do:** Extend the existing `UndoToast` component into a general notification system.
 
-**Why it's wrong:** The composable lambda passed to `provideContent {}` runs on the composition thread. Blocking it hangs rendering. `LaunchedEffect` is not available in Glance composables (Glance uses a restricted Compose runtime subset).
+**Why it's wrong:** `UndoToast` renders inside `BulletNode`'s DOM subtree at a fixed bottom-80 position with bullet-specific callbacks (`handleUndo`, `onDismiss`). Generalizing it would require passing context and positioning logic it wasn't designed for.
 
-**Do this instead:** Fetch all data in `provideGlance()` before calling `provideContent {}`, using `withContext(Dispatchers.IO)`. Pass fetched data as parameters into the composable.
+**Do this instead:** Keep `UndoToast` as-is. Build `ToastProvider` separately as a global context with a portal-rendered container at the `document.body` level, independent of the bullet tree.
 
-### Anti-Pattern 4: Custom BroadcastReceiver to Signal Widget Update from App
+### Anti-Pattern 4: Infinite Retry Loop on 401
 
-**What people try:** Sending a custom broadcast from `BulletTreeViewModel` and handling it in `onReceive()` to trigger a widget refresh.
+**What people do:** Retry the original request on 401 without a guard, causing the refresh request itself to also receive 401 and triggering recursion.
 
-**Why it's unnecessary:** The app and widget receiver are in the same process. `NotesGlanceWidget().updateAll(context)` called directly from `viewModelScope.launch` is simpler, type-safe, and coroutine-native. Custom broadcasts are only needed when the update source is a separate process.
+**Why it's wrong:** If the refresh token is expired, `/api/auth/refresh` returns 401. Without a `_isRetry: true` guard on the retried request, the interceptor fires again and again.
 
-**Do this instead:** Call `NotesGlanceWidget().updateAll(applicationContext)` in a fire-and-forget `viewModelScope.launch` after successful mutations in `BulletTreeViewModel`.
+**Do this instead:** Set `_isRetry: true` on the retried request. If it still returns 401, call `onAuthFailure()` and do not retry. The Android client already implements this exact pattern (commit `0457017`: "only clear tokens on definitive auth failures, not transient errors").
 
-### Anti-Pattern 5: Missing HiltWorkerFactory Setup
+### Anti-Pattern 5: Registering errorMiddleware Too Early (app.ts vs index.ts)
 
-**What people try:** Adding `@HiltWorker` to a worker without updating `NotesApplication` to implement `Configuration.Provider`.
+**What people do:** Add `app.use(errorMiddleware)` inside `createApp()` in `app.ts`, expecting it to catch errors from routes mounted later in `index.ts`.
 
-**Why it fails:** Without `HiltWorkerFactory` registered as WorkManager's factory, Hilt-injected workers fall back to the default no-arg constructor. Any `@Inject` field in the worker will be missing. WorkManager will either crash at enqueue time or produce a worker with null dependencies.
+**Why it's wrong:** Express processes middleware in registration order. `createApp()` returns `app` before routes are mounted in `index.ts`. Errors thrown in routes registered after `createApp()` returns cannot reach middleware registered inside `createApp()`.
 
-**Do this instead:** Implement `Configuration.Provider` in `NotesApplication` and inject `HiltWorkerFactory` (see Pattern 3 above). This is a one-time setup and enables `@HiltWorker` for all future workers.
-
----
+**Do this instead:** Register `app.use(errorMiddleware)` in `index.ts` as the last `app.use()` call, after all route registrations.
 
 ## Scaling Considerations
 
-This is a personal self-hosted tool. Scaling is not a concern. The widget fetches root-level bullets for one document per instance — a bounded, small payload in all realistic scenarios. WorkManager's 15-minute minimum is an OS constraint, not a product limitation.
+This is a self-hosted single-to-small-team app. These improvements do not affect scaling posture — they are reliability improvements, not architectural changes.
 
-The only realistic "scale" concern is multiple widget instances on the same device pointing to different documents: `updateAll()` triggers `provideGlance()` for every placed instance. With 5-10 instances this is still trivially fast (parallel small API calls through the shared OkHttpClient).
-
----
+| Scale | Notes |
+|-------|-------|
+| 0-10 users | Current Docker monolith is correct. CI adds a safety net. |
+| 10-100 users | No changes needed beyond current architecture. |
+| 100k+ users | Out of scope for self-hosted personal tool. |
 
 ## Sources
 
-- [Create an app widget with Glance — Android Developers (official codelab)](https://developer.android.com/codelabs/glance) — HIGH confidence — covers @AndroidEntryPoint on receiver, EntryPoint pattern for widget class, config activity pattern
-- [Manage and update GlanceAppWidget — Android Developers](https://developer.android.com/develop/ui/compose/glance/glance-app-widget) — HIGH confidence — covers updateAll(), WorkManager CoroutineWorker pattern, when to update
-- [Create an app widget with Glance — official docs](https://developer.android.com/develop/ui/compose/glance/create-app-widget) — HIGH confidence — GlanceAppWidget, GlanceAppWidgetReceiver, provideGlance lifecycle
-- [Use Hilt with other Jetpack libraries — Android Developers](https://developer.android.com/training/dependency-injection/hilt-jetpack) — HIGH confidence — @HiltWorker, HiltWorkerFactory, Configuration.Provider
-- [Dagger Hilt Entry Points documentation](https://dagger.dev/hilt/entry-points.html) — HIGH confidence — EntryPointAccessors.fromApplication() pattern
-- [Glance release notes — version 1.1.1 stable, 1.2.0-rc01 in development](https://developer.android.com/jetpack/androidx/releases/glance) — HIGH confidence — version confirmation
-- [Android Widgets with Glance: what's new with Google I/O 2024](https://medium.com/@ssharyk/android-widgets-with-glance-whats-new-with-google-i-o-2024-08b85b7ce676) — MEDIUM confidence
-- Direct inspection: existing `TokenStore.kt`, `NotesApplication.kt`, `NetworkModule.kt`, `DataModule.kt`, `libs.versions.toml` — HIGH confidence for integration surface
+- Direct source inspection (HIGH confidence):
+  - `client/src/api/client.ts`
+  - `client/src/contexts/AuthContext.tsx`
+  - `client/src/main.tsx`
+  - `server/src/app.ts`
+  - `server/src/index.ts`
+  - `server/src/routes/undo.ts`
+  - `server/src/services/undoService.ts`
+  - `server/src/services/bulletService.ts` (lines 1-60 reviewed)
+  - `client/src/components/DocumentView/BulletNode.tsx`
+  - `client/src/components/DocumentView/BulletContent.tsx`
+  - `client/src/components/DocumentView/UndoToast.tsx`
+  - `.github/workflows/android-ci.yml`
+  - `.planning/PROJECT.md`
+- Android 401 retry guard pattern: commit `0457017` ("fix(android): only clear tokens on definitive auth failures, not transient errors") — HIGH confidence
 
 ---
-
-*Architecture research for: Jetpack Glance widget integration with existing Clean Architecture Android app (v2.1 milestone)*
-*Researched: 2026-03-14*
+*Architecture research for: Notes app v2.3 Robustness & Quality*
+*Researched: 2026-03-19*

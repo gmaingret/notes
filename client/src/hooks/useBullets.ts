@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { apiClient } from '../api/client';
 
 export type Bullet = {
@@ -80,8 +81,9 @@ export function useCreateBullet() {
       ]);
       return { prev };
     },
-    onError: (_err, vars, ctx) => {
+    onError: (err, vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(bulletKey(vars.documentId), ctx.prev);
+      toast.error('Failed to save bullet', { description: (err as Error).message });
     },
     onSettled: (_data, _err, vars) =>
       qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
@@ -101,8 +103,9 @@ export function usePatchBullet() {
       );
       return { prev };
     },
-    onError: (_err, vars, ctx) => {
+    onError: (err, vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(bulletKey(vars.documentId), ctx.prev);
+      toast.error('Failed to save bullet', { description: (err as Error).message });
     },
     onSettled: (_data, _err, vars) =>
       qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
@@ -122,8 +125,9 @@ export function useSoftDeleteBullet() {
       );
       return { prev };
     },
-    onError: (_err, vars, ctx) => {
+    onError: (err, vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(bulletKey(vars.documentId), ctx.prev);
+      toast.error('Failed to delete bullet', { description: (err as Error).message });
     },
     onSettled: (_data, _err, vars) => {
       qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) });
@@ -138,6 +142,9 @@ export function useIndentBullet() {
   return useMutation({
     mutationFn: (vars: { id: string; documentId: string }) =>
       apiClient.post<Bullet>(`/api/bullets/${vars.id}/indent`),
+    onError: (err) => {
+      toast.error('Failed to indent bullet', { description: (err as Error).message });
+    },
     onSettled: (_data, _err, vars) =>
       qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
   });
@@ -148,6 +155,9 @@ export function useOutdentBullet() {
   return useMutation({
     mutationFn: (vars: { id: string; documentId: string }) =>
       apiClient.post<Bullet>(`/api/bullets/${vars.id}/outdent`),
+    onError: (err) => {
+      toast.error('Failed to outdent bullet', { description: (err as Error).message });
+    },
     onSettled: (_data, _err, vars) =>
       qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
   });
@@ -161,6 +171,9 @@ export function useMoveBullet() {
         newParentId: vars.newParentId,
         afterId: vars.afterId,
       }),
+    onError: (err) => {
+      toast.error('Failed to reorder bullet', { description: (err as Error).message });
+    },
     onSettled: (_data, _err, vars) =>
       qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
   });
@@ -179,8 +192,9 @@ export function useSetCollapsed() {
       );
       return { prev };
     },
-    onError: (_err, vars, ctx) => {
+    onError: (err, vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(bulletKey(vars.documentId), ctx.prev);
+      toast.error('Failed to collapse bullet', { description: (err as Error).message });
     },
     onSettled: (_data, _err, vars) =>
       qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
@@ -200,8 +214,9 @@ export function useMarkComplete() {
       );
       return { prev };
     },
-    onError: (_err, vars, ctx) => {
+    onError: (err, vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(bulletKey(vars.documentId), ctx.prev);
+      toast.error('Failed to mark bullet complete', { description: (err as Error).message });
     },
     onSettled: (_data, _err, vars) =>
       qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),

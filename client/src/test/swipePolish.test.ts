@@ -5,6 +5,8 @@ import { describe, it, expect } from 'vitest';
 const root = process.cwd();
 const bulletNodePath = resolve(root, 'src/components/DocumentView/BulletNode.tsx');
 const bulletNode = readFileSync(bulletNodePath, 'utf-8');
+const dotDragPath = resolve(root, 'src/components/DocumentView/useDotDrag.ts');
+const dotDrag = readFileSync(dotDragPath, 'utf-8');
 
 describe('Phase 8 — Swipe animations: icon scale proportional to drag', () => {
   // GEST-01
@@ -33,8 +35,9 @@ describe('Phase 8 — Swipe animations: snap-back and exit', () => {
 
 describe('Phase 8 — Swipe: touch drag activation', () => {
   // GEST-05: long-press on bullet dot activates drag (500ms)
+  // BulletNode delegates to useDotDrag hook; the hook contains the setTimeout logic
   it('BulletNode uses long-press timer for touch drag', () => {
     expect(bulletNode).toContain('onDragStart');
-    expect(bulletNode).toMatch(/setTimeout/);
+    expect(dotDrag).toMatch(/setTimeout/);
   });
 });

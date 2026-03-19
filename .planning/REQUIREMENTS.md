@@ -1,90 +1,91 @@
-# Requirements: Notes — Security Hardening
+# Requirements: Notes v2.3
 
-**Defined:** 2026-03-15
+**Defined:** 2026-03-19
 **Core Value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
 
-## v2.2 Requirements
+## v2.3 Requirements
 
-Requirements for security hardening. Each maps to roadmap phases.
+Requirements for the Robustness & Quality milestone. Each maps to roadmap phases.
 
-### Injection & XSS
+### CI/CD
 
-- [x] **INJ-01**: ILIKE metacharacters (%, _) are escaped in search queries before pattern matching
-- [x] **INJ-02**: ILIKE metacharacters are escaped in tag search queries (getBulletsForTag)
-- [x] **INJ-03**: SVG files are served with Content-Disposition: attachment (never inline) to prevent stored XSS
+- [ ] **CICD-01**: Server CI workflow runs lint and tests on every PR to main
+- [ ] **CICD-02**: Client CI workflow runs lint and build validation on every PR to main
 
-### Token & Session Security
+### Error Handling
 
-- [x] **SESS-01**: OAuth callback passes JWT via URL hash fragment (#token=) instead of query string (?token=)
-- [x] **SESS-02**: Client reads token from hash fragment and clears it from URL
-- [x] **SESS-03**: Refresh tokens are stored server-side and invalidated on logout
-- [x] **SESS-04**: Refresh tokens are invalidated on password change
+- [ ] **ERR-01**: All API endpoints return errors in a consistent format (`{ error, code?, details? }`)
+- [ ] **ERR-02**: Undo/redo routes return user-friendly error responses (e.g., 422 "nothing to undo") instead of raw 500s
+- [x] **ERR-03**: React error boundary at DocumentView level catches rendering crashes and auto-resets on document navigation
 
-### Upload & Attachment Security
+### Client Resilience
 
-- [x] **UPLD-01**: File uploads are restricted to an allowlist of safe MIME types (no .html, .exe, .js, etc.)
-- [x] **UPLD-02**: Filenames in Content-Disposition headers are sanitized (quotes, newlines, control chars stripped)
-- [x] **UPLD-03**: Attachment upload verifies the authenticated user owns the target bullet
+- [x] **RES-01**: Web client automatically retries failed requests after refreshing an expired access token (401 interceptor with shared promise lock and retry guard)
+- [x] **RES-02**: Mutation failures display toast notifications to the user (sonner-based, separate from existing UndoToast)
 
-### Authentication Hardening
+### Undo Coverage
 
-- [x] **AUTH-01**: Password policy enforces character diversity (uppercase, lowercase, digit, or special char)
-- [x] **AUTH-02**: Passwords are checked against a list of commonly breached passwords
-
-### API Protection
-
-- [x] **API-01**: Rate limiting is applied to data endpoints (/api/bullets, /api/documents, /api/search, /api/tags, /api/attachments)
-- [x] **API-02**: CSRF protection resolved by design — all data endpoints use Bearer token auth (Authorization header), which browsers never auto-send on cross-origin requests. The only cookie-authenticated endpoint (POST /api/auth/refresh) uses SameSite=Strict. No CSRF token implementation needed.
-
-## Future Requirements (Deferred — LOW severity)
-
-### Information Disclosure
-
-- **INFO-01**: Registration endpoint returns generic error instead of revealing email existence
-- **INFO-02**: Error logging sanitized to remove stack traces and internal paths
+- [x] **UNDO-01**: User can undo/redo toggling bullet complete/incomplete
+- [x] **UNDO-02**: User can undo/redo changes to bullet notes
+- [x] **UNDO-03**: User can undo/redo bulk deletion of completed bullets
 
 ### Configuration
 
-- **CONF-01**: Startup validation ensures all required env vars (JWT_SECRET, JWT_REFRESH_SECRET, etc.) are present
-- **CONF-02**: Explicit JSON body size limit set on express.json()
+- [ ] **CONF-01**: UPLOAD_MAX_SIZE_MB and UPLOAD_PATH environment variables are wired to actual upload logic (not hardcoded)
 
-### Misconfiguration
+### Code Quality
 
-- **MISC-01**: SPA catch-all excludes /api/ prefix to surface proper 404s for mistyped API routes
+- [ ] **QUAL-01**: BulletContent component (768 lines) decomposed into focused, testable sub-components
+- [ ] **QUAL-02**: BulletNode component (487 lines) decomposed into focused, testable sub-components
+
+## Future Requirements
+
+Deferred from v2.3 scope.
+
+### Pagination
+
+- **PAG-01**: Documents list endpoint supports pagination (cursor or offset-based)
+
+### Validation
+
+- **VAL-01**: Client validates API responses at runtime using Zod schemas
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Web Application Firewall (WAF) | Self-hosted single-user; overkill for threat model |
-| Two-factor authentication (2FA) | No admin panel, low user count — defer |
-| Content Security Policy headers | Useful but separate initiative, not part of audit fixes |
-| Penetration testing tooling | Manual audit already performed |
+| Documents list pagination | Low severity — unbounded list only matters at hundreds of docs |
+| Client-side Zod validation | Defensive only — no current failures from unvalidated responses |
+| Auto-deploy on merge | Deliberately manual deploy workflow (SCP before git push) per CLAUDE.md |
+| Per-bullet error boundaries | Hundreds of boundary instances; DocumentView-level is sufficient |
+| Infinite 401 retry | Must retry once only; second failure clears auth and redirects to login |
+| Undo for collapse/expand | Would truncate redo history on every expand/collapse — harmful UX |
 
 ## Traceability
 
+Which phases cover which requirements. Updated during roadmap creation.
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INJ-01 | Phase 16 | Complete |
-| INJ-02 | Phase 16 | Complete |
-| INJ-03 | Phase 16 | Complete |
-| UPLD-01 | Phase 16 | Complete |
-| UPLD-02 | Phase 16 | Complete |
-| UPLD-03 | Phase 16 | Complete |
-| SESS-01 | Phase 17 | Complete |
-| SESS-02 | Phase 17 | Complete |
-| SESS-03 | Phase 17 | Complete |
-| SESS-04 | Phase 17 | Complete |
-| AUTH-01 | Phase 17 | Complete |
-| AUTH-02 | Phase 17 | Complete |
-| API-01 | Phase 18 | Complete |
-| API-02 | Phase 18 | Resolved (by design) |
+| CICD-01 | Phase 19 | Pending |
+| CICD-02 | Phase 19 | Pending |
+| ERR-01 | Phase 19 | Pending |
+| ERR-02 | Phase 19 | Pending |
+| CONF-01 | Phase 19 | Pending |
+| ERR-03 | Phase 20 | Complete |
+| RES-02 | Phase 20 | Complete |
+| RES-01 | Phase 21 | Complete |
+| UNDO-01 | Phase 22 | Complete |
+| UNDO-02 | Phase 22 | Complete |
+| UNDO-03 | Phase 22 | Complete |
+| QUAL-01 | Phase 23 | Pending |
+| QUAL-02 | Phase 23 | Pending |
 
 **Coverage:**
-- v2.2 requirements: 14 total
-- Mapped to phases: 14
-- Unmapped: 0 ✓
+- v2.3 requirements: 13 total
+- Mapped to phases: 13
+- Unmapped: 0
 
 ---
-*Requirements defined: 2026-03-15*
-*Last updated: 2026-03-15 after roadmap creation*
+*Requirements defined: 2026-03-19*
+*Last updated: 2026-03-19 after roadmap creation — all 13 requirements mapped*

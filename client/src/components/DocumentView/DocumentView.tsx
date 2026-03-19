@@ -1,6 +1,7 @@
 import { useMemo, useEffect } from 'react';
 import { Menu, X, Search } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { ErrorBoundary } from 'react-error-boundary';
 import type { Document } from '../../hooks/useDocuments';
 import { BulletTree, buildBulletMap } from './BulletTree';
 import { Breadcrumb } from './Breadcrumb';
@@ -9,6 +10,7 @@ import { useUiStore } from '../../store/uiStore';
 import { useTagBullets } from '../../hooks/useTags';
 import { FilteredBulletList, type FilteredBulletRow } from './FilteredBulletList';
 import { useBookmarks, useRemoveBookmark } from '../../hooks/useBookmarks';
+import { DocumentErrorFallback } from './DocumentErrorFallback';
 
 type Props = { document: Document };
 
@@ -101,47 +103,52 @@ export function DocumentView({ document }: Props) {
   }
 
   return (
-    <div style={{ padding: '0 1rem', maxWidth: 720, margin: '0 auto' }}>
-      {/* Title row: hamburger (CSS-shown on mobile when sidebar closed) + title/breadcrumb + search */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
-        {!sidebarOpen && (
+    <ErrorBoundary
+      FallbackComponent={DocumentErrorFallback}
+      resetKeys={[document.id]}
+    >
+      <div style={{ padding: '0 1rem', maxWidth: 720, margin: '0 auto' }}>
+        {/* Title row: hamburger (CSS-shown on mobile when sidebar closed) + title/breadcrumb + search */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
+          {!sidebarOpen && (
+            <button
+              className="hamburger-btn doc-hamburger"
+              onClick={() => setSidebarOpen(true)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                lineHeight: 1,
+                minWidth: 36, minHeight: 36, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '0.25rem',
+              }}
+              aria-label="Open sidebar"
+            >
+              <Menu size={20} strokeWidth={1.5} />
+            </button>
+          )}
           <button
-            className="hamburger-btn doc-hamburger"
-            onClick={() => setSidebarOpen(true)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              lineHeight: 1,
-              minWidth: 36, minHeight: 36, flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '0.25rem',
-            }}
-            aria-label="Open sidebar"
+            className="header-search-btn"
+            onClick={() => setQuickOpenOpen(true)}
+            aria-label="Open search palette"
           >
-            <Menu size={20} strokeWidth={1.5} />
+            <Search size={20} strokeWidth={1.5} />
           </button>
-        )}
-        <button
-          className="header-search-btn"
-          onClick={() => setQuickOpenOpen(true)}
-          aria-label="Open search palette"
-        >
-          <Search size={20} strokeWidth={1.5} />
-        </button>
-        {zoomedBulletId ? (
-          <Breadcrumb
-            documentTitle={document.title}
-            zoomedBulletId={zoomedBulletId}
-            bulletMap={bulletMap}
-          />
-        ) : (
-          <h1 className="doc-title" style={{ fontSize: '1.5rem', fontWeight: 600, margin: 0, flex: 1 }}>
-            {document.title}
-          </h1>
-        )}
+          {zoomedBulletId ? (
+            <Breadcrumb
+              documentTitle={document.title}
+              zoomedBulletId={zoomedBulletId}
+              bulletMap={bulletMap}
+            />
+          ) : (
+            <h1 className="doc-title" style={{ fontSize: '1.5rem', fontWeight: 600, margin: 0, flex: 1 }}>
+              {document.title}
+            </h1>
+          )}
+        </div>
+        <div style={{ marginTop: '1.5rem' }}>
+          <BulletTree documentId={document.id} zoomedBulletId={zoomedBulletId} />
+        </div>
       </div>
-      <div style={{ marginTop: '1.5rem' }}>
-        <BulletTree documentId={document.id} zoomedBulletId={zoomedBulletId} />
-      </div>
-    </div>
+    </ErrorBoundary>
   );
 }

@@ -1,8 +1,202 @@
 # Stack Research
 
 **Domain:** Self-hosted multi-user outliner / PKM web app (Dynalist/Workflowy clone)
-**Researched:** 2026-03-09 (v1.0) | Updated: 2026-03-10 (v1.1 additions) | Updated: 2026-03-12 (v2.0 Android) | Updated: 2026-03-14 (v2.1 Widget)
-**Confidence:** HIGH (all new package versions verified against official sources 2026-03-14)
+**Researched:** 2026-03-09 (v1.0) | Updated: 2026-03-10 (v1.1) | Updated: 2026-03-12 (v2.0 Android) | Updated: 2026-03-14 (v2.1 Widget) | Updated: 2026-03-19 (v2.3 Robustness)
+**Confidence:** HIGH (all new package versions verified against npm registry and GitHub API 2026-03-19)
+
+---
+
+## v2.3 Robustness & Quality
+
+**Scope:** This section covers ONLY new additions for the v2.3 milestone. The entire prior stack (React 19, Vite, TypeScript, Express, Drizzle, PostgreSQL, Docker, Nginx, zustand, @dnd-kit, lucide-react, TanStack Query, Android/Compose, widget) is already validated and unchanged.
+
+### New Client Dependencies
+
+| Library | Version | Purpose | Why Recommended |
+|---------|---------|---------|-----------------|
+| sonner | 2.0.7 | Toast notifications for mutation errors | 2-3KB gzipped; imperative API (`toast.error(...)`) works in TanStack Query `onError` callbacks without hooks or context; `peerDeps: react ^18 \|\| ^19`; 7M+ weekly npm downloads; ships with sensible dark-mode-aware default styles |
+| react-error-boundary | 6.1.1 | Declarative error boundaries for React components | Avoids class component boilerplate; provides `useErrorBoundary` hook so event handler and async errors can trigger boundaries; `resetKeys` prop for automatic recovery on navigation; `peerDeps: react ^18 \|\| ^19`; current stable as of 2026-03-19 |
+
+### No New Server Dependencies
+
+All v2.3 server work (standardized error response format, extended undo coverage, env var wiring) uses only already-installed packages: Express, Zod, Drizzle, Vitest.
+
+### No New CI/CD Tools
+
+GitHub Actions workflows use the GitHub-hosted runner with existing tooling (Node 22, npm, vitest, eslint, tsc). No new npm packages required.
+
+---
+
+### CI/CD: GitHub Actions
+
+Two new workflow files needed — no npm packages to install.
+
+| Action | Version | Purpose | Why |
+|--------|---------|---------|-----|
+| actions/checkout | v6 (v6.0.2) | Checkout repository in workflow | Current stable as of 2025; v4 is outdated |
+| actions/setup-node | v6 (v6.3.0) | Set up Node.js with npm cache | Current stable; `cache: 'npm'` built in |
+| actions/cache | v5 (v5.0.4) | Cache `node_modules` across runs | Cuts CI time ~60% after first run; optional but recommended |
+
+**Workflow structure (two files):**
+
+`.github/workflows/server-ci.yml` — triggers on `push` to `phase-*` branches and PRs to `main`, path-filtered to `server/**`:
+1. `actions/checkout@v6`
+2. `actions/setup-node@v6` with `node-version: '22'` and `cache: 'npm'`
+3. `npm ci` (in `server/`)
+4. `npx tsc --noEmit` — TypeScript type check
+5. `npx eslint .` (if eslint config exists; currently server has no eslint config — add `eslint.config.js` to server or skip this step for now)
+6. `npx vitest run` — runs existing server tests
+
+Note on server tests and database: current server tests use `supertest` against a real Express app but mock the DB layer. Verify before CI setup — if tests require a live PostgreSQL connection, add a `services: postgres:17-alpine` container to the workflow. If tests are isolated, no service container is needed.
+
+`.github/workflows/client-ci.yml` — triggers on `push` to `phase-*` branches and PRs to `main`, path-filtered to `client/**`:
+1. `actions/checkout@v6`
+2. `actions/setup-node@v6` with `node-version: '22'` and `cache: 'npm'`
+3. `npm ci` (in `client/`)
+4. `npx tsc -b` — TypeScript type check (matches existing `npm run build` first step)
+5. `npm run lint` — ESLint (eslint v9 flat config already in `client/`)
+6. `npx vitest run` — unit tests
+7. `npx vite build` — build validation (catches import errors TypeScript misses)
+
+The existing `android-ci.yml` already demonstrates the correct GitHub Actions pattern for this repo — server and client workflows follow the same structure.
+
+---
+
+### Token Refresh Interceptor: No New Library
+
+The existing `ApiClient` class (`client/src/api/client.ts`) is a thin custom fetch wrapper. Extend `ApiClient.request()` directly — no axios migration needed.
+
+**Pattern to add to `ApiClient`:**
+
+```typescript
+// Fields to add to ApiClient class
+private refreshPromise: Promise<string | null> | null = null;
+private onAuthExpired: (() => void) | null = null;
+
+// New method
+setAuthExpiredCallback(cb: () => void) {
+  this.onAuthExpired = cb;
+}
+
+// In request(): after receiving a 401 response, before throwing
+if (res.status === 401 && !options._isRetry) {
+  // Queue concurrent 401s behind a single refresh attempt
+  if (!this.refreshPromise) {
+    this.refreshPromise = fetch('/api/auth/refresh', {
+      method: 'POST', credentials: 'include'
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => data?.accessToken ?? null)
+      .finally(() => { this.refreshPromise = null; });
+  }
+  const newToken = await this.refreshPromise;
+  if (newToken) {
+    this.setToken(newToken);
+    // Notify AuthContext to sync React state
+    return this.request<T>(path, { ...options, _isRetry: true });
+  } else {
+    this.onAuthExpired?.();
+    throw Object.assign(new Error('Session expired'), { status: 401 });
+  }
+}
+```
+
+`AuthContext` registers `apiClient.setAuthExpiredCallback(clearAuth)` on mount. The `_isRetry` flag prevents infinite loops on persistent 401s (e.g. server-side revoked tokens).
+
+**Why no library:** `axios` adds ~45KB and requires migrating all existing `apiClient` calls. The `refresh-fetch` library is minimally maintained and solves the same ~30 lines of logic.
+
+---
+
+### Error Boundary Placement
+
+```
+App.tsx
+  └── <RootErrorBoundary fallback="Something went wrong — reload page">
+        └── Router
+              └── AppPage
+                    ├── Sidebar (no boundary — sidebar errors should bubble to root)
+                    └── <DocumentErrorBoundary resetKeys={[documentId]} fallback="Failed to load document">
+                          └── DocumentView → BulletTree → BulletNode (no per-node boundaries)
+```
+
+Use `resetKeys={[documentId]}` on the document boundary so navigating to a different document automatically resets the error state without a page reload.
+
+---
+
+### Toast Placement
+
+One `<Toaster />` in `App.tsx` root (outside Router, inside any providers — sonner needs none).
+
+Call sites:
+- TanStack Query mutation `onError` callbacks: `toast.error("Failed to save")`
+- Undo/redo error responses from server: `toast.error("Undo failed — history unavailable")`
+- Do NOT replace the existing `UndoToast` component — it has an interactive "Undo" action button and custom rendering; sonner is for error/success notifications only
+
+---
+
+### Installation
+
+```bash
+# Client only — run from client/ directory
+npm install sonner react-error-boundary
+```
+
+---
+
+### Alternatives Considered
+
+| Recommended | Alternative | When to Use Alternative |
+|-------------|-------------|-------------------------|
+| sonner | react-hot-toast | Hot-toast's `.loading` → `.success` promise chain toast is marginally better; either works; sonner preferred for smaller bundle (2-3KB vs 5KB) and better default styling |
+| sonner | react-toastify | react-toastify is heavier (8KB+), requires a separate CSS import, older API design; no reason to use it on a React 19 project starting in 2026 |
+| react-error-boundary | Hand-written class component | Only if zero-dependency is a hard constraint; the class boilerplate is ~30 lines but lacks the `useErrorBoundary` hook and `resetKeys` reset logic |
+| Extend ApiClient | axios | Only if starting greenfield with no existing HTTP layer; migrating an existing fetch-based ApiClient to axios is high-churn for minimal benefit |
+| GitHub Actions | CircleCI / GitLab CI | When the repository is not hosted on GitHub; this project is `gmaingret/notes` on GitHub — Actions has zero additional cost or setup |
+
+---
+
+### What NOT to Add
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| axios | Project already has a working `ApiClient` wrapping fetch; migrating all call sites costs more than the 401-interceptor is worth | Extend `ApiClient.request()` with ~30 lines of inline refresh logic |
+| react-toastify | Heavier bundle, requires separate CSS import, older API | sonner |
+| notistack | Material UI-centric; adds MUI peer dependency | sonner |
+| actions/setup-node@v4, actions/checkout@v4 | v4 is outdated; v6 is current stable as of 2025 | `@v6` for both |
+| Per-bullet-node error boundaries | Too granular; `ErrorBoundary` has render overhead and catching individual bullet render errors provides no useful recovery path | Wrap at DocumentView level with `resetKeys` |
+| Server-side error tracking library (Sentry, etc.) | Out of scope for v2.3; self-hosted app with single user doesn't need paid error tracking | Morgan already logs server errors; add structured logging if needed in a future milestone |
+
+---
+
+### Version Compatibility
+
+| Package | Version | Compatible With | Notes |
+|---------|---------|-----------------|-------|
+| sonner | 2.0.7 | react@19.2.0 | Verified: `peerDeps: "react": "^18.0.0 \|\| ^19.0.0 \|\| ^19.0.0-rc"` |
+| react-error-boundary | 6.1.1 | react@19.2.0 | Verified: `peerDeps: "react": "^18.0.0 \|\| ^19.0.0"` |
+| actions/checkout | v6.0.2 | ubuntu-latest runner | Current stable; confirmed via GitHub API tags 2026-03-19 |
+| actions/setup-node | v6.3.0 | Node 22 LTS | Supports all LTS versions including 22; confirmed via GitHub API tags 2026-03-19 |
+| actions/cache | v5.0.4 | npm, ubuntu-latest | Standard cache action; confirmed via GitHub API tags 2026-03-19 |
+| Existing: vitest@4.x (client) | vite@7.x | No conflict | Both already in `client/package.json` — no version change |
+| Existing: vitest@3.x (server) | tsx@4.x, node@22 | No conflict | Already in `server/package.json` — no version change |
+
+---
+
+### Sources
+
+- npm registry direct query (2026-03-19) — `sonner@2.0.7`, peerDeps confirmed (HIGH confidence)
+- npm registry direct query (2026-03-19) — `react-error-boundary@6.1.1`, peerDeps confirmed (HIGH confidence)
+- GitHub API `/repos/actions/checkout/tags` (2026-03-19) — v6.0.2 latest (HIGH confidence)
+- GitHub API `/repos/actions/setup-node/tags` (2026-03-19) — v6.3.0 latest (HIGH confidence)
+- GitHub API `/repos/actions/cache/tags` (2026-03-19) — v5.0.4 latest (HIGH confidence)
+- [Knock: Top React notification libraries 2026](https://knock.app/blog/the-top-notification-libraries-for-react) — sonner adoption and download data (MEDIUM confidence)
+- [LogRocket: React toast libraries compared 2025](https://blog.logrocket.com/react-toast-libraries-compared-2025/) — sonner vs react-hot-toast analysis (MEDIUM confidence)
+- [GitHub: bvaughn/react-error-boundary](https://github.com/bvaughn/react-error-boundary) — API, resetKeys, useErrorBoundary hook (HIGH confidence)
+- [React 19 blog](https://react.dev/blog/2024/12/05/react-19) — error boundary API changes, onCaughtError/onUncaughtError (HIGH confidence)
+- [LogRocket: CI/CD Node.js GitHub Actions](https://blog.logrocket.com/ci-cd-node-js-github-actions/) — workflow structure patterns (MEDIUM confidence)
+
+---
+*v2.3 Robustness & Quality stack additions researched: 2026-03-19*
 
 ---
 
@@ -417,13 +611,6 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 - https://coil-kt.github.io/coil/ — Coil 3.4.0; coil-network-okhttp for shared OkHttp client (HIGH)
 - https://developer.android.com/build/releases/agp-9-1-0-release-notes — AGP 9.1.0 March 2026 (HIGH)
 - https://blog.jetbrains.com/kotlin/2025/12/kotlin-2-3-0-released/ — Kotlin 2.3.0 stable December 2025 (HIGH)
-- WebSearch: EncryptedSharedPreferences deprecation migration 2026 — DataStore + Tink pattern (MEDIUM, corroborated by official release notes)
-- WebSearch: Retrofit 3.0.0 migration guide — suspend fun, no coroutines adapter needed (MEDIUM, corroborated by official changelog)
-
----
-
-*Stack research for: self-hosted multi-user outliner (Dynalist/Workflowy clone)*
-*v1.0 researched: 2026-03-09 | v1.1 additions researched: 2026-03-10 | v2.0 Android researched: 2026-03-12 | v2.1 Widget researched: 2026-03-14*
 
 ---
 
@@ -579,7 +766,7 @@ plugins: [
 ]
 ```
 
-Two PNG icons (192×192 and 512×512) must be placed in `client/public/`. Generate from a single source SVG.
+Two PNG icons (192x192 and 512x512) must be placed in `client/public/`. Generate from a single source SVG.
 
 ### cmdk Integration Pattern
 
@@ -710,17 +897,13 @@ npm install motion
 
 ## v1.0 Foundation Stack (Validated, Unchanged)
 
-The original v1.0 stack research below remains valid. No changes to the backend, database, auth, editor, or drag-and-drop layers are needed for v1.1.
-
----
-
-## Recommended Stack (v1.0 Foundation)
+The original v1.0 stack research below remains valid. No changes to the backend, database, auth, editor, or drag-and-drop layers are needed for any milestone above.
 
 ### Core Technologies
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Node.js | 22 LTS | Backend runtime | LTS through 2027; Express 5 requires ≥ v18; use 22 for longevity |
+| Node.js | 22 LTS | Backend runtime | LTS through 2027; Express 5 requires >= v18; use 22 for longevity |
 | Express.js | 5.2.x | HTTP framework | v5 is now stable (April 2025); async error handling built in; no need for express-async-errors wrapper |
 | PostgreSQL | 16 or 17 | Primary database | Adjacency list + WITH RECURSIVE is first-class in PG; ltree extension available for path queries |
 | Drizzle ORM | 0.40.0 (pinned) | DB access layer | Code-first TypeScript schema; pinned at 0.40.0 — 0.45.x has a broken npm package (missing index.cjs); do not upgrade until resolved |
@@ -776,4 +959,4 @@ The original v1.0 stack research below remains valid. No changes to the backend,
 ---
 
 *Stack research for: self-hosted multi-user outliner (Dynalist/Workflowy clone)*
-*v1.0 researched: 2026-03-09 | v1.1 additions researched: 2026-03-10 | v2.0 Android researched: 2026-03-12 | v2.1 Widget researched: 2026-03-14*
+*v1.0 researched: 2026-03-09 | v1.1 additions: 2026-03-10 | v2.0 Android: 2026-03-12 | v2.1 Widget: 2026-03-14 | v2.3 Robustness: 2026-03-19*

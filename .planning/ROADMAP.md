@@ -75,7 +75,7 @@ Full details: [`.planning/milestones/v2.2-ROADMAP.md`](milestones/v2.2-ROADMAP.m
 **Milestone Goal:** Improve reliability, error handling, developer experience, and code quality across the full stack — CI/CD pipelines, automatic token refresh, error boundaries, toast notifications, undo coverage extension, and component refactoring.
 
 - [ ] **Phase 19: Server Foundation** — Standardize API error format, fix undo route error handling, add CI/CD workflows, wire upload env vars
-- [x] **Phase 20: Client Infrastructure** — Add React error boundary at document level and global toast notifications for mutation failures (completed 2026-03-19)
+- [x] **Phase 20: Client Infrastructure** — Add React error boundary at document level and global toast notifications for mutation failures (completed 2026-03-19)
 - [ ] **Phase 21: Token Refresh Interceptor** — Automatic silent token refresh on 401 with race condition prevention and retry guard
 - [ ] **Phase 22: Undo Coverage Extension** — Extend undo/redo to cover mark-complete, note edits, and bulk delete of completed bullets
 - [ ] **Phase 23: Component Refactoring** — Decompose BulletContent and BulletNode into focused, testable sub-components
@@ -108,8 +108,8 @@ Plans:
   4. Toast notifications disappear automatically and do not stack into an unreadable pile
 **Plans**: 2 plans
 Plans:
-- [ ] 19-01-PLAN.md — Error handling, undo fix, upload env var wiring
-- [ ] 19-02-PLAN.md — CI/CD workflows (server-ci.yml, client-ci.yml)
+- [x] 20-01-PLAN.md — Error boundary at DocumentView level with auto-reset
+- [x] 20-02-PLAN.md — Toast notifications for mutation failures via sonner
 
 ### Phase 21: Token Refresh Interceptor
 **Goal**: Expired access tokens are refreshed silently in the background so the user never sees a failed mutation due to token expiry
@@ -120,10 +120,9 @@ Plans:
   2. If multiple requests are in-flight when the token expires, only one refresh call is made to the server (not one per request)
   3. If the refresh token is also expired, the user is logged out and redirected to the login page with a notification
   4. A request that has already been retried once does not trigger another refresh — it fails cleanly instead of looping
-**Plans**: 2 plans
+**Plans**: 1 plan
 Plans:
-- [ ] 19-01-PLAN.md — Error handling, undo fix, upload env var wiring
-- [ ] 19-02-PLAN.md — CI/CD workflows (server-ci.yml, client-ci.yml)
+- [ ] 21-01-PLAN.md — 401 interceptor with shared promise lock, retry guard, and AuthContext handler injection
 
 ### Phase 22: Undo Coverage Extension
 **Goal**: Users can undo and redo marking bullets complete, editing notes, and bulk-deleting completed bullets — consistent with the existing 50-level global undo promise
@@ -136,8 +135,8 @@ Plans:
   4. Redo works correctly after each of the above undos (Ctrl+Y re-applies the action)
 **Plans**: 2 plans
 Plans:
-- [ ] 19-01-PLAN.md — Error handling, undo fix, upload env var wiring
-- [ ] 19-02-PLAN.md — CI/CD workflows (server-ci.yml, client-ci.yml)
+- [ ] 22-01-PLAN.md — [To be planned]
+- [ ] 22-02-PLAN.md — [To be planned]
 
 ### Phase 23: Component Refactoring
 **Goal**: BulletContent and BulletNode are decomposed into focused sub-components that can be read, tested, and modified independently
@@ -150,8 +149,8 @@ Plans:
   4. At least one extracted module (e.g., cursorUtils) has standalone unit tests that pass without mounting a React component
 **Plans**: 2 plans
 Plans:
-- [ ] 19-01-PLAN.md — Error handling, undo fix, upload env var wiring
-- [ ] 19-02-PLAN.md — CI/CD workflows (server-ci.yml, client-ci.yml)
+- [ ] 23-01-PLAN.md — [To be planned]
+- [ ] 23-02-PLAN.md — [To be planned]
 
 ## Progress
 
@@ -177,7 +176,7 @@ Plans:
 | 17. Auth and Session Security | v2.2 | 2/2 | Complete | 2026-03-15 |
 | 18. API Protection | v2.2 | 1/1 | Complete | 2026-03-15 |
 | 19. Server Foundation | v2.3 | 0/2 | Planning | - |
-| 20. Client Infrastructure | v2.3 | Complete    | 2026-03-19 | - |
-| 21. Token Refresh Interceptor | v2.3 | 0/TBD | Not started | - |
+| 20. Client Infrastructure | v2.3 | 2/2 | Complete | 2026-03-19 |
+| 21. Token Refresh Interceptor | v2.3 | 0/1 | Planning | - |
 | 22. Undo Coverage Extension | v2.3 | 0/TBD | Not started | - |
 | 23. Component Refactoring | v2.3 | 0/TBD | Not started | - |

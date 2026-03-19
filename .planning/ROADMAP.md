@@ -78,7 +78,7 @@ Full details: [`.planning/milestones/v2.2-ROADMAP.md`](milestones/v2.2-ROADMAP.m
 - [ ] **Phase 20: Client Infrastructure** — Add React error boundary at document level and global toast notifications for mutation failures
 - [ ] **Phase 21: Token Refresh Interceptor** — Automatic silent token refresh on 401 with race condition prevention and retry guard
 - [ ] **Phase 22: Undo Coverage Extension** — Extend undo/redo to cover mark-complete, note edits, and bulk delete of completed bullets
-- [ ] **Phase 23: Component Refactoring** — Decompose BulletContent and BulletNode into focused, testable sub-components
+- [x] **Phase 23: Component Refactoring** — Decompose BulletContent and BulletNode into focused, testable sub-components (completed 2026-03-19)
 
 ## Phase Details
 
@@ -180,4 +180,4 @@ Plans:
 | 20. Client Infrastructure | v2.3 | 0/TBD | Not started | - |
 | 21. Token Refresh Interceptor | v2.3 | 0/TBD | Not started | - |
 | 22. Undo Coverage Extension | v2.3 | 0/TBD | Not started | - |
-| 23. Component Refactoring | v2.3 | 0/TBD | Not started | - |
+| 23. Component Refactoring | v2.3 | Complete    | 2026-03-19 | - |

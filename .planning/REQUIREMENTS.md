@@ -16,7 +16,7 @@ Requirements for the Robustness & Quality milestone. Each maps to roadmap phases
 
 - [ ] **ERR-01**: All API endpoints return errors in a consistent format (`{ error, code?, details? }`)
 - [ ] **ERR-02**: Undo/redo routes return user-friendly error responses (e.g., 422 "nothing to undo") instead of raw 500s
-- [ ] **ERR-03**: React error boundary at DocumentView level catches rendering crashes and auto-resets on document navigation
+- [x] **ERR-03**: React error boundary at DocumentView level catches rendering crashes and auto-resets on document navigation
 
 ### Client Resilience
 
@@ -72,7 +72,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ERR-01 | Phase 19 | Pending |
 | ERR-02 | Phase 19 | Pending |
 | CONF-01 | Phase 19 | Pending |
-| ERR-03 | Phase 20 | Pending |
+| ERR-03 | Phase 20 | Complete |
 | RES-02 | Phase 20 | Pending |
 | RES-01 | Phase 21 | Pending |
 | UNDO-01 | Phase 22 | Pending |

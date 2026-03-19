@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.3
 milestone_name: Robustness & Quality
 status: unknown
-stopped_at: Phase 20 context gathered
-last_updated: "2026-03-19T15:57:30.798Z"
+stopped_at: Completed 20-01-PLAN.md
+last_updated: "2026-03-19T16:01:43.726Z"
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 2
+  completed_phases: 0
+  total_plans: 2
+  completed_plans: 1
 ---
 
 # Project State
@@ -39,6 +39,7 @@ Plan: 1 of 2
 | v2.2 Security Hardening | 3 | 5 | 1 | 5 |
 | **Total** | **19** | **85** | **9** | **9.4** |
 | Phase 19 P01 | 5 | 2 tasks | 4 files |
+| Phase 20 P01 | 2 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -56,6 +57,9 @@ Recent decisions affecting current work:
 - [Phase 19]: Pre-check undo/redo availability with getStatus() before calling service - service returns status silently on empty stack
 - [Phase 19]: Global Express 4-arg error handler added after all routes in index.ts catches unhandled exceptions as JSON 500
 - [Phase 19]: UPLOAD_PATH and UPLOAD_MAX_SIZE_MB env vars wired into multer config with sensible defaults
+- [Phase 20]: Toaster at bottom-right to avoid overlap with UndoToast at bottom-center
+- [Phase 20]: ErrorBoundary wraps only main document return block, not early-return overlay views
+- [Phase 20]: resetKeys on document.id for automatic error boundary reset on document navigation
 
 ### Pending Todos
 
@@ -68,6 +72,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-19T15:51:31.205Z
-Stopped at: Phase 20 context gathered
-Resume file: .planning/phases/20-client-infrastructure/20-CONTEXT.md
+Last session: 2026-03-19T16:01:43.724Z
+Stopped at: Completed 20-01-PLAN.md
+Resume file: None

@@ -135,8 +135,8 @@ Plans:
   4. Redo works correctly after each of the above undos (Ctrl+Y re-applies the action)
 **Plans**: 2 plans
 Plans:
-- [ ] 22-01-PLAN.md — [To be planned]
-- [ ] 22-02-PLAN.md — [To be planned]
+- [ ] 22-01-PLAN.md — Undo for mark-complete toggle and note edits (UNDO-01, UNDO-02)
+- [ ] 22-02-PLAN.md — Batch op type and undo for bulk delete completed (UNDO-03)
 
 ### Phase 23: Component Refactoring
 **Goal**: BulletContent and BulletNode are decomposed into focused sub-components that can be read, tested, and modified independently
@@ -178,5 +178,5 @@ Plans:
 | 19. Server Foundation | v2.3 | 0/2 | Planning | - |
 | 20. Client Infrastructure | v2.3 | 2/2 | Complete | 2026-03-19 |
 | 21. Token Refresh Interceptor | 1/1 | Complete    | 2026-03-19 | - |
-| 22. Undo Coverage Extension | v2.3 | 0/TBD | Not started | - |
+| 22. Undo Coverage Extension | v2.3 | 0/2 | Planning | - |
 | 23. Component Refactoring | v2.3 | 0/TBD | Not started | - |

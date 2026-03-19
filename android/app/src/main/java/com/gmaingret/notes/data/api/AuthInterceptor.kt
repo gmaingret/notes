@@ -6,19 +6,19 @@ import okhttp3.Interceptor
 import okhttp3.Response
 import javax.inject.Inject
 
-/**
- * OkHttp Interceptor that adds the Authorization: Bearer header to every request.
- *
- * Reads the access token from TokenStore on every intercept call — never caches
- * the token as a class field, which would create a race condition if a refresh
- * occurs on a concurrent request.
- */
 class AuthInterceptor @Inject constructor(
+    private val tokenRefresher: TokenRefresher,
     private val tokenStore: TokenStore
 ) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        val token = runBlocking { tokenStore.getAccessToken() }
+        val path = chain.request().url.encodedPath
+        val isAuthEndpoint = path.startsWith("/api/auth/")
+
+        val token = runBlocking {
+            if (isAuthEndpoint) tokenStore.getAccessToken()
+            else tokenRefresher.ensureValidToken()
+        }
 
         val request = if (token != null) {
             chain.request().newBuilder()

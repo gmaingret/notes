@@ -92,7 +92,10 @@ Full details: [`.planning/milestones/v2.2-ROADMAP.md`](milestones/v2.2-ROADMAP.m
   3. A PR to main triggers a GitHub Actions workflow that runs server lint and tests and fails the PR if they fail
   4. A PR to main triggers a GitHub Actions workflow that runs client lint and Vite build validation and fails the PR if they fail
   5. Changing UPLOAD_MAX_SIZE_MB or UPLOAD_PATH in .env changes the actual upload behavior without a code change
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 19-01-PLAN.md — Error handling, undo fix, upload env var wiring
+- [ ] 19-02-PLAN.md — CI/CD workflows (server-ci.yml, client-ci.yml)
 
 ### Phase 20: Client Infrastructure
 **Goal**: The web client has a global error boundary that prevents full-screen crashes and a toast notification layer that surfaces mutation failures to the user
@@ -103,7 +106,10 @@ Full details: [`.planning/milestones/v2.2-ROADMAP.md`](milestones/v2.2-ROADMAP.m
   2. Navigating from a crashed document to a healthy one clears the error card and renders the new document normally
   3. When a bullet save, delete, or reorder fails on the server, a toast notification appears describing the failure
   4. Toast notifications disappear automatically and do not stack into an unreadable pile
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 19-01-PLAN.md — Error handling, undo fix, upload env var wiring
+- [ ] 19-02-PLAN.md — CI/CD workflows (server-ci.yml, client-ci.yml)
 
 ### Phase 21: Token Refresh Interceptor
 **Goal**: Expired access tokens are refreshed silently in the background so the user never sees a failed mutation due to token expiry
@@ -114,7 +120,10 @@ Full details: [`.planning/milestones/v2.2-ROADMAP.md`](milestones/v2.2-ROADMAP.m
   2. If multiple requests are in-flight when the token expires, only one refresh call is made to the server (not one per request)
   3. If the refresh token is also expired, the user is logged out and redirected to the login page with a notification
   4. A request that has already been retried once does not trigger another refresh — it fails cleanly instead of looping
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 19-01-PLAN.md — Error handling, undo fix, upload env var wiring
+- [ ] 19-02-PLAN.md — CI/CD workflows (server-ci.yml, client-ci.yml)
 
 ### Phase 22: Undo Coverage Extension
 **Goal**: Users can undo and redo marking bullets complete, editing notes, and bulk-deleting completed bullets — consistent with the existing 50-level global undo promise
@@ -125,7 +134,10 @@ Full details: [`.planning/milestones/v2.2-ROADMAP.md`](milestones/v2.2-ROADMAP.m
   2. Editing a bullet's note text and pressing Ctrl+Z restores the previous note content
   3. Bulk-deleting all completed bullets and pressing Ctrl+Z restores all of them in a single undo step
   4. Redo works correctly after each of the above undos (Ctrl+Y re-applies the action)
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 19-01-PLAN.md — Error handling, undo fix, upload env var wiring
+- [ ] 19-02-PLAN.md — CI/CD workflows (server-ci.yml, client-ci.yml)
 
 ### Phase 23: Component Refactoring
 **Goal**: BulletContent and BulletNode are decomposed into focused sub-components that can be read, tested, and modified independently
@@ -136,7 +148,10 @@ Full details: [`.planning/milestones/v2.2-ROADMAP.md`](milestones/v2.2-ROADMAP.m
   2. BulletNode no longer exceeds 250 lines — swipe gesture logic is extracted into a reusable hook
   3. All existing bullet interactions (edit, indent, drag, swipe, complete, zoom) continue to work identically after refactoring
   4. At least one extracted module (e.g., cursorUtils) has standalone unit tests that pass without mounting a React component
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 19-01-PLAN.md — Error handling, undo fix, upload env var wiring
+- [ ] 19-02-PLAN.md — CI/CD workflows (server-ci.yml, client-ci.yml)
 
 ## Progress
 
@@ -161,7 +176,7 @@ Full details: [`.planning/milestones/v2.2-ROADMAP.md`](milestones/v2.2-ROADMAP.m
 | 16. Injection and Upload Hardening | v2.2 | 2/2 | Complete | 2026-03-15 |
 | 17. Auth and Session Security | v2.2 | 2/2 | Complete | 2026-03-15 |
 | 18. API Protection | v2.2 | 1/1 | Complete | 2026-03-15 |
-| 19. Server Foundation | v2.3 | 0/TBD | Not started | - |
+| 19. Server Foundation | v2.3 | 0/2 | Planning | - |
 | 20. Client Infrastructure | v2.3 | 0/TBD | Not started | - |
 | 21. Token Refresh Interceptor | v2.3 | 0/TBD | Not started | - |
 | 22. Undo Coverage Extension | v2.3 | 0/TBD | Not started | - |

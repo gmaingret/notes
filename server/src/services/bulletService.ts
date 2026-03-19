@@ -4,6 +4,7 @@ import { eq, and, isNull, asc } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { recordUndoEvent } from './undoService.js';
 import type { DB } from '../../db/index.js';
+import type { BulletRow } from './undoService.js';
 
 // Full bullet shape as returned from DB
 export type Bullet = {
@@ -489,7 +490,7 @@ export async function setCollapsed(
 /**
  * Patch a bullet's note field.
  * Accepts note: string | null. Empty string should be normalized to null before calling.
- * No undo recording — note updates are lightweight metadata changes.
+ * Records an undo event for note changes so Ctrl+Z restores previous note content.
  */
 export async function patchBullet(
   userId: string,
@@ -497,17 +498,37 @@ export async function patchBullet(
   fields: { note?: string | null },
   dbInstance: DB = defaultDb
 ): Promise<Bullet | null> {
+  const bullet = await dbInstance.query.bullets.findFirst({
+    where: and(eq(bullets.id, bulletId), eq(bullets.userId, userId)),
+  });
+  if (!bullet) return null;
+
   const updates: Record<string, unknown> = { updatedAt: new Date() };
 
   if (fields.note !== undefined) {
     updates.note = fields.note ?? null;
   }
 
-  const rows = await dbInstance
-    .update(bullets)
-    .set(updates)
-    .where(and(eq(bullets.id, bulletId), eq(bullets.userId, userId)))
-    .returning();
+  let updated: Bullet | undefined;
 
-  return (rows[0] as Bullet) ?? null;
+  await dbInstance.transaction(async (tx) => {
+    const rows = await tx
+      .update(bullets)
+      .set(updates)
+      .where(eq(bullets.id, bulletId))
+      .returning();
+    updated = rows[0] as Bullet;
+
+    if (fields.note !== undefined) {
+      await recordUndoEvent(
+        tx,
+        userId,
+        'update_note',
+        { type: 'update_bullet', id: bulletId, fields: { note: fields.note ?? null } as unknown as Partial<BulletRow> },
+        { type: 'update_bullet', id: bulletId, fields: { note: bullet.note ?? null } as unknown as Partial<BulletRow> }
+      );
+    }
+  });
+
+  return updated ?? null;
 }

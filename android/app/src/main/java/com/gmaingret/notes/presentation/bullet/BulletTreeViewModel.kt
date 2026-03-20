@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
@@ -170,6 +171,7 @@ class BulletTreeViewModel @Inject constructor(
     // -----------------------------------------------------------------------
 
     private var currentDocumentId: String? = null
+    private var loadJob: Job? = null
 
     /**
      * Maps real server bullet IDs back to the temp ID that was used as the LazyColumn key.
@@ -260,10 +262,11 @@ class BulletTreeViewModel @Inject constructor(
      * Also fetches initial undo status and bookmarks to set toolbar button states.
      */
     fun loadBullets(documentId: String) {
+        loadJob?.cancel()
         currentDocumentId = documentId
         realIdToTempId.clear()
         _uiState.value = BulletTreeUiState.Loading
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             getBulletsUseCase(documentId).fold(
                 onSuccess = { bullets ->
                     updateState(bullets)
@@ -353,6 +356,18 @@ class BulletTreeViewModel @Inject constructor(
                 updateState(bullets)
             }
         }
+    }
+
+    /**
+     * Silently refreshes bullets on foreground resume (ON_START lifecycle event).
+     *
+     * Unlike [loadBullets], this does NOT reset the UI to Loading state and does NOT
+     * show an Error state on failure — existing bullets stay visible. This prevents
+     * the "empty screen with Retry button" flash that occurred when a transient network
+     * error hit during a warm-start reload.
+     */
+    fun silentReload() {
+        reloadFromServer()
     }
 
     /**

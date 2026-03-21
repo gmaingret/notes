@@ -1,5 +1,6 @@
 package com.gmaingret.notes.presentation.bullet
 
+import androidx.activity.compose.BackHandler
 import android.net.Uri
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -232,6 +233,8 @@ fun BulletTreeScreen(
                         val focusedBulletId = state.focusedBulletId
                         val flatList = state.flatList
 
+
+
                         // Scroll to focused bullet when it changes.
                         // Only scroll for programmatic focus (Enter/backspace).
                         // User taps don't need scroll — the bullet is already visible.
@@ -325,6 +328,17 @@ fun BulletTreeScreen(
                         val density = LocalDensity.current
                         val keyboardController = LocalSoftwareKeyboardController.current
                         val focusManager = LocalFocusManager.current
+
+                        // When keyboard closes (back gesture or system dismiss),
+                        // clear bullet focus so the bullet exits edit mode.
+                        LaunchedEffect(imeVisible) {
+                            if (!imeVisible && focusedBulletId != null) {
+                                viewModel.flushAllPendingEdits()
+                                viewModel.setFocusedBullet(null)
+                                focusManager.clearFocus()
+                            }
+                        }
+
                         var dragHorizontalOffset by remember { mutableFloatStateOf(0f) }
                         var draggedBulletId by remember { mutableStateOf<String?>(null) }
                         // Index of the dragged item at the START of the drag (to detect no-move long-press)

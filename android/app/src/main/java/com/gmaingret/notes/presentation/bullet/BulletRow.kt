@@ -146,7 +146,7 @@ fun BulletRow(
     // Tight text style: removes Android's built-in font padding for compact rows
     val tightTextStyle = TextStyle(
         fontSize = 18.sp,
-        lineHeight = 18.sp,
+        lineHeight = 24.sp,
         platformStyle = PlatformTextStyle(includeFontPadding = false),
         lineHeightStyle = LineHeightStyle(
             alignment = LineHeightStyle.Alignment.Center,
@@ -257,7 +257,7 @@ fun BulletRow(
                     .clickable { onBulletIconTap() },
                 contentAlignment = Alignment.TopCenter
             ) {
-                Canvas(modifier = Modifier.padding(top = 10.dp).size(6.dp)) {
+                Canvas(modifier = Modifier.padding(top = 10.dp).size(8.dp)) {
                     drawCircle(
                         color = if (bullet.isComplete)
                             bulletDotColor.copy(alpha = 0.4f)
@@ -484,7 +484,7 @@ fun BulletRow(
                     Icon(
                         imageVector = if (bullet.isCollapsed) Icons.Filled.ArrowRight else Icons.Filled.ArrowDropDown,
                         contentDescription = if (bullet.isCollapsed) "Expand" else "Collapse",
-                        modifier = Modifier.size(19.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             } else {

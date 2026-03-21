@@ -168,8 +168,10 @@ fun BulletTreeScreen(
                 Lifecycle.Event.ON_START -> {
                     // Only reload after the screen has been backgrounded at least once
                     // to avoid double-loading on initial composition.
+                    // Use silentReload() instead of loadBullets() so we don't blank the
+                    // screen or show an error if the network is temporarily unavailable.
                     if (hasStoppedOnce) {
-                        viewModel.loadBullets(documentId)
+                        viewModel.silentReload()
                     }
                 }
                 else -> {}
@@ -361,9 +363,13 @@ fun BulletTreeScreen(
                             ) {
                             LazyColumn(
                                 state = lazyListState,
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
                                 verticalArrangement = Arrangement.spacedBy(7.dp),
-                                contentPadding = WindowInsets.ime.asPaddingValues()
+                                contentPadding = PaddingValues(
+                                    start = 12.dp,
+                                    end = 12.dp,
+                                    bottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+                                )
                             ) {
                                 items(
                                     items = flatList,

@@ -4,6 +4,7 @@ import android.util.Base64
 import android.util.Log
 import com.gmaingret.notes.data.local.TokenStore
 import dagger.Lazy
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
@@ -15,7 +16,9 @@ import javax.inject.Singleton
  * Centralizes token refresh logic with proactive expiry checking.
  *
  * - [ensureValidToken]: called by AuthInterceptor before every request.
- *   If the token expires within 60 seconds, refreshes proactively.
+ *   If the token expires within 60 seconds, refreshes proactively with automatic
+ *   retry (up to [REFRESH_MAX_ATTEMPTS] total) to handle device wake-up scenarios
+ *   where the network is briefly unavailable.
  * - [forceRefresh]: called by TokenAuthenticator on 401 (fallback for
  *   clock skew or edge cases). Uses stale-token dedup to avoid redundant refreshes.
  *
@@ -33,10 +36,16 @@ class TokenRefresher @Inject constructor(
         private const val TAG = "TokenRefresher"
         /** Refresh proactively if token expires within this many seconds. */
         private const val EXPIRY_BUFFER_SECONDS = 60L
+        /** Total refresh attempts before giving up (1 initial + 2 retries). */
+        private const val REFRESH_MAX_ATTEMPTS = 3
+        /** Delays in ms between attempts: 500ms then 1000ms. */
+        private val REFRESH_RETRY_DELAYS_MS = longArrayOf(500L, 1000L)
     }
 
     /**
      * Returns a valid access token, refreshing proactively if it expires soon.
+     * Retries the refresh up to [REFRESH_MAX_ATTEMPTS] times with short delays to
+     * handle the common "device just woke up, network not ready yet" scenario.
      * Called by AuthInterceptor before every request.
      */
     suspend fun ensureValidToken(): String? {
@@ -48,7 +57,7 @@ class TokenRefresher @Inject constructor(
             return token
         }
 
-        // Token expired or expiring soon — acquire lock and refresh
+        // Token expired or expiring soon — acquire lock and refresh with retry
         return mutex.withLock {
             // Re-check after acquiring lock — another coroutine may have refreshed
             val currentToken = tokenStore.getAccessToken() ?: return@withLock null
@@ -57,7 +66,21 @@ class TokenRefresher @Inject constructor(
                 return@withLock currentToken
             }
 
-            doRefresh()
+            for (attempt in 0 until REFRESH_MAX_ATTEMPTS) {
+                if (attempt > 0) {
+                    val delayMs = REFRESH_RETRY_DELAYS_MS[attempt - 1]
+                    Log.d(TAG, "Retrying refresh in ${delayMs}ms (attempt ${attempt + 1}/$REFRESH_MAX_ATTEMPTS)")
+                    delay(delayMs)
+                }
+                val result = doRefresh()
+                if (result != null) return@withLock result        // success
+                if (tokenStore.getAccessToken() == null) return@withLock null  // auth failure, session cleared
+                // Transient failure — try again
+                Log.d(TAG, "Refresh attempt ${attempt + 1} failed transiently, will retry")
+            }
+            // All attempts exhausted — return null so caller sees network error on next request
+            Log.w(TAG, "All $REFRESH_MAX_ATTEMPTS refresh attempts failed")
+            null
         }
     }
 
@@ -85,7 +108,10 @@ class TokenRefresher @Inject constructor(
      * Calls the refresh endpoint and saves the new token.
      * Must be called while holding [mutex].
      *
-     * @return the new access token, or null if refresh failed
+     * Returns:
+     * - the new access token on success
+     * - null on definitive auth failure (401/403): tokens are cleared, user must log in
+     * - null on transient failure (network error): tokens are kept for the next attempt
      */
     private suspend fun doRefresh(): String? {
         return try {
@@ -100,7 +126,7 @@ class TokenRefresher @Inject constructor(
             null
         } catch (e: Exception) {
             // Transient error (network timeout, DNS, etc.) — keep tokens so the next
-            // request can retry the refresh instead of logging the user out
+            // attempt can retry; caller decides whether to retry or propagate
             Log.w(TAG, "Token refresh failed (transient): ${e.javaClass.simpleName}", e)
             null
         }

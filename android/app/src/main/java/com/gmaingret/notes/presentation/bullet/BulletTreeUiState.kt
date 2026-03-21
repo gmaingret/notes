@@ -17,7 +17,8 @@ sealed interface BulletTreeUiState {
         val bullets: List<Bullet>,          // raw server bullets (for optimistic updates)
         val flatList: List<FlatBullet>,      // flattened for LazyColumn rendering
         val focusedBulletId: String? = null,
-        val focusCursorEnd: Boolean = false  // true = place cursor at end (after backspace merge)
+        val focusCursorEnd: Boolean = false, // true = place cursor at end (after backspace merge)
+        val scrollToFocused: Boolean = false // true = programmatic focus (Enter/backspace), scroll needed
     ) : BulletTreeUiState
 
     data class Error(val message: String) : BulletTreeUiState

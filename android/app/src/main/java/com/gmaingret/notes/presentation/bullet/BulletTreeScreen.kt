@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.asPaddingValues
@@ -48,6 +49,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -58,10 +60,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.offset
@@ -229,13 +233,11 @@ fun BulletTreeScreen(
                         val flatList = state.flatList
 
                         // Scroll to focused bullet when it changes.
-                        // Three cases:
-                        // 1. Already fully visible → do nothing
-                        // 2. Above viewport → scroll to show at top
-                        // 3. Below or partially clipped at bottom (Enter key case) →
-                        //    scroll to show previous bullet at top, new bullet below it
+                        // Only scroll for programmatic focus (Enter/backspace).
+                        // User taps don't need scroll — the bullet is already visible.
+                        // The IME LaunchedEffect below handles keyboard occlusion.
                         LaunchedEffect(focusedBulletId) {
-                            if (focusedBulletId != null) {
+                            if (focusedBulletId != null && state.scrollToFocused) {
                                 val idx = flatList.indexOfFirst { it.bullet.id == focusedBulletId }
                                 if (idx >= 0) {
                                     val layoutInfo = lazyListState.layoutInfo
@@ -251,12 +253,8 @@ fun BulletTreeScreen(
                                             visibleItems.isNotEmpty() &&
                                             idx < visibleItems.first().index
                                         if (isAbove) {
-                                            // Item is above viewport — scroll to show at top
                                             lazyListState.scrollToItem(idx)
                                         } else if (idx > 0) {
-                                            // Item is below viewport OR partially clipped at bottom.
-                                            // Scroll so previous bullet is at top — new bullet
-                                            // will be visible right below it.
                                             lazyListState.scrollToItem(idx - 1)
                                         } else {
                                             lazyListState.scrollToItem(0)
@@ -266,29 +264,34 @@ fun BulletTreeScreen(
                             }
                         }
 
-                        // When IME (keyboard) opens, scroll to keep focused bullet visible.
-                        // With adjustNothing the LazyColumn doesn't resize, so we
-                        // must manually ensure the focused item isn't behind the keyboard.
                         val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
-                        LaunchedEffect(imeBottom) {
-                            if (imeBottom > 0 && focusedBulletId != null) {
+                        val imeVisible = imeBottom > 0
+                        val currentImeBottom by rememberUpdatedState(imeBottom)
+
+                        // When a bullet is tapped, pre-scroll so it won't be
+                        // hidden by the keyboard+toolbar. Then after the keyboard
+                        // settles, do a precise correction with the real IME height.
+                        val imeDensity = LocalDensity.current
+                        LaunchedEffect(focusedBulletId) {
+                            if (focusedBulletId != null && !state.scrollToFocused) {
                                 val idx = flatList.indexOfFirst { it.bullet.id == focusedBulletId }
-                                if (idx >= 0) {
-                                    val layoutInfo = lazyListState.layoutInfo
-                                    val visibleItems = layoutInfo.visibleItemsInfo
-                                    val itemInfo = visibleItems.find { it.index == idx }
-                                    // Check if item is behind the keyboard
-                                    val visibleEnd = layoutInfo.viewportEndOffset - imeBottom
-                                    val clipped = itemInfo == null ||
-                                        (itemInfo.offset + itemInfo.size) > visibleEnd
-                                    if (clipped && idx > 0) {
-                                        lazyListState.animateScrollToItem(idx - 1)
-                                    } else if (clipped) {
-                                        lazyListState.animateScrollToItem(0)
-                                    }
+                                if (idx < 0) return@LaunchedEffect
+                                val layoutInfo = lazyListState.layoutInfo
+                                val itemInfo = layoutInfo.visibleItemsInfo.find { it.index == idx }
+                                    ?: return@LaunchedEffect
+                                // Reserve half viewport for keyboard + toolbar + margin
+                                val toolbarPx = with(imeDensity) { 56.dp.toPx() }
+                                val reservedPx = layoutInfo.viewportEndOffset / 2f + toolbarPx
+                                val marginPx = with(imeDensity) { 12.dp.toPx() }
+                                val visibleEnd = layoutInfo.viewportEndOffset - reservedPx
+                                val itemBottom = itemInfo.offset + itemInfo.size
+                                val overflow = itemBottom - visibleEnd
+                                if (overflow > 0) {
+                                    lazyListState.animateScrollBy(overflow.toFloat() + marginPx)
                                 }
                             }
                         }
+
 
                         // Compute toolbar enabled states
                         val focusedIndex = flatList.indexOfFirst { it.bullet.id == focusedBulletId }
@@ -353,21 +356,19 @@ fun BulletTreeScreen(
                             viewModel.moveBulletLocally(from.index, to.index)
                         }
 
-                        Column(modifier = Modifier.fillMaxSize()) {
+                        Box(modifier = Modifier.fillMaxSize()) {
                             PullToRefreshBox(
                                 isRefreshing = isRefreshing,
                                 onRefresh = { viewModel.refresh() },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .weight(1f)
                             ) {
                             LazyColumn(
                                 state = lazyListState,
                                 modifier = Modifier.fillMaxSize().padding(start = 14.dp),
                                 verticalArrangement = Arrangement.spacedBy(7.dp),
                                 contentPadding = PaddingValues(
-                                    start = 12.dp,
-                                    bottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+                                    start = 12.dp
                                 )
                             ) {
                                 items(
@@ -482,6 +483,8 @@ fun BulletTreeScreen(
                                             isFocused = flatBullet.bullet.id == focusedBulletId,
                                             contentOverride = contentOverrides[flatBullet.bullet.id],
                                             focusCursorEnd = state.focusCursorEnd,
+                                            scrollToFocused = state.scrollToFocused,
+                                            lazyListState = lazyListState,
                                             isDragging = isDragging,
                                             dragHorizontalOffsetPx = if (isDragging) dragHorizontalOffset else 0f,
                                             isNoteExpanded = flatBullet.bullet.id in expandedNoteIds,
@@ -729,7 +732,7 @@ fun BulletTreeScreen(
 
                             // Completed bullets toolbar — shown when any bullet is completed
                             val hasCompleted = state.bullets.any { it.isComplete }
-                            AnimatedVisibility(visible = hasCompleted && focusedBulletId == null) {
+                            androidx.compose.animation.AnimatedVisibility(visible = hasCompleted && focusedBulletId == null) {
                                 Column {
                                     HorizontalDivider()
                                     Row(
@@ -752,10 +755,19 @@ fun BulletTreeScreen(
                                 }
                             }
 
-                            // Editing toolbar — animated, shown only when a bullet is focused
-                            AnimatedVisibility(
+                            // Editing toolbar — overlaid at bottom so it doesn't shrink
+                            // the LazyColumn and cause layout shifts when the keyboard opens.
+                            // Toolbar: offset upward by IME height (minus nav bar,
+                            // since imeBottom is measured from screen bottom but
+                            // keyboard sits above the navigation bar).
+                            val navBarBottom = WindowInsets.navigationBars.getBottom(imeDensity)
+                            val imeOffsetPx = if (imeBottom > navBarBottom) imeBottom - navBarBottom else 0
+                            val imeOffsetDp = with(imeDensity) { imeOffsetPx.toDp() }
+                            androidx.compose.animation.AnimatedVisibility(
                                 visible = focusedBulletId != null,
-                                modifier = Modifier.imePadding(),
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .offset(y = -imeOffsetDp),
                                 enter = slideInVertically { it },
                                 exit = slideOutVertically { it }
                             ) {
@@ -776,7 +788,6 @@ fun BulletTreeScreen(
                                         onUndo = { viewModel.undo() },
                                         onRedo = { viewModel.redo() },
                                         onComment = {
-                                            // Toggle note expansion for focused bullet
                                             expandedNoteIds = if (bulletId in expandedNoteIds) {
                                                 expandedNoteIds - bulletId
                                             } else {
@@ -785,10 +796,12 @@ fun BulletTreeScreen(
                                         },
                                         onAttachment = {
                                             viewModel.requestAttachmentUpload(bulletId)
-                                        }
+                                        },
+                                        modifier = Modifier
                                     )
                                 }
                             }
+
                         }
                     }
 

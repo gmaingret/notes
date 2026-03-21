@@ -95,7 +95,7 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     if (isEditing) {
       el.textContent = localContent;
       if (document.activeElement !== el) {
-        el.focus();
+        el.focus({ preventScroll: true });
       }
       placeCursorAtEnd(el);
     } else {
@@ -182,11 +182,24 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
 
   function handleFocus() {
     if (suppressFocusRef.current) return;
+
+    // Capture scroll position before the browser auto-scrolls the focused element
+    // into view. We restore it in the next frame so only the FocusToolbar's
+    // scrollBulletAboveToolbar (which checks actual visibility) moves the page.
+    const main = document.querySelector<HTMLElement>('main');
+    const savedScrollTop = main?.scrollTop ?? 0;
+
     if (!isEditing) {
       setIsEditing(true);
     }
     setFocusedBulletId(bullet.id);
     if (onFocus) onFocus();
+
+    if (main) {
+      requestAnimationFrame(() => {
+        main.scrollTop = savedScrollTop;
+      });
+    }
   }
 
   // Handle chip/link clicks in view mode without entering edit mode

@@ -300,7 +300,8 @@ class BulletTreeViewModel @Inject constructor(
         bullets: List<Bullet>,
         focusedBulletId: String? = null,
         focusCursorEnd: Boolean = false,
-        forceRebuild: Boolean = false
+        forceRebuild: Boolean = false,
+        scrollToFocused: Boolean = false
     ) {
         val rootId = _zoomRootId.value
         val currentState = _uiState.value
@@ -341,7 +342,8 @@ class BulletTreeViewModel @Inject constructor(
             bullets = bullets,
             flatList = flatList,
             focusedBulletId = preservedFocusId,
-            focusCursorEnd = focusCursorEnd
+            focusCursorEnd = focusCursorEnd,
+            scrollToFocused = scrollToFocused
         )
     }
 
@@ -429,7 +431,7 @@ class BulletTreeViewModel @Inject constructor(
             isCollapsed = false,
             note = null
         )
-        updateState(bullets + tempBullet, focusedBulletId = tempId)
+        updateState(bullets + tempBullet, focusedBulletId = tempId, scrollToFocused = true)
 
         enqueue {
             val result = createBulletUseCase(
@@ -1052,7 +1054,7 @@ class BulletTreeViewModel @Inject constructor(
      */
     fun setFocusedBullet(bulletId: String?) {
         val current = _uiState.value as? BulletTreeUiState.Success ?: return
-        _uiState.value = current.copy(focusedBulletId = bulletId, focusCursorEnd = false)
+        _uiState.value = current.copy(focusedBulletId = bulletId, focusCursorEnd = false, scrollToFocused = false)
     }
 
     /**
@@ -1111,7 +1113,7 @@ class BulletTreeViewModel @Inject constructor(
                 if (b.parentId == bulletId) b.copy(parentId = deletedParentId) else b
             }
 
-        updateState(optimisticBullets, focusedBulletId = prevBullet.id, focusCursorEnd = true)
+        updateState(optimisticBullets, focusedBulletId = prevBullet.id, focusCursorEnd = true, scrollToFocused = true)
 
         enqueue {
             deleteBulletUseCase(bulletId).onFailure {

@@ -15,8 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -36,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -101,6 +101,8 @@ fun BulletRow(
     isFocused: Boolean,
     contentOverride: String?,
     focusCursorEnd: Boolean,
+    scrollToFocused: Boolean = false,
+    lazyListState: LazyListState? = null,
     isDragging: Boolean,
     dragHorizontalOffsetPx: Float,
     isNoteExpanded: Boolean,
@@ -138,7 +140,9 @@ fun BulletRow(
     val indentPx = INDENT_DP * depth
 
     val focusRequester = remember { FocusRequester() }
-    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    // bringIntoViewRequester removed — it caused unwanted scroll on tap-to-focus.
+    // Scroll is handled explicitly by LaunchedEffect(focusedBulletId) and LaunchedEffect(imeBottom)
+    // in BulletTreeScreen.
 
     val guideLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
     val bulletDotColor = MaterialTheme.colorScheme.onSurface
@@ -196,8 +200,6 @@ fun BulletRow(
     // Request focus when isFocused becomes true.
     // Always place cursor at the end of the text on focus so the user can
     // continue typing naturally regardless of tap position.
-    // Note: scrolling to the focused item is handled by the parent LazyColumn,
-    // not bringIntoView (which caused visible scroll animations on every focus change).
     LaunchedEffect(isFocused) {
         if (isFocused) {
             enterHandledForText = null
@@ -234,7 +236,6 @@ fun BulletRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .bringIntoViewRequester(bringIntoViewRequester)
                 .padding(start = indentPx, end = 4.dp)
                 .drawBehind {
                     // Draw vertical guide lines for each depth level

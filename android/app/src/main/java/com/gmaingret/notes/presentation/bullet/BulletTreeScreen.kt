@@ -365,7 +365,11 @@ fun BulletTreeScreen(
                                 state = lazyListState,
                                 modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
                                 verticalArrangement = Arrangement.spacedBy(7.dp),
-                                contentPadding = WindowInsets.ime.asPaddingValues()
+                                contentPadding = PaddingValues(
+                                    start = 12.dp,
+                                    end = 12.dp,
+                                    bottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+                                )
                             ) {
                                 items(
                                     items = flatList,

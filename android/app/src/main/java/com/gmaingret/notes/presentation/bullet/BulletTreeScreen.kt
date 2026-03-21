@@ -363,7 +363,7 @@ fun BulletTreeScreen(
                             ) {
                             LazyColumn(
                                 state = lazyListState,
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
                                 verticalArrangement = Arrangement.spacedBy(7.dp),
                                 contentPadding = WindowInsets.ime.asPaddingValues()
                             ) {

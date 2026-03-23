@@ -21,6 +21,11 @@ class TokenAuthenticator @Inject constructor(
 ) : Authenticator {
 
     override fun authenticate(route: Route?, response: Response): Request? {
+        // Never retry auth endpoints — the refresh endpoint calling refresh would deadlock:
+        // outer forceRefresh holds mutex waiting for the inner HTTP call; inner HTTP call's
+        // TokenAuthenticator tries to acquire the same mutex → infinite hang.
+        if (response.request.url.encodedPath.startsWith("/api/auth/")) return null
+
         val authHeader = response.request.header("Authorization") ?: return null
         val failedToken = authHeader.removePrefix("Bearer ")
 

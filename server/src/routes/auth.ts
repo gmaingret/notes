@@ -101,6 +101,13 @@ authRouter.post('/refresh', async (req, res) => {
     if (await isRefreshTokenRevoked(token)) {
       return res.status(401).json({ error: 'Token has been revoked' });
     }
+    // Rotate refresh token: revoke the old one and issue a fresh 7-day cookie.
+    // Without this, sessions silently die after REFRESH_TOKEN_TTL even for
+    // active users — the access token gets proactively refreshed, but the
+    // refresh token itself was never renewed.
+    await revokeRefreshToken(token);
+    await setRefreshCookie(res, payload.sub);
+
     const accessToken = issueAccessToken(payload.sub);
     return res.json({ accessToken });
   } catch {

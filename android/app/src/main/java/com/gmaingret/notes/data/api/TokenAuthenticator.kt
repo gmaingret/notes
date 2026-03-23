@@ -21,6 +21,13 @@ class TokenAuthenticator @Inject constructor(
 ) : Authenticator {
 
     override fun authenticate(route: Route?, response: Response): Request? {
+        // Never retry auth on auth endpoints — the refresh call itself returns 401
+        // when the session is dead. Retrying it here would deadlock on
+        // TokenRefresher's non-reentrant Mutex (outer forceRefresh holds the lock,
+        // inner forceRefresh from the retry blocks forever).
+        val path = response.request.url.encodedPath
+        if (path.startsWith("/api/auth/")) return null
+
         val authHeader = response.request.header("Authorization") ?: return null
         val failedToken = authHeader.removePrefix("Bearer ")
 

@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
@@ -170,6 +171,7 @@ class BulletTreeViewModel @Inject constructor(
     // -----------------------------------------------------------------------
 
     private var currentDocumentId: String? = null
+    private var loadJob: Job? = null
 
     /**
      * Maps real server bullet IDs back to the temp ID that was used as the LazyColumn key.
@@ -260,10 +262,11 @@ class BulletTreeViewModel @Inject constructor(
      * Also fetches initial undo status and bookmarks to set toolbar button states.
      */
     fun loadBullets(documentId: String) {
+        loadJob?.cancel()
         currentDocumentId = documentId
         realIdToTempId.clear()
         _uiState.value = BulletTreeUiState.Loading
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             getBulletsUseCase(documentId).fold(
                 onSuccess = { bullets ->
                     updateState(bullets)
@@ -297,7 +300,8 @@ class BulletTreeViewModel @Inject constructor(
         bullets: List<Bullet>,
         focusedBulletId: String? = null,
         focusCursorEnd: Boolean = false,
-        forceRebuild: Boolean = false
+        forceRebuild: Boolean = false,
+        scrollToFocused: Boolean = false
     ) {
         val rootId = _zoomRootId.value
         val currentState = _uiState.value
@@ -338,7 +342,8 @@ class BulletTreeViewModel @Inject constructor(
             bullets = bullets,
             flatList = flatList,
             focusedBulletId = preservedFocusId,
-            focusCursorEnd = focusCursorEnd
+            focusCursorEnd = focusCursorEnd,
+            scrollToFocused = scrollToFocused
         )
     }
 
@@ -353,6 +358,18 @@ class BulletTreeViewModel @Inject constructor(
                 updateState(bullets)
             }
         }
+    }
+
+    /**
+     * Silently refreshes bullets on foreground resume (ON_START lifecycle event).
+     *
+     * Unlike [loadBullets], this does NOT reset the UI to Loading state and does NOT
+     * show an Error state on failure — existing bullets stay visible. This prevents
+     * the "empty screen with Retry button" flash that occurred when a transient network
+     * error hit during a warm-start reload.
+     */
+    fun silentReload() {
+        reloadFromServer()
     }
 
     /**
@@ -414,7 +431,7 @@ class BulletTreeViewModel @Inject constructor(
             isCollapsed = false,
             note = null
         )
-        updateState(bullets + tempBullet, focusedBulletId = tempId)
+        updateState(bullets + tempBullet, focusedBulletId = tempId, scrollToFocused = true)
 
         enqueue {
             val result = createBulletUseCase(
@@ -1037,7 +1054,7 @@ class BulletTreeViewModel @Inject constructor(
      */
     fun setFocusedBullet(bulletId: String?) {
         val current = _uiState.value as? BulletTreeUiState.Success ?: return
-        _uiState.value = current.copy(focusedBulletId = bulletId, focusCursorEnd = false)
+        _uiState.value = current.copy(focusedBulletId = bulletId, focusCursorEnd = false, scrollToFocused = false)
     }
 
     /**
@@ -1096,7 +1113,7 @@ class BulletTreeViewModel @Inject constructor(
                 if (b.parentId == bulletId) b.copy(parentId = deletedParentId) else b
             }
 
-        updateState(optimisticBullets, focusedBulletId = prevBullet.id, focusCursorEnd = true)
+        updateState(optimisticBullets, focusedBulletId = prevBullet.id, focusCursorEnd = true, scrollToFocused = true)
 
         enqueue {
             deleteBulletUseCase(bulletId).onFailure {

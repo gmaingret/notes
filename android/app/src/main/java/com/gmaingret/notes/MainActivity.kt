@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gmaingret.notes.domain.model.AuthState
+import com.gmaingret.notes.domain.repository.AuthRepository
 import com.gmaingret.notes.presentation.navigation.AuthRoute
 import com.gmaingret.notes.presentation.navigation.MainRoute
 import com.gmaingret.notes.presentation.navigation.NotesApp
@@ -22,11 +23,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val splashViewModel: SplashViewModel by viewModels()
+
+    @Inject lateinit var authRepository: AuthRepository
 
     /**
      * Stores the document ID requested via a widget tap.
@@ -81,6 +85,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+            // Proactively refresh the access token whenever the app comes to foreground.
+            // This mirrors what SplashViewModel does on cold start and ensures the token
+            // is fresh before any data requests fire — avoiding the "network not ready yet"
+            // race that causes bullets to fail on warm start after 15+ min in background.
+            // Silent: result is ignored; TokenRefresher's retry logic handles any failure.
+            authRepository.refresh()
+        }
         // Trigger a widget re-render on every app resume so the widget stays in sync:
         // - Cold start: widget refreshes when app opens
         // - Resume from background: widget reflects any background sync that ran while paused

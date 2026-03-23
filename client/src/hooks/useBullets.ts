@@ -192,12 +192,18 @@ export function useSetCollapsed() {
       );
       return { prev };
     },
+    onSuccess: (_data, vars) => {
+      // Update cache with server response but skip full refetch —
+      // optimistic update already has the correct state and a refetch
+      // causes a jarring double-render when many children appear/disappear.
+      qc.setQueryData(bulletKey(vars.documentId), (old: Bullet[] = []) =>
+        old.map(b => b.id === vars.id ? { ...b, isCollapsed: vars.isCollapsed } : b)
+      );
+    },
     onError: (err, vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(bulletKey(vars.documentId), ctx.prev);
       toast.error('Failed to collapse bullet', { description: (err as Error).message });
     },
-    onSettled: (_data, _err, vars) =>
-      qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
   });
 }
 

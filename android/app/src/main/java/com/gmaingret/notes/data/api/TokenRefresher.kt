@@ -13,14 +13,19 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Centralizes token refresh logic with proactive expiry checking.
+ * Single source of truth for token refresh logic.
+ *
+ * ALL refresh calls MUST go through this class to avoid concurrent refresh races
+ * that revoke the refresh cookie (server rotates on every /api/auth/refresh call).
  *
  * - [ensureValidToken]: called by AuthInterceptor before every request.
- *   If the token expires within 60 seconds, refreshes proactively with automatic
- *   retry (up to [REFRESH_MAX_ATTEMPTS] total) to handle device wake-up scenarios
- *   where the network is briefly unavailable.
+ *   If the token expires within [EXPIRY_BUFFER_SECONDS], refreshes proactively
+ *   with automatic retry (up to [REFRESH_MAX_ATTEMPTS] total) to handle device
+ *   wake-up scenarios where the network is briefly unavailable.
  * - [forceRefresh]: called by TokenAuthenticator on 401 (fallback for
  *   clock skew or edge cases). Uses stale-token dedup to avoid redundant refreshes.
+ * - [refreshNow]: called by onResume/foreground handler to proactively refresh
+ *   the token. Goes through the same mutex to prevent races.
  *
  * Uses Lazy<AuthApi> to break the circular DI dependency:
  *   OkHttpClient -> AuthInterceptor -> TokenRefresher -> AuthApi -> OkHttpClient
@@ -35,7 +40,7 @@ class TokenRefresher @Inject constructor(
     companion object {
         private const val TAG = "TokenRefresher"
         /** Refresh proactively if token expires within this many seconds. */
-        private const val EXPIRY_BUFFER_SECONDS = 60L
+        private const val EXPIRY_BUFFER_SECONDS = 120L
         /** Total refresh attempts before giving up (1 initial + 2 retries). */
         private const val REFRESH_MAX_ATTEMPTS = 3
         /** Delays in ms between attempts: 500ms then 1000ms. */
@@ -81,6 +86,49 @@ class TokenRefresher @Inject constructor(
             // All attempts exhausted — return null so caller sees network error on next request
             Log.w(TAG, "All $REFRESH_MAX_ATTEMPTS refresh attempts failed")
             null
+        }
+    }
+
+    /**
+     * Proactively refreshes the token if it expires soon.
+     * Called by onResume/foreground handlers. Goes through the same mutex as
+     * ensureValidToken to prevent concurrent refresh races that would revoke
+     * the refresh cookie on the server.
+     *
+     * Returns true if the session is valid (token was fresh or refresh succeeded),
+     * false if the session is dead (refresh failed with 401/403).
+     */
+    suspend fun refreshNow(): Boolean {
+        val token = tokenStore.getAccessToken() ?: return false
+
+        // If token is still valid with margin, no refresh needed
+        val exp = parseExp(token)
+        if (exp != null && exp - System.currentTimeMillis() / 1000 > EXPIRY_BUFFER_SECONDS) {
+            return true
+        }
+
+        // Token expired or expiring soon — refresh with retry
+        return mutex.withLock {
+            // Re-check after acquiring lock
+            val currentToken = tokenStore.getAccessToken() ?: return@withLock false
+            val currentExp = parseExp(currentToken)
+            if (currentExp != null && currentExp - System.currentTimeMillis() / 1000 > EXPIRY_BUFFER_SECONDS) {
+                return@withLock true
+            }
+
+            for (attempt in 0 until REFRESH_MAX_ATTEMPTS) {
+                if (attempt > 0) {
+                    val delayMs = REFRESH_RETRY_DELAYS_MS[attempt - 1]
+                    Log.d(TAG, "refreshNow retry in ${delayMs}ms (attempt ${attempt + 1}/$REFRESH_MAX_ATTEMPTS)")
+                    delay(delayMs)
+                }
+                val result = doRefresh()
+                if (result != null) return@withLock true
+                if (tokenStore.getAccessToken() == null) return@withLock false
+                Log.d(TAG, "refreshNow attempt ${attempt + 1} failed transiently")
+            }
+            Log.w(TAG, "refreshNow: all $REFRESH_MAX_ATTEMPTS attempts failed")
+            false
         }
     }
 

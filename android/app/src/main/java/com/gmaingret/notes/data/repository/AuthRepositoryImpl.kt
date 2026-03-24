@@ -4,6 +4,7 @@ import com.gmaingret.notes.data.api.AuthApi
 import com.gmaingret.notes.data.api.GoogleTokenRequest
 import com.gmaingret.notes.data.api.LoginRequest
 import com.gmaingret.notes.data.api.RegisterRequest
+import com.gmaingret.notes.data.api.TokenRefresher
 import com.gmaingret.notes.data.local.TokenStore
 import com.gmaingret.notes.domain.model.User
 import com.gmaingret.notes.domain.repository.AuthRepository
@@ -22,7 +23,8 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val authApi: AuthApi,
-    private val tokenStore: TokenStore
+    private val tokenStore: TokenStore,
+    private val tokenRefresher: TokenRefresher
 ) : AuthRepository {
 
     override suspend fun register(email: String, password: String): Result<User> {
@@ -60,9 +62,18 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun refresh(): Result<String> {
         return try {
-            val response = authApi.refresh()
-            tokenStore.saveAccessToken(response.accessToken)
-            Result.success(response.accessToken)
+            // CRITICAL: Always go through TokenRefresher which owns the mutex.
+            // Calling authApi.refresh() directly races with TokenRefresher.ensureValidToken()
+            // and TokenRefresher.forceRefresh(), causing concurrent refresh calls that
+            // revoke the refresh cookie on the server (token rotation).
+            val success = tokenRefresher.refreshNow()
+            if (success) {
+                val token = tokenStore.getAccessToken()
+                    ?: return Result.failure(Exception("Token missing after successful refresh"))
+                Result.success(token)
+            } else {
+                Result.failure(Exception("Session expired"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

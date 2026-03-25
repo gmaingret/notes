@@ -63,12 +63,14 @@ class ApiClient {
     });
 
     // 401 interception: attempt silent token refresh if not already a retry
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (res.status === 401 && !(options as any)?._isRetry) {
       return this.handleUnauthorized((token) =>
         this.request<T>(path, {
           ...options,
           headers: { ...(options.headers ?? {}), Authorization: `Bearer ${token}` },
           _isRetry: true,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
       );
     }

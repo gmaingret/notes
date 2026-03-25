@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';

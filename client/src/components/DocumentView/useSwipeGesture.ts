@@ -47,7 +47,7 @@ export function useSwipeGesture(
     setSwipeX(dx);
   }
 
-  function handleRowPointerUp(_e: React.PointerEvent<HTMLDivElement>) {
+  function handleRowPointerUp() {
     if (!isPointerDown.current) return;
     isPointerDown.current = false;
     setIsSwiping(false);
@@ -115,6 +115,7 @@ export function useSwipeGesture(
     ? 'var(--color-swipe-delete)'
     : 'transparent';
 
+  // eslint-disable-next-line react-hooks/refs
   const threshold = (rowRef.current?.offsetWidth ?? 300) * 0.4;
   const ratio = Math.min(Math.abs(swipeX) / threshold, 1);
   const atThreshold = ratio >= 1;

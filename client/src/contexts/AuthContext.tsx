@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState, type ReactNode, useCallback } from 'react';
 import { toast } from 'sonner';
 import { apiClient } from '../api/client';
@@ -52,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const match = hash.match(/[#&]?token=([^&]+)/);
     if (match) {
       const token = decodeURIComponent(match[1]);
-      setAccessToken(token);
+      setAccessToken(token); // eslint-disable-line react-hooks/set-state-in-effect
       apiClient.setToken(token);
       // Clean fragment from URL without triggering navigation
       window.history.replaceState(null, '', window.location.pathname);

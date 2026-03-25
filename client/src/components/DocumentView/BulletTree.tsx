@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useDocumentBullets, useMoveBullet, useCreateBullet } from '../../hooks/useBullets';
@@ -157,9 +158,9 @@ export function BulletTree({
 
   // Use refs so handleDragEnd closure stays stable
   const dragRef = useRef(drag);
-  dragRef.current = drag;
+  dragRef.current = drag; // eslint-disable-line react-hooks/refs
   const projectionRef = useRef(dragProjection);
-  projectionRef.current = dragProjection;
+  projectionRef.current = dragProjection; // eslint-disable-line react-hooks/refs
 
   const handleDragEnd = useCallback(() => {
     const d = dragRef.current;

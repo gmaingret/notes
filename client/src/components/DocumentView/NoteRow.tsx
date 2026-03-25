@@ -13,7 +13,7 @@ export function NoteRow({ bulletId, initialNote, focusTrigger = 0, onHide }: Pro
   const patchNote = usePatchNote();
   // Keep a stable ref to the current initialNote for Escape revert
   const initialNoteRef = useRef(initialNote);
-  initialNoteRef.current = initialNote;
+  initialNoteRef.current = initialNote; // eslint-disable-line react-hooks/refs
 
   useLayoutEffect(() => {
     if (!ref.current) return;

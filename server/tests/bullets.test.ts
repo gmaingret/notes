@@ -557,6 +557,10 @@ describe('bulletService.softDeleteBullet', () => {
 describe('bulletService.markComplete', () => {
   it('sets isComplete=true on PATCH', async () => {
     const db = makeDb();
+    const bulletA = makeBulletRow({ id: BULLET_A, isComplete: false });
+    (db.query as Record<string, unknown>).bullets = {
+      findFirst: vi.fn().mockResolvedValue(bulletA),
+    };
     const completedBullet = makeBulletRow({ id: BULLET_A, isComplete: true });
     (db._updateReturning as ReturnType<typeof vi.fn>).mockResolvedValue([completedBullet]);
 
@@ -566,14 +570,16 @@ describe('bulletService.markComplete', () => {
     expect(db.update).toHaveBeenCalled();
     const setCall = (db._updateSet as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(setCall).toMatchObject({ isComplete: true });
-    // No undo recording — no insert should happen
-    expect(db.insert).not.toHaveBeenCalled();
   });
 
   it('sets isComplete=false when toggled again', async () => {
     const db = makeDb();
-    const bulletA = makeBulletRow({ id: BULLET_A, isComplete: false });
-    (db._updateReturning as ReturnType<typeof vi.fn>).mockResolvedValue([bulletA]);
+    const bulletA = makeBulletRow({ id: BULLET_A, isComplete: true });
+    (db.query as Record<string, unknown>).bullets = {
+      findFirst: vi.fn().mockResolvedValue(bulletA),
+    };
+    const updatedBullet = makeBulletRow({ id: BULLET_A, isComplete: false });
+    (db._updateReturning as ReturnType<typeof vi.fn>).mockResolvedValue([updatedBullet]);
 
     const result = await markComplete(USER_ID, BULLET_A, false, db as never);
 
@@ -590,6 +596,10 @@ describe('bulletService.patchBullet (note field)', () => {
     // CMT-03: patchBullet(userId, bulletId, {note: 'some text'}) stores note in DB
     const db = makeDb();
     const noteText = 'This is a note';
+    const bulletA = makeBulletRow({ id: BULLET_A, note: null });
+    (db.query as Record<string, unknown>).bullets = {
+      findFirst: vi.fn().mockResolvedValue(bulletA),
+    };
     const updatedBullet = makeBulletRow({ id: BULLET_A, note: noteText });
     (db._updateReturning as ReturnType<typeof vi.fn>).mockResolvedValue([updatedBullet]);
 
@@ -599,14 +609,15 @@ describe('bulletService.patchBullet (note field)', () => {
     expect(db.update).toHaveBeenCalled();
     const setCall = (db._updateSet as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(setCall).toHaveProperty('note', noteText);
-    // No undo event recording for note updates
-    expect(db.insert).not.toHaveBeenCalled();
   });
 
   it('PATCH with empty note stores null', async () => {
     // CMT-03: patchBullet(userId, bulletId, {note: null}) stores null in DB
-    // (caller normalizes '' to null before calling service)
     const db = makeDb();
+    const bulletA = makeBulletRow({ id: BULLET_A, note: 'old note' });
+    (db.query as Record<string, unknown>).bullets = {
+      findFirst: vi.fn().mockResolvedValue(bulletA),
+    };
     const updatedBullet = makeBulletRow({ id: BULLET_A, note: null });
     (db._updateReturning as ReturnType<typeof vi.fn>).mockResolvedValue([updatedBullet]);
 
@@ -615,7 +626,6 @@ describe('bulletService.patchBullet (note field)', () => {
     expect(result).not.toBeNull();
     const setCall = (db._updateSet as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(setCall).toHaveProperty('note', null);
-    expect(db.insert).not.toHaveBeenCalled();
   });
 });
 

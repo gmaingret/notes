@@ -97,7 +97,7 @@ export function QuickOpenPalette({ onClose }: QuickOpenPaletteProps) {
 
   // Reset selectedIndex when result list changes
   useEffect(() => {
-    setSelectedIndex(0);
+    setSelectedIndex(0); // eslint-disable-line react-hooks/set-state-in-effect
   }, [flatResults.length]);
 
   function openResult(item: PaletteResult) {

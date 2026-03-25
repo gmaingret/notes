@@ -16,14 +16,12 @@ export function AppPage() {
   const isMobile = useIsMobile();
 
   // On mobile, close sidebar on initial load when a document is already in the URL.
-  // sidebarOpen defaults to true in the store (good for desktop), but on mobile the sidebar
-  // is an overlay — it should start closed so the document is immediately visible.
   // Empty dep array: runs once on mount only, intentionally ignoring later changes.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isMobile && docId) {
       setSidebarOpen(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync sidebar visibility when viewport crosses the mobile/desktop breakpoint.

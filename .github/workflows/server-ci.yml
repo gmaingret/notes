@@ -1,0 +1,38 @@
+name: Server CI
+
+on:
+  push:
+    branches: ['phase-*']
+    paths: ['server/**']
+  pull_request:
+    branches: [main]
+    paths: ['server/**']
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Type check
+        working-directory: server
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        working-directory: server
+        run: npm test
+
+      - name: Build
+        working-directory: server
+        run: npm run build

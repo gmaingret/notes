@@ -45,11 +45,8 @@ export function useKeyboardHandlers(params: {
     bulletMap,
     divRef,
     saveTimerRef,
-    lastSavedContentRef: _lastSavedContentRef,
     isEditing,
-    localContent: _localContent,
     setLocalContent,
-    setIsEditing: _setIsEditing,
     triggerShake,
     createBullet,
     patchBullet,
@@ -57,7 +54,6 @@ export function useKeyboardHandlers(params: {
     indentBullet,
     outdentBullet,
     moveBullet,
-    undoCheckpoint: _undoCheckpoint,
     uploadAttachment,
     handleUndo,
     handleRedo,
@@ -351,8 +347,8 @@ export function useKeyboardHandlers(params: {
       if (myIdx === 0 && bullet.parentId !== null) return;
 
       // Find previous bullet in render order
-      const allBullets = Object.values(bulletMap).filter(b => !b.deletedAt);
-      let prevBullet: typeof allBullets[0] | undefined;
+      type BulletItem = (typeof bulletMap)[string];
+      let prevBullet: BulletItem | undefined;
       if (myIdx > 0) {
         prevBullet = siblings[myIdx - 1];
         let candidate = prevBullet;

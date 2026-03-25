@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import * as pdfjsLib from 'pdfjs-dist';

@@ -5,7 +5,10 @@ import com.gmaingret.notes.data.local.TokenStore
 import com.gmaingret.notes.domain.model.Document
 import com.gmaingret.notes.domain.usecase.CreateDocumentUseCase
 import com.gmaingret.notes.domain.usecase.DeleteDocumentUseCase
+import com.gmaingret.notes.domain.usecase.ExportAllDocumentsUseCase
+import com.gmaingret.notes.domain.usecase.ExportDocumentUseCase
 import com.gmaingret.notes.domain.usecase.GetDocumentsUseCase
+import com.gmaingret.notes.domain.usecase.ImportDocumentUseCase
 import com.gmaingret.notes.domain.usecase.LogoutUseCase
 import com.gmaingret.notes.domain.usecase.OpenDocumentUseCase
 import com.gmaingret.notes.domain.usecase.RenameDocumentUseCase
@@ -43,6 +46,9 @@ class MainViewModelTest {
     private lateinit var deleteDocumentUseCase: DeleteDocumentUseCase
     private lateinit var reorderDocumentUseCase: ReorderDocumentUseCase
     private lateinit var openDocumentUseCase: OpenDocumentUseCase
+    private lateinit var importDocumentUseCase: ImportDocumentUseCase
+    private lateinit var exportDocumentUseCase: ExportDocumentUseCase
+    private lateinit var exportAllDocumentsUseCase: ExportAllDocumentsUseCase
     private lateinit var logoutUseCase: LogoutUseCase
     private lateinit var tokenStore: TokenStore
 
@@ -63,6 +69,9 @@ class MainViewModelTest {
         deleteDocumentUseCase = mockk()
         reorderDocumentUseCase = mockk()
         openDocumentUseCase = mockk()
+        importDocumentUseCase = mockk()
+        exportDocumentUseCase = mockk()
+        exportAllDocumentsUseCase = mockk()
         logoutUseCase = mockk()
         tokenStore = mockk()
 
@@ -85,7 +94,10 @@ class MainViewModelTest {
         renameDocumentUseCase = renameDocumentUseCase,
         deleteDocumentUseCase = deleteDocumentUseCase,
         reorderDocumentUseCase = reorderDocumentUseCase,
-        openDocumentUseCase = openDocumentUseCase
+        openDocumentUseCase = openDocumentUseCase,
+        importDocumentUseCase = importDocumentUseCase,
+        exportDocumentUseCase = exportDocumentUseCase,
+        exportAllDocumentsUseCase = exportAllDocumentsUseCase
     )
 
     // -----------------------------------------------------------------------

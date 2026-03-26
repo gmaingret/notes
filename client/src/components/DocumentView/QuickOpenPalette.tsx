@@ -34,6 +34,25 @@ type PaletteResult =
   | { type: 'bullet'; result: SearchResult }
   | { type: 'bookmark'; bookmark: BookmarkRow };
 
+function ResultRow({ icon, title, subtitle, selected, onClick }: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div
+      className={`qop-result-row${selected ? ' qop-result-row--selected' : ''}`}
+      onClick={onClick}
+    >
+      {icon}
+      <span className="qop-result-title">{title}</span>
+      {subtitle && <span className="qop-result-subtitle">{subtitle}</span>}
+    </div>
+  );
+}
+
 export function QuickOpenPalette({ onClose }: QuickOpenPaletteProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
@@ -124,6 +143,11 @@ export function QuickOpenPalette({ onClose }: QuickOpenPaletteProps) {
     }
   }
 
+  // Precompute offset for each section to avoid findIndex inside .map()
+  const docOffset = 0;
+  const bulletOffset = docResults.length;
+  const bookmarkOffset = docResults.length + bulletResults.length;
+
   return (
     <>
       {/* Backdrop */}
@@ -145,81 +169,64 @@ export function QuickOpenPalette({ onClose }: QuickOpenPaletteProps) {
         {/* Results */}
         <div className="qop-results">
           {query.length < 2 ? (
-            /* Empty state: recent docs */
             <>
               {recentDocs.length > 0 && (
                 <div className="qop-section-header">Recent</div>
               )}
               {recentDocs.map((doc, i) => (
-                <div
+                <ResultRow
                   key={doc.id}
-                  className={`qop-result-row${i === selectedIndex ? ' qop-result-row--selected' : ''}`}
+                  icon={<FileText size={20} strokeWidth={1.5} />}
+                  title={doc.title || 'Untitled'}
+                  selected={i === selectedIndex}
                   onClick={() => openResult({ type: 'document', doc })}
-                >
-                  <FileText size={20} strokeWidth={1.5} />
-                  <span className="qop-result-title">{doc.title || 'Untitled'}</span>
-                </div>
+                />
               ))}
             </>
           ) : (
-            /* Search results: Documents, Bullets, Bookmarks */
             <>
               {docResults.length > 0 && (
                 <>
                   <div className="qop-section-header">Documents</div>
-                  {docResults.map((doc) => {
-                    const idx = flatResults.findIndex(r => r.type === 'document' && r.doc.id === doc.id);
-                    return (
-                      <div
-                        key={doc.id}
-                        className={`qop-result-row${idx === selectedIndex ? ' qop-result-row--selected' : ''}`}
-                        onClick={() => openResult({ type: 'document', doc })}
-                      >
-                        <FileText size={20} strokeWidth={1.5} />
-                        <span className="qop-result-title">{doc.title || 'Untitled'}</span>
-                      </div>
-                    );
-                  })}
+                  {docResults.map((doc, i) => (
+                    <ResultRow
+                      key={doc.id}
+                      icon={<FileText size={20} strokeWidth={1.5} />}
+                      title={doc.title || 'Untitled'}
+                      selected={docOffset + i === selectedIndex}
+                      onClick={() => openResult({ type: 'document', doc })}
+                    />
+                  ))}
                 </>
               )}
               {bulletResults.length > 0 && (
                 <>
                   <div className="qop-section-header">Bullets</div>
-                  {bulletResults.map((result) => {
-                    const idx = flatResults.findIndex(r => r.type === 'bullet' && r.result.id === result.id);
-                    return (
-                      <div
-                        key={result.id}
-                        className={`qop-result-row${idx === selectedIndex ? ' qop-result-row--selected' : ''}`}
-                        onClick={() => openResult({ type: 'bullet', result })}
-                      >
-                        <AlignLeft size={20} strokeWidth={1.5} />
-                        <span className="qop-result-title">{result.content}</span>
-                        <span className="qop-result-subtitle">{result.documentTitle}</span>
-                      </div>
-                    );
-                  })}
+                  {bulletResults.map((result, i) => (
+                    <ResultRow
+                      key={result.id}
+                      icon={<AlignLeft size={20} strokeWidth={1.5} />}
+                      title={result.content}
+                      subtitle={result.documentTitle}
+                      selected={bulletOffset + i === selectedIndex}
+                      onClick={() => openResult({ type: 'bullet', result })}
+                    />
+                  ))}
                 </>
               )}
               {bookmarkResults.length > 0 && (
                 <>
                   <div className="qop-section-header">Bookmarks</div>
-                  {bookmarkResults.map((bookmark) => {
-                    const idx = flatResults.findIndex(r => r.type === 'bookmark' && r.bookmark.id === bookmark.id);
-                    return (
-                      <div
-                        key={bookmark.id}
-                        className={`qop-result-row${idx === selectedIndex ? ' qop-result-row--selected' : ''}`}
-                        onClick={() => openResult({ type: 'bookmark', bookmark })}
-                      >
-                        <Bookmark size={20} strokeWidth={1.5} />
-                        <div className="qop-result-content">
-                          <span className="qop-result-title">{bookmark.content}</span>
-                          <span className="qop-result-subtitle">{bookmark.documentTitle}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {bookmarkResults.map((bookmark, i) => (
+                    <ResultRow
+                      key={bookmark.id}
+                      icon={<Bookmark size={20} strokeWidth={1.5} />}
+                      title={bookmark.content}
+                      subtitle={bookmark.documentTitle}
+                      selected={bookmarkOffset + i === selectedIndex}
+                      onClick={() => openResult({ type: 'bookmark', bookmark })}
+                    />
+                  ))}
                 </>
               )}
               {docResults.length === 0 && bulletResults.length === 0 && bookmarkResults.length === 0 && (

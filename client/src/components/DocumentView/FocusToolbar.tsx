@@ -29,6 +29,7 @@ import {
 } from '../../hooks/useBullets';
 import { useBookmarks, useAddBookmark, useRemoveBookmark } from '../../hooks/useBookmarks';
 import { getChildren, buildBulletMap } from './BulletTree';
+import { computeMoveUpAfterId, computeMoveDownAfterId, canIndent } from './bulletOps';
 
 type Props = {
   bulletId: string;
@@ -134,6 +135,7 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
   const hasNote = bullet.note !== null && bullet.note !== undefined;
 
   function handleIndent() {
+    if (!canIndent(bulletMap, bullet)) return;
     indentBullet.mutate({ id: bulletId, documentId });
   }
 
@@ -143,20 +145,15 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
   }
 
   function handleMoveUp() {
-    if (!hasPreviousSibling) return;
-    const afterId = siblingIndex >= 2 ? siblings[siblingIndex - 2].id : null;
+    const afterId = computeMoveUpAfterId(bulletMap, bullet);
+    if (afterId === 'noop') return;
     moveBullet.mutate({ id: bulletId, documentId, newParentId: bullet.parentId, afterId });
   }
 
   function handleMoveDown() {
-    if (!hasNextSibling) return;
-    const nextNextSibling = siblings[siblingIndex + 2] ?? null;
-    moveBullet.mutate({
-      id: bulletId,
-      documentId,
-      newParentId: bullet.parentId,
-      afterId: nextNextSibling ? nextNextSibling.id : siblings[siblingIndex + 1].id,
-    });
+    const afterId = computeMoveDownAfterId(bulletMap, bullet);
+    if (afterId === 'noop') return;
+    moveBullet.mutate({ id: bulletId, documentId, newParentId: bullet.parentId, afterId });
   }
 
   async function handleUndo() {

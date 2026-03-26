@@ -51,6 +51,7 @@ fun DocumentRow(
     onTap: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
+    onExport: () -> Unit,
     onSubmitRename: (String) -> Unit,
     onCancelRename: () -> Unit
 ) {
@@ -135,6 +136,13 @@ fun DocumentRow(
                     onClick = {
                         menuExpanded = false
                         onRename()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Export") },
+                    onClick = {
+                        menuExpanded = false
+                        onExport()
                     }
                 )
                 DropdownMenuItem(

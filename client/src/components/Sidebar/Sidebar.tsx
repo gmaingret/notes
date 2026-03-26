@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { X, Plus, FileText, Tag, Bookmark, Upload, LogOut } from 'lucide-react';
+import { X, Plus, FileText, Tag, Bookmark, Upload, Download, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useCreateDocument, useExportAllDocuments } from '../../hooks/useDocuments';
+import { useCreateDocument, useExportAllDocuments, useImportDocument } from '../../hooks/useDocuments';
 import { DocumentList } from './DocumentList';
 import { TagBrowser } from './TagBrowser';
 import { BookmarkBrowser } from './BookmarkBrowser';
@@ -16,6 +16,7 @@ export function Sidebar({ activeDocId }: SidebarProps) {
   const { logout } = useAuth();
   const { mutate: createDocument } = useCreateDocument();
   const { mutate: exportAll } = useExportAllDocuments();
+  const importDocument = useImportDocument();
   const { sidebarOpen, setSidebarOpen, sidebarTab, setSidebarTab } = useUiStore();
   const isMobile = useIsMobile();
   const [pendingRenameId, setPendingRenameId] = useState<string | null>(null);
@@ -29,6 +30,19 @@ export function Sidebar({ activeDocId }: SidebarProps) {
     });
   };
   const handleLogout = async () => { await logout(); };
+
+  const handleImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.md,text/markdown';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      importDocument.mutate(text);
+    };
+    input.click();
+  };
 
   return (
     <>
@@ -107,6 +121,14 @@ export function Sidebar({ activeDocId }: SidebarProps) {
           >
             <Upload size={20} strokeWidth={1.5} />
             <span>Export all</span>
+          </button>
+          <button
+            className="sidebar-footer-btn"
+            onClick={handleImport}
+            style={footerBtnBase}
+          >
+            <Download size={20} strokeWidth={1.5} />
+            <span>Import</span>
           </button>
           <button
             className="sidebar-footer-btn"

@@ -76,6 +76,37 @@ fun MainScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var deleteConfirmation by remember { mutableStateOf<Document?>(null) }
 
+    // File picker for import
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val importLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            val markdown = context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText()
+            if (markdown != null) {
+                viewModel.importDocument(markdown)
+            }
+        }
+    }
+
+    // Handle file exports — write to cache dir and open share sheet
+    LaunchedEffect(Unit) {
+        viewModel.fileExport.collect { export ->
+            val file = java.io.File(context.cacheDir, export.filename)
+            file.writeBytes(export.bytes)
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context, "${context.packageName}.fileprovider", file
+            )
+            val mimeType = if (export.filename.endsWith(".zip")) "application/zip" else "text/markdown"
+            val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(android.content.Intent.createChooser(shareIntent, "Export"))
+        }
+    }
+
     // Search state
     val searchViewModel: SearchViewModel = hiltViewModel()
     val searchUiState by searchViewModel.uiState.collectAsState()
@@ -189,6 +220,9 @@ fun MainScreen(
                             deleteConfirmation = doc
                         }
                     },
+                    onExport = { docId ->
+                        viewModel.exportDocument(docId)
+                    },
                     onSubmitRename = { docId, title ->
                         viewModel.submitRename(docId, title)
                     },
@@ -211,6 +245,12 @@ fun MainScreen(
                     onTagsClick = {
                         viewModel.showTags()
                         scope.launch { drawerState.close() }
+                    },
+                    onImport = {
+                        importLauncher.launch("text/*")
+                    },
+                    onExportAll = {
+                        viewModel.exportAllDocuments()
                     },
                     onLogout = {
                         viewModel.logout(onComplete = onLogout)

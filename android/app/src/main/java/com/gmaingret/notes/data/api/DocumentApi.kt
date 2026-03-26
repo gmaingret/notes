@@ -2,6 +2,7 @@ package com.gmaingret.notes.data.api
 
 import com.gmaingret.notes.data.model.CreateDocumentRequest
 import com.gmaingret.notes.data.model.DocumentDto
+import com.gmaingret.notes.data.model.ImportDocumentRequest
 import com.gmaingret.notes.data.model.RenameDocumentRequest
 import com.gmaingret.notes.data.model.ReorderDocumentRequest
 import retrofit2.Response
@@ -44,4 +45,13 @@ interface DocumentApi {
 
     @DELETE("api/documents/{id}")
     suspend fun deleteDocument(@Path("id") id: String): Response<Unit>
+
+    @GET("api/documents/{id}/export")
+    suspend fun exportDocument(@Path("id") id: String): Response<okhttp3.ResponseBody>
+
+    @GET("api/documents/export-all")
+    suspend fun exportAll(): Response<okhttp3.ResponseBody>
+
+    @POST("api/documents/import")
+    suspend fun importDocument(@Body request: ImportDocumentRequest): DocumentDto
 }

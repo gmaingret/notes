@@ -114,3 +114,14 @@ export function useExportAllDocuments() {
     },
   });
 }
+
+export function useImportDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (markdown: string) =>
+      apiClient.post<{ id: string; title: string }>('/api/documents/import', { markdown }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['documents'] });
+    },
+  });
+}

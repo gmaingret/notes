@@ -50,6 +50,7 @@ fun DocumentDrawerContent(
     onCreateDocument: () -> Unit,
     onRename: (String) -> Unit,
     onDelete: (String) -> Unit,
+    onExport: (String) -> Unit,
     onSubmitRename: (String, String) -> Unit,
     onCancelRename: () -> Unit,
     onMoveLocally: (Int, Int) -> Unit,
@@ -57,6 +58,8 @@ fun DocumentDrawerContent(
     onRetry: () -> Unit,
     onBookmarksClick: () -> Unit = {},
     onTagsClick: () -> Unit = {},
+    onImport: () -> Unit = {},
+    onExportAll: () -> Unit = {},
     onLogout: () -> Unit = {},
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {}
@@ -172,6 +175,7 @@ fun DocumentDrawerContent(
                                             onTap = { onDocumentClick(doc) },
                                             onRename = { onRename(doc.id) },
                                             onDelete = { onDelete(doc.id) },
+                                            onExport = { onExport(doc.id) },
                                             onSubmitRename = { title -> onSubmitRename(doc.id, title) },
                                             onCancelRename = onCancelRename
                                         )
@@ -183,13 +187,19 @@ fun DocumentDrawerContent(
                 }
             }
 
-            // Footer — Log out
+            // Footer — Import + Log out
             HorizontalDivider()
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
+                TextButton(onClick = onExportAll) {
+                    Text("Export all")
+                }
+                TextButton(onClick = onImport) {
+                    Text("Import")
+                }
                 TextButton(onClick = onLogout) {
                     Text("Log out")
                 }

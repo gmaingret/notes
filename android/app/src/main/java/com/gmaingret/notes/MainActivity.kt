@@ -6,9 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gmaingret.notes.domain.model.AuthState
 import com.gmaingret.notes.domain.repository.AuthRepository
 import com.gmaingret.notes.presentation.navigation.AuthRoute
@@ -19,6 +17,9 @@ import com.gmaingret.notes.presentation.theme.NotesTheme
 import com.gmaingret.notes.widget.NotesWidget
 import com.gmaingret.notes.widget.OPEN_DOCUMENT_ID
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -31,6 +32,7 @@ class MainActivity : ComponentActivity() {
     private val splashViewModel: SplashViewModel by viewModels()
 
     @Inject lateinit var authRepository: AuthRepository
+    @Inject lateinit var tokenStore: com.gmaingret.notes.data.local.TokenStore
 
     /**
      * Stores the document ID requested via a widget tap.
@@ -63,7 +65,13 @@ class MainActivity : ComponentActivity() {
         handleWidgetIntent(intent)
 
         setContent {
-            NotesTheme {
+            val themeMode by tokenStore.themeModeFlow().collectAsStateWithLifecycle(initialValue = "system")
+            val isDark = when (themeMode) {
+                "dark" -> true
+                "light" -> false
+                else -> isSystemInDarkTheme()
+            }
+            NotesTheme(darkTheme = isDark) {
                 val authState by splashViewModel.authState.collectAsStateWithLifecycle()
                 val networkError by splashViewModel.coldStartNetworkError.collectAsStateWithLifecycle()
 

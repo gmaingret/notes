@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { X, Plus, FileText, Tag, Bookmark, Upload, Download, LogOut } from 'lucide-react';
+import { X, Plus, FileText, Tag, Bookmark, Upload, Download, LogOut, Sun, Moon, Monitor } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCreateDocument, useExportAllDocuments, useImportDocument } from '../../hooks/useDocuments';
 import { DocumentList } from './DocumentList';
@@ -17,7 +17,7 @@ export function Sidebar({ activeDocId }: SidebarProps) {
   const { mutate: createDocument } = useCreateDocument();
   const { mutate: exportAll } = useExportAllDocuments();
   const importDocument = useImportDocument();
-  const { sidebarOpen, setSidebarOpen, sidebarTab, setSidebarTab } = useUiStore();
+  const { sidebarOpen, setSidebarOpen, sidebarTab, setSidebarTab, themeMode, setThemeMode } = useUiStore();
   const isMobile = useIsMobile();
   const [pendingRenameId, setPendingRenameId] = useState<string | null>(null);
 
@@ -129,6 +129,19 @@ export function Sidebar({ activeDocId }: SidebarProps) {
           >
             <Download size={20} strokeWidth={1.5} />
             <span>Import</span>
+          </button>
+          <button
+            className="sidebar-footer-btn"
+            onClick={() => {
+              const next = themeMode === 'system' ? 'light' : themeMode === 'light' ? 'dark' : 'system';
+              setThemeMode(next);
+            }}
+            style={footerBtnBase}
+          >
+            {themeMode === 'dark' ? <Moon size={20} strokeWidth={1.5} /> :
+             themeMode === 'light' ? <Sun size={20} strokeWidth={1.5} /> :
+             <Monitor size={20} strokeWidth={1.5} />}
+            <span>{themeMode === 'dark' ? 'Dark' : themeMode === 'light' ? 'Light' : 'System'}</span>
           </button>
           <button
             className="sidebar-footer-btn"

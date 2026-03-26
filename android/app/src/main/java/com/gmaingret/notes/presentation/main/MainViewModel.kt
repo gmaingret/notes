@@ -66,6 +66,9 @@ class MainViewModel @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    private val _themeMode = MutableStateFlow("system")
+    val themeMode: StateFlow<String> = _themeMode.asStateFlow()
+
     /** Emits (filename, bytes) when a file is ready to be saved/shared. */
     data class FileExport(val filename: String, val bytes: ByteArray)
     private val _fileExport = MutableSharedFlow<FileExport>()
@@ -82,6 +85,9 @@ class MainViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             _userEmail.value = tokenStore.getUserEmail() ?: ""
+        }
+        viewModelScope.launch {
+            tokenStore.themeModeFlow().collect { _themeMode.value = it }
         }
         loadDocuments()
     }
@@ -421,6 +427,13 @@ class MainViewModel @Inject constructor(
                     _snackbarMessage.emit("Export failed")
                 }
             )
+        }
+    }
+
+    fun setThemeMode(mode: String) {
+        _themeMode.value = mode
+        viewModelScope.launch {
+            tokenStore.saveThemeMode(mode)
         }
     }
 }

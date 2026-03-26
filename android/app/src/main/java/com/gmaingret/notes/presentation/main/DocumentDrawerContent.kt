@@ -60,6 +60,8 @@ fun DocumentDrawerContent(
     onTagsClick: () -> Unit = {},
     onImport: () -> Unit = {},
     onExportAll: () -> Unit = {},
+    onThemeToggle: () -> Unit = {},
+    themeMode: String = "system",
     onLogout: () -> Unit = {},
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {}
@@ -199,6 +201,9 @@ fun DocumentDrawerContent(
                 }
                 TextButton(onClick = onImport) {
                     Text("Import")
+                }
+                TextButton(onClick = onThemeToggle) {
+                    Text(when(themeMode) { "dark" -> "☽ Dark"; "light" -> "☀ Light"; else -> "⚙ System" })
                 }
                 TextButton(onClick = onLogout) {
                     Text("Log out")

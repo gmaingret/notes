@@ -16,6 +16,7 @@ import com.gmaingret.notes.domain.usecase.ReorderDocumentUseCase
 import com.gmaingret.notes.widget.WidgetStateStore
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -77,6 +78,7 @@ class MainViewModelTest {
 
         // Default: no email
         coEvery { tokenStore.getUserEmail() } returns ""
+        every { tokenStore.themeModeFlow() } returns kotlinx.coroutines.flow.flowOf("system")
     }
 
     @After

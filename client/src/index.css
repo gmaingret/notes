@@ -51,8 +51,9 @@ html { font-size: 20px; background: var(--color-bg-base); }
   color-scheme: light dark;
 }
 
+/* Apply dark colors when system prefers dark AND no explicit light/dark class is set */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light):not(.dark) {
     --color-bg-base:    #0d1117;
     --color-bg-surface: #161b22;
     --color-bg-raised:  #1f2937;

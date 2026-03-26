@@ -30,14 +30,14 @@ export type UndoStatus = {
   canRedo: boolean;
 };
 
+const ALLOWED_COLUMNS = ['content', 'parentId', 'position', 'isComplete', 'isCollapsed', 'deletedAt', 'note'] as const;
+
 /**
  * Apply an UndoOp directly to the database (used by undo/redo).
- * Does NOT call bulletService to prevent circular dependency.
  */
 async function applyOp(dbInstance: DB, op: UndoOp): Promise<void> {
   switch (op.type) {
     case 'create_bullet': {
-      // Re-insert a previously deleted (hard) bullet — used as inverse of delete_bullet
       await dbInstance.insert(bullets).values({
         id: op.bullet.id,
         documentId: op.bullet.documentId,
@@ -59,7 +59,6 @@ async function applyOp(dbInstance: DB, op: UndoOp): Promise<void> {
     }
     case 'restore_bullet':
     case 'restore_bullet_delete': {
-      // Sets deletedAt = null (restores a soft-deleted bullet)
       await dbInstance
         .update(bullets)
         .set({ deletedAt: null })
@@ -68,15 +67,10 @@ async function applyOp(dbInstance: DB, op: UndoOp): Promise<void> {
     }
     case 'update_bullet': {
       const fields = op.fields as Record<string, unknown>;
-      // Build a safe set object with only known columns
       const set: Record<string, unknown> = {};
-      if ('content' in fields) set['content'] = fields['content'];
-      if ('parentId' in fields) set['parentId'] = fields['parentId'];
-      if ('position' in fields) set['position'] = fields['position'];
-      if ('isComplete' in fields) set['isComplete'] = fields['isComplete'];
-      if ('isCollapsed' in fields) set['isCollapsed'] = fields['isCollapsed'];
-      if ('deletedAt' in fields) set['deletedAt'] = fields['deletedAt'];
-      if ('note' in fields) set['note'] = fields['note'];
+      for (const col of ALLOWED_COLUMNS) {
+        if (col in fields) set[col] = fields[col];
+      }
       if (Object.keys(set).length > 0) {
         await dbInstance
           .update(bullets)
@@ -102,16 +96,7 @@ async function applyOp(dbInstance: DB, op: UndoOp): Promise<void> {
 }
 
 /**
- * Record a new undo event.
- *
- * Must be called INSIDE an existing Drizzle transaction (the same tx used for
- * the bullet mutation) so both the mutation and the event record atomically.
- *
- * @param dbInstance  The tx handle (or db for standalone use in tests)
- * @param userId      User performing the action
- * @param eventType   Human-readable label ('create_bullet', 'indent', etc.)
- * @param forwardOp   Op to re-apply if redoing
- * @param inverseOp   Op to apply if undoing
+ * Record a new undo event (must be called inside the same tx as the mutation).
  */
 export async function recordUndoEvent(
   dbInstance: DB,
@@ -120,24 +105,22 @@ export async function recordUndoEvent(
   forwardOp: UndoOp,
   inverseOp: UndoOp
 ): Promise<void> {
-  // Get current cursor position
   const cursor = await dbInstance.query.undoCursors.findFirst({
     where: eq(undoCursors.userId, userId),
   });
   const currentSeq = cursor?.currentSeq ?? 0;
   const newSeq = currentSeq + 1;
 
-  // Truncate redo stack: delete events with seq > currentSeq
+  // Truncate redo stack
   await dbInstance
     .delete(undoEvents)
     .where(and(eq(undoEvents.userId, userId), gt(undoEvents.seq, currentSeq)));
 
-  // Enforce 50-step FIFO cap: drop oldest events beyond 50
+  // Enforce 50-step FIFO cap
   await dbInstance
     .delete(undoEvents)
     .where(and(eq(undoEvents.userId, userId), lt(undoEvents.seq, newSeq - 50)));
 
-  // Insert the new event
   await dbInstance.insert(undoEvents).values({
     userId,
     seq: newSeq,
@@ -147,7 +130,6 @@ export async function recordUndoEvent(
     inverseOp: inverseOp as unknown as Record<string, unknown>,
   });
 
-  // Upsert cursor to advance to newSeq
   await dbInstance
     .insert(undoCursors)
     .values({ userId, currentSeq: newSeq })
@@ -169,100 +151,58 @@ export async function getStatus(
   });
   const currentSeq = cursor?.currentSeq ?? 0;
 
-  if (currentSeq === 0) {
-    // Check if there are any events at all (for canRedo)
-    const nextEvent = await dbInstance.query.undoEvents.findFirst({
-      where: and(eq(undoEvents.userId, userId), gt(undoEvents.seq, 0)),
-    });
-    return { canUndo: false, canRedo: nextEvent != null };
-  }
-
-  // canUndo: cursor > 0 means there's an event to undo
   const canUndo = currentSeq > 0;
-
-  // canRedo: there's an event with seq > currentSeq
   const nextEvent = await dbInstance.query.undoEvents.findFirst({
     where: and(eq(undoEvents.userId, userId), gt(undoEvents.seq, currentSeq)),
   });
-  const canRedo = nextEvent != null;
 
-  return { canUndo, canRedo };
+  return { canUndo, canRedo: nextEvent != null };
 }
 
 /**
- * Undo the most recent event for a user.
- * Applies the inverseOp of the event at currentSeq and decrements cursor.
+ * Shared undo/redo implementation. Direction determines which op to apply
+ * and how to adjust the cursor.
  */
-export async function undo(
+async function applyUndoRedo(
   dbInstance: DB,
-  userId: string
+  userId: string,
+  direction: 'undo' | 'redo'
 ): Promise<UndoStatus> {
   const cursor = await dbInstance.query.undoCursors.findFirst({
     where: eq(undoCursors.userId, userId),
   });
   const currentSeq = cursor?.currentSeq ?? 0;
 
-  if (currentSeq === 0) {
+  const targetSeq = direction === 'undo' ? currentSeq : currentSeq + 1;
+  if (direction === 'undo' && currentSeq === 0) {
     return getStatus(dbInstance, userId);
   }
 
-  // Fetch the event to undo
   const event = await dbInstance.query.undoEvents.findFirst({
-    where: and(eq(undoEvents.userId, userId), eq(undoEvents.seq, currentSeq)),
+    where: and(eq(undoEvents.userId, userId), eq(undoEvents.seq, targetSeq)),
   });
+  if (!event) return getStatus(dbInstance, userId);
 
-  if (!event) {
-    return getStatus(dbInstance, userId);
-  }
+  const op = (direction === 'undo' ? event.inverseOp : event.forwardOp) as unknown as UndoOp;
+  await applyOp(dbInstance, op);
 
-  // Parse and apply the inverse op
-  const inverseOp = event.inverseOp as unknown as UndoOp;
-  await applyOp(dbInstance, inverseOp);
-
-  // Decrement cursor
+  const newSeq = direction === 'undo' ? currentSeq - 1 : currentSeq + 1;
   await dbInstance
     .update(undoCursors)
-    .set({ currentSeq: currentSeq - 1 })
+    .set({ currentSeq: newSeq })
     .where(eq(undoCursors.userId, userId));
 
   return getStatus(dbInstance, userId);
 }
 
-/**
- * Redo the next event for a user.
- * Applies the forwardOp of the event at currentSeq+1 and increments cursor.
- */
-export async function redo(
-  dbInstance: DB,
-  userId: string
-): Promise<UndoStatus> {
-  const cursor = await dbInstance.query.undoCursors.findFirst({
-    where: eq(undoCursors.userId, userId),
-  });
-  const currentSeq = cursor?.currentSeq ?? 0;
-  const nextSeq = currentSeq + 1;
-
-  // Check if there's an event to redo
-  const event = await dbInstance.query.undoEvents.findFirst({
-    where: and(eq(undoEvents.userId, userId), eq(undoEvents.seq, nextSeq)),
-  });
-
-  if (!event) {
-    return getStatus(dbInstance, userId);
-  }
-
-  // Parse and apply the forward op
-  const forwardOp = event.forwardOp as unknown as UndoOp;
-  await applyOp(dbInstance, forwardOp);
-
-  // Advance cursor
-  await dbInstance
-    .update(undoCursors)
-    .set({ currentSeq: nextSeq })
-    .where(eq(undoCursors.userId, userId));
-
-  return getStatus(dbInstance, userId);
+/** Undo the most recent event for a user. */
+export async function undo(dbInstance: DB, userId: string): Promise<UndoStatus> {
+  return applyUndoRedo(dbInstance, userId, 'undo');
 }
 
-// Re-export db for default usage (allows callers to pass a custom dbInstance)
+/** Redo the next event for a user. */
+export async function redo(dbInstance: DB, userId: string): Promise<UndoStatus> {
+  return applyUndoRedo(dbInstance, userId, 'redo');
+}
+
 export { defaultDb };

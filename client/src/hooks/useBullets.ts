@@ -27,6 +27,50 @@ export function useDocumentBullets(documentId: string) {
   });
 }
 
+// ─── Generic optimistic mutation factory ────────────────────────────────────
+
+type OptimisticVars = { documentId: string };
+
+function useOptimisticBulletMutation<TVars extends OptimisticVars>(opts: {
+  mutationFn: (vars: TVars) => Promise<unknown>;
+  /** Return updated cache. If omitted, no optimistic update (just invalidate). */
+  optimisticUpdate?: (old: Bullet[], vars: TVars) => Bullet[];
+  errorMessage: string;
+  /** Extra queryKeys to invalidate on settle (beyond bullets). */
+  extraInvalidate?: string[][];
+  /** If set, run onSuccess instead of onSettled invalidation. */
+  skipSettledInvalidate?: boolean;
+}) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: opts.mutationFn,
+    onMutate: opts.optimisticUpdate
+      ? async (vars: TVars) => {
+          await qc.cancelQueries({ queryKey: bulletKey(vars.documentId) });
+          const prev = qc.getQueryData<Bullet[]>(bulletKey(vars.documentId));
+          qc.setQueryData(bulletKey(vars.documentId), (old: Bullet[] = []) =>
+            opts.optimisticUpdate!(old, vars)
+          );
+          return { prev };
+        }
+      : undefined,
+    onError: (err: unknown, vars: TVars, ctx: { prev?: Bullet[] } | undefined) => {
+      if (ctx?.prev) qc.setQueryData(bulletKey(vars.documentId), ctx.prev);
+      toast.error(opts.errorMessage, { description: (err as Error).message });
+    },
+    onSettled: opts.skipSettledInvalidate
+      ? undefined
+      : (_data: unknown, _err: unknown, vars: TVars) => {
+          qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) });
+          for (const key of opts.extraInvalidate ?? []) {
+            qc.invalidateQueries({ queryKey: key });
+          }
+        },
+  });
+}
+
+// ─── Mutations ──────────────────────────────────────────────────────────────
+
 export function useCreateBullet() {
   const qc = useQueryClient();
   return useMutation({
@@ -41,7 +85,6 @@ export function useCreateBullet() {
       const prev = qc.getQueryData<Bullet[]>(bulletKey(vars.documentId));
       const bullets = prev ?? [];
 
-      // Compute an optimistic position so the bullet renders in the right place immediately
       let optimisticPosition = 0;
       if (vars.afterId) {
         const afterBullet = bullets.find(b => b.id === vars.afterId);
@@ -56,7 +99,6 @@ export function useCreateBullet() {
             : afterBullet.position + 1;
         }
       } else {
-        // afterId null → insert before all siblings
         const siblings = bullets.filter(b => b.parentId === vars.parentId && !b.deletedAt);
         if (siblings.length > 0) {
           optimisticPosition = Math.min(...siblings.map(s => s.position)) - 1;
@@ -91,76 +133,48 @@ export function useCreateBullet() {
 }
 
 export function usePatchBullet() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (vars: { id: string; documentId: string; content?: string; isComplete?: boolean; isCollapsed?: boolean }) =>
-      apiClient.patch<Bullet>(`/api/bullets/${vars.id}`, vars),
-    onMutate: async (vars) => {
-      await qc.cancelQueries({ queryKey: bulletKey(vars.documentId) });
-      const prev = qc.getQueryData<Bullet[]>(bulletKey(vars.documentId));
-      qc.setQueryData(bulletKey(vars.documentId), (old: Bullet[] = []) =>
-        old.map(b => b.id === vars.id ? { ...b, ...vars } : b)
-      );
-      return { prev };
-    },
-    onError: (err, vars, ctx) => {
-      if (ctx?.prev) qc.setQueryData(bulletKey(vars.documentId), ctx.prev);
-      toast.error('Failed to save bullet', { description: (err as Error).message });
-    },
-    onSettled: (_data, _err, vars) =>
-      qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
+  return useOptimisticBulletMutation<{ id: string; documentId: string; content?: string; isComplete?: boolean; isCollapsed?: boolean }>({
+    mutationFn: (vars) => apiClient.patch<Bullet>(`/api/bullets/${vars.id}`, vars),
+    optimisticUpdate: (old, vars) => old.map(b => b.id === vars.id ? { ...b, ...vars } : b),
+    errorMessage: 'Failed to save bullet',
   });
 }
 
 export function useSoftDeleteBullet() {
+  return useOptimisticBulletMutation<{ id: string; documentId: string }>({
+    mutationFn: (vars) => apiClient.delete<void>(`/api/bullets/${vars.id}`),
+    optimisticUpdate: (old, vars) =>
+      old.map(b => b.id === vars.id ? { ...b, deletedAt: new Date().toISOString() } : b),
+    errorMessage: 'Failed to delete bullet',
+    extraInvalidate: [['tags'], ['tag-bullets']],
+  });
+}
+
+function useSimpleBulletMutation(
+  urlSuffix: string,
+  errorMessage: string,
+  method: 'post' | 'patch' = 'post'
+) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: { id: string; documentId: string }) =>
-      apiClient.delete<void>(`/api/bullets/${vars.id}`),
-    onMutate: async (vars) => {
-      await qc.cancelQueries({ queryKey: bulletKey(vars.documentId) });
-      const prev = qc.getQueryData<Bullet[]>(bulletKey(vars.documentId));
-      qc.setQueryData(bulletKey(vars.documentId), (old: Bullet[] = []) =>
-        old.map(b => b.id === vars.id ? { ...b, deletedAt: new Date().toISOString() } : b)
-      );
-      return { prev };
+      method === 'post'
+        ? apiClient.post<Bullet>(`/api/bullets/${vars.id}/${urlSuffix}`)
+        : apiClient.patch<Bullet>(`/api/bullets/${vars.id}`, {}),
+    onError: (err: unknown) => {
+      toast.error(errorMessage, { description: (err as Error).message });
     },
-    onError: (err, vars, ctx) => {
-      if (ctx?.prev) qc.setQueryData(bulletKey(vars.documentId), ctx.prev);
-      toast.error('Failed to delete bullet', { description: (err as Error).message });
-    },
-    onSettled: (_data, _err, vars) => {
-      qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) });
-      qc.invalidateQueries({ queryKey: ['tags'] });
-      qc.invalidateQueries({ queryKey: ['tag-bullets'] });
-    },
+    onSettled: (_data: unknown, _err: unknown, vars: { id: string; documentId: string }) =>
+      qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
   });
 }
 
 export function useIndentBullet() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (vars: { id: string; documentId: string }) =>
-      apiClient.post<Bullet>(`/api/bullets/${vars.id}/indent`),
-    onError: (err) => {
-      toast.error('Failed to indent bullet', { description: (err as Error).message });
-    },
-    onSettled: (_data, _err, vars) =>
-      qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
-  });
+  return useSimpleBulletMutation('indent', 'Failed to indent bullet');
 }
 
 export function useOutdentBullet() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (vars: { id: string; documentId: string }) =>
-      apiClient.post<Bullet>(`/api/bullets/${vars.id}/outdent`),
-    onError: (err) => {
-      toast.error('Failed to outdent bullet', { description: (err as Error).message });
-    },
-    onSettled: (_data, _err, vars) =>
-      qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
-  });
+  return useSimpleBulletMutation('outdent', 'Failed to outdent bullet');
 }
 
 export function useMoveBullet() {
@@ -171,61 +185,30 @@ export function useMoveBullet() {
         newParentId: vars.newParentId,
         afterId: vars.afterId,
       }),
-    onError: (err) => {
+    onError: (err: unknown) => {
       toast.error('Failed to reorder bullet', { description: (err as Error).message });
     },
-    onSettled: (_data, _err, vars) =>
+    onSettled: (_data: unknown, _err: unknown, vars: { id: string; documentId: string; newParentId: string | null; afterId: string | null }) =>
       qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
   });
 }
 
 export function useSetCollapsed() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (vars: { id: string; documentId: string; isCollapsed: boolean }) =>
-      apiClient.patch<Bullet>(`/api/bullets/${vars.id}`, { isCollapsed: vars.isCollapsed }),
-    onMutate: async (vars) => {
-      await qc.cancelQueries({ queryKey: bulletKey(vars.documentId) });
-      const prev = qc.getQueryData<Bullet[]>(bulletKey(vars.documentId));
-      qc.setQueryData(bulletKey(vars.documentId), (old: Bullet[] = []) =>
-        old.map(b => b.id === vars.id ? { ...b, isCollapsed: vars.isCollapsed } : b)
-      );
-      return { prev };
-    },
-    onSuccess: (_data, vars) => {
-      // Update cache with server response but skip full refetch —
-      // optimistic update already has the correct state and a refetch
-      // causes a jarring double-render when many children appear/disappear.
-      qc.setQueryData(bulletKey(vars.documentId), (old: Bullet[] = []) =>
-        old.map(b => b.id === vars.id ? { ...b, isCollapsed: vars.isCollapsed } : b)
-      );
-    },
-    onError: (err, vars, ctx) => {
-      if (ctx?.prev) qc.setQueryData(bulletKey(vars.documentId), ctx.prev);
-      toast.error('Failed to collapse bullet', { description: (err as Error).message });
-    },
+  return useOptimisticBulletMutation<{ id: string; documentId: string; isCollapsed: boolean }>({
+    mutationFn: (vars) => apiClient.patch<Bullet>(`/api/bullets/${vars.id}`, { isCollapsed: vars.isCollapsed }),
+    optimisticUpdate: (old, vars) =>
+      old.map(b => b.id === vars.id ? { ...b, isCollapsed: vars.isCollapsed } : b),
+    errorMessage: 'Failed to collapse bullet',
+    skipSettledInvalidate: true,
   });
 }
 
 export function useMarkComplete() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (vars: { id: string; documentId: string; isComplete: boolean }) =>
-      apiClient.patch<Bullet>(`/api/bullets/${vars.id}`, { isComplete: vars.isComplete }),
-    onMutate: async (vars) => {
-      await qc.cancelQueries({ queryKey: bulletKey(vars.documentId) });
-      const prev = qc.getQueryData<Bullet[]>(bulletKey(vars.documentId));
-      qc.setQueryData(bulletKey(vars.documentId), (old: Bullet[] = []) =>
-        old.map(b => b.id === vars.id ? { ...b, isComplete: vars.isComplete } : b)
-      );
-      return { prev };
-    },
-    onError: (err, vars, ctx) => {
-      if (ctx?.prev) qc.setQueryData(bulletKey(vars.documentId), ctx.prev);
-      toast.error('Failed to mark bullet complete', { description: (err as Error).message });
-    },
-    onSettled: (_data, _err, vars) =>
-      qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
+  return useOptimisticBulletMutation<{ id: string; documentId: string; isComplete: boolean }>({
+    mutationFn: (vars) => apiClient.patch<Bullet>(`/api/bullets/${vars.id}`, { isComplete: vars.isComplete }),
+    optimisticUpdate: (old, vars) =>
+      old.map(b => b.id === vars.id ? { ...b, isComplete: vars.isComplete } : b),
+    errorMessage: 'Failed to mark bullet complete',
   });
 }
 

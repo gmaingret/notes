@@ -73,7 +73,8 @@ function useOptimisticBulletMutation<TVars extends OptimisticVars>(opts: {
 
 export function useCreateBullet() {
   const qc = useQueryClient();
-  return useMutation({
+
+  const mutation = useMutation({
     mutationFn: (vars: {
       documentId: string;
       parentId: string | null;
@@ -105,8 +106,9 @@ export function useCreateBullet() {
         }
       }
 
+      const optimisticId = `optimistic-${Date.now()}`;
       const optimistic: Bullet = {
-        id: `optimistic-${Date.now()}`,
+        id: optimisticId,
         documentId: vars.documentId,
         userId: '',
         parentId: vars.parentId,
@@ -121,7 +123,7 @@ export function useCreateBullet() {
         ...old,
         optimistic,
       ]);
-      return { prev };
+      return { prev, optimisticId };
     },
     onError: (err, vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(bulletKey(vars.documentId), ctx.prev);
@@ -130,6 +132,8 @@ export function useCreateBullet() {
     onSettled: (_data, _err, vars) =>
       qc.invalidateQueries({ queryKey: bulletKey(vars.documentId) }),
   });
+
+  return mutation;
 }
 
 export function usePatchBullet() {

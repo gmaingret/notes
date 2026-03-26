@@ -4,7 +4,7 @@ import { eq, and, isNull, asc } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { recordUndoEvent } from './undoService.js';
 import type { DB } from '../../db/index.js';
-import type { BulletRow } from './undoService.js';
+import type { BulletRow, UndoOp } from './undoService.js';
 
 // Full bullet shape as returned from DB
 export type Bullet = {
@@ -22,14 +22,49 @@ export type Bullet = {
   updatedAt: Date;
 };
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/** Load a bullet by id+userId, optionally requiring it to be non-deleted. */
+async function loadBullet(
+  dbInstance: DB,
+  bulletId: string,
+  userId: string,
+  opts: { requireActive?: boolean } = {}
+): Promise<Bullet | null> {
+  const conditions = opts.requireActive
+    ? and(eq(bullets.id, bulletId), eq(bullets.userId, userId), isNull(bullets.deletedAt))
+    : and(eq(bullets.id, bulletId), eq(bullets.userId, userId));
+  const row = await dbInstance.query.bullets.findFirst({ where: conditions });
+  return (row as Bullet) ?? null;
+}
+
+/** Update a bullet inside a transaction and record an undo event. */
+async function updateWithUndo(
+  dbInstance: DB,
+  userId: string,
+  bulletId: string,
+  set: Record<string, unknown>,
+  actionName: string,
+  forwardOp: UndoOp,
+  inverseOp: UndoOp
+): Promise<Bullet> {
+  let updated: Bullet | undefined;
+  await dbInstance.transaction(async (tx) => {
+    const rows = await tx
+      .update(bullets)
+      .set(set as Parameters<ReturnType<typeof tx.update>['set']>[0])
+      .where(eq(bullets.id, bulletId))
+      .returning();
+    updated = rows[0] as Bullet;
+    await recordUndoEvent(tx, userId, actionName, forwardOp, inverseOp);
+  });
+  return updated!;
+}
+
+// ─── Public API ─────────────────────────────────────────────────────────────
+
 /**
  * Compute FLOAT8 midpoint insert position for a bullet among siblings.
- * Mirrors computeDocumentInsertPosition from documentService.ts.
- *
- * @param dbInstance   Drizzle DB or transaction handle
- * @param documentId   Document containing the bullet
- * @param parentId     Parent bullet id (null = root level)
- * @param afterId      Insert after this sibling id (null = insert at beginning)
  */
 export async function computeBulletInsertPosition(
   dbInstance: DB,
@@ -52,19 +87,16 @@ export async function computeBulletInsertPosition(
   if (siblings.length === 0) return 1.0;
 
   if (afterId === null) {
-    // Insert before the first sibling
     return siblings[0].position / 2;
   }
 
   const afterIdx = siblings.findIndex(s => s.id === afterId);
   if (afterIdx === -1) {
-    // afterId not found among siblings — append at end
     return siblings[siblings.length - 1].position + 1.0;
   }
 
   const prev = siblings[afterIdx].position;
   const next = siblings[afterIdx + 1]?.position;
-
   return next !== undefined ? (prev + next) / 2 : prev + 1.0;
 }
 
@@ -141,9 +173,7 @@ export async function createBullet(
       tx,
       userId,
       'create_bullet',
-      // forwardOp: re-create this bullet (if redo after an undo of the create)
       { type: 'restore_bullet', id },
-      // inverseOp: soft-delete this bullet (undo the creation)
       { type: 'restore_bullet_delete', id }
     );
   });
@@ -160,15 +190,12 @@ export async function indentBullet(
   bulletId: string,
   dbInstance: DB = defaultDb
 ): Promise<Bullet | null> {
-  // Load the target bullet
-  const bullet = await dbInstance.query.bullets.findFirst({
-    where: and(eq(bullets.id, bulletId), eq(bullets.userId, userId), isNull(bullets.deletedAt)),
-  });
+  const bullet = await loadBullet(dbInstance, bulletId, userId, { requireActive: true });
   if (!bullet) return null;
 
-  // Get all siblings (bullets with same parent, same document)
+  // Get siblings to find the previous sibling
   const siblings = await dbInstance
-    .select()
+    .select({ id: bullets.id, position: bullets.position })
     .from(bullets)
     .where(
       and(
@@ -182,20 +209,11 @@ export async function indentBullet(
     .orderBy(asc(bullets.position));
 
   const index = siblings.findIndex(s => s.id === bulletId);
-  if (index === 0) return bullet as Bullet; // Already first sibling — no-op
+  if (index === 0) return bullet; // Already first sibling — no-op
 
   const previousSibling = siblings[index - 1];
 
-  // Compute position as last child of previousSibling
-  const newPosition = await computeBulletInsertPosition(
-    dbInstance,
-    bullet.documentId,
-    previousSibling.id,
-    null // afterId=null means find the tail position among previousSibling's children
-  );
-
-  // Actually append as last child — we need to pass the last child id, not null
-  // Let's get the last child of previousSibling and pass its id as afterId
+  // Find last child of previousSibling to append after it
   const prevSiblingChildren = await dbInstance
     .select({ id: bullets.id, position: bullets.position })
     .from(bullets)
@@ -220,28 +238,13 @@ export async function indentBullet(
     lastChildId
   );
 
-  let updated: Bullet | undefined;
-
-  await dbInstance.transaction(async (tx) => {
-    const rows = await tx
-      .update(bullets)
-      .set({ parentId: previousSibling.id, position: appendPosition })
-      .where(eq(bullets.id, bulletId))
-      .returning();
-    updated = rows[0] as Bullet;
-
-    await recordUndoEvent(
-      tx,
-      userId,
-      'indent_bullet',
-      // forwardOp: re-indent (move to new parent)
-      { type: 'move_bullet', id: bulletId, parentId: previousSibling.id, position: appendPosition },
-      // inverseOp: restore original parent + position
-      { type: 'move_bullet', id: bulletId, parentId: bullet.parentId, position: bullet.position }
-    );
-  });
-
-  return updated ?? null;
+  return updateWithUndo(
+    dbInstance, userId, bulletId,
+    { parentId: previousSibling.id, position: appendPosition },
+    'indent_bullet',
+    { type: 'move_bullet', id: bulletId, parentId: previousSibling.id, position: appendPosition },
+    { type: 'move_bullet', id: bulletId, parentId: bullet.parentId, position: bullet.position }
+  );
 }
 
 /**
@@ -253,19 +256,15 @@ export async function outdentBullet(
   bulletId: string,
   dbInstance: DB = defaultDb
 ): Promise<Bullet | null> {
-  const bullet = await dbInstance.query.bullets.findFirst({
-    where: and(eq(bullets.id, bulletId), eq(bullets.userId, userId), isNull(bullets.deletedAt)),
-  });
+  const bullet = await loadBullet(dbInstance, bulletId, userId, { requireActive: true });
   if (!bullet) return null;
-  if (!bullet.parentId) return bullet as Bullet; // Already root level — no-op
+  if (!bullet.parentId) return bullet; // Already root level — no-op
 
-  // Load the parent bullet
   const parent = await dbInstance.query.bullets.findFirst({
     where: eq(bullets.id, bullet.parentId),
   });
-  if (!parent) return bullet as Bullet;
+  if (!parent) return bullet;
 
-  // New position: after the parent among parent's siblings
   const newPosition = await computeBulletInsertPosition(
     dbInstance,
     bullet.documentId,
@@ -273,52 +272,46 @@ export async function outdentBullet(
     parent.id
   );
 
-  let updated: Bullet | undefined;
-
-  await dbInstance.transaction(async (tx) => {
-    const rows = await tx
-      .update(bullets)
-      .set({ parentId: parent.parentId, position: newPosition })
-      .where(eq(bullets.id, bulletId))
-      .returning();
-    updated = rows[0] as Bullet;
-
-    await recordUndoEvent(
-      tx,
-      userId,
-      'outdent_bullet',
-      { type: 'move_bullet', id: bulletId, parentId: parent.parentId, position: newPosition },
-      { type: 'move_bullet', id: bulletId, parentId: bullet.parentId, position: bullet.position }
-    );
-  });
-
-  return updated ?? null;
+  return updateWithUndo(
+    dbInstance, userId, bulletId,
+    { parentId: parent.parentId, position: newPosition },
+    'outdent_bullet',
+    { type: 'move_bullet', id: bulletId, parentId: parent.parentId, position: newPosition },
+    { type: 'move_bullet', id: bulletId, parentId: bullet.parentId, position: bullet.position }
+  );
 }
 
 /**
  * Load all descendants of a bullet (recursive via parentId chain).
- * Returns Set of descendant ids.
+ * Uses a Map for O(n) traversal instead of repeated filtering.
  */
 async function getDescendantIds(
   dbInstance: DB,
   bulletId: string,
   documentId: string
 ): Promise<Set<string>> {
-  // Load all bullets in document and walk the tree client-side
   const all = await dbInstance
     .select({ id: bullets.id, parentId: bullets.parentId })
     .from(bullets)
     .where(and(eq(bullets.documentId, documentId), isNull(bullets.deletedAt)));
 
+  // Build parent→children index for O(n) walk
+  const childrenOf = new Map<string | null, string[]>();
+  for (const b of all) {
+    const key = b.parentId;
+    let arr = childrenOf.get(key);
+    if (!arr) { arr = []; childrenOf.set(key, arr); }
+    arr.push(b.id);
+  }
+
   const result = new Set<string>();
   const queue = [bulletId];
-
   while (queue.length > 0) {
     const current = queue.shift()!;
-    const children = all.filter(b => b.parentId === current);
-    for (const child of children) {
-      result.add(child.id);
-      queue.push(child.id);
+    const children = childrenOf.get(current) ?? [];
+    for (const childId of children) {
+      result.add(childId);
+      queue.push(childId);
     }
   }
 
@@ -335,12 +328,9 @@ export async function moveBullet(
   { newParentId, afterId }: { newParentId: string | null; afterId: string | null },
   dbInstance: DB = defaultDb
 ): Promise<Bullet | null> {
-  const bullet = await dbInstance.query.bullets.findFirst({
-    where: and(eq(bullets.id, bulletId), eq(bullets.userId, userId), isNull(bullets.deletedAt)),
-  });
+  const bullet = await loadBullet(dbInstance, bulletId, userId, { requireActive: true });
   if (!bullet) return null;
 
-  // Cycle guard: cannot move under own descendant
   if (newParentId !== null) {
     const descendants = await getDescendantIds(dbInstance, bulletId, bullet.documentId);
     if (descendants.has(newParentId)) {
@@ -355,67 +345,37 @@ export async function moveBullet(
     afterId
   );
 
-  let updated: Bullet | undefined;
-
-  await dbInstance.transaction(async (tx) => {
-    const rows = await tx
-      .update(bullets)
-      .set({ parentId: newParentId, position: newPosition })
-      .where(eq(bullets.id, bulletId))
-      .returning();
-    updated = rows[0] as Bullet;
-
-    await recordUndoEvent(
-      tx,
-      userId,
-      'move_bullet',
-      { type: 'move_bullet', id: bulletId, parentId: newParentId, position: newPosition },
-      { type: 'move_bullet', id: bulletId, parentId: bullet.parentId, position: bullet.position }
-    );
-  });
-
-  return updated ?? null;
+  return updateWithUndo(
+    dbInstance, userId, bulletId,
+    { parentId: newParentId, position: newPosition },
+    'move_bullet',
+    { type: 'move_bullet', id: bulletId, parentId: newParentId, position: newPosition },
+    { type: 'move_bullet', id: bulletId, parentId: bullet.parentId, position: bullet.position }
+  );
 }
 
 /**
  * Soft-delete a bullet by setting deletedAt = now().
- * Undo restores it (sets deletedAt = null).
  */
 export async function softDeleteBullet(
   userId: string,
   bulletId: string,
   dbInstance: DB = defaultDb
 ): Promise<Bullet | null> {
-  const bullet = await dbInstance.query.bullets.findFirst({
-    where: and(eq(bullets.id, bulletId), eq(bullets.userId, userId), isNull(bullets.deletedAt)),
-  });
+  const bullet = await loadBullet(dbInstance, bulletId, userId, { requireActive: true });
   if (!bullet) return null;
 
-  let updated: Bullet | undefined;
-
-  await dbInstance.transaction(async (tx) => {
-    const rows = await tx
-      .update(bullets)
-      .set({ deletedAt: new Date() })
-      .where(eq(bullets.id, bulletId))
-      .returning();
-    updated = rows[0] as Bullet;
-
-    await recordUndoEvent(
-      tx,
-      userId,
-      'delete_bullet',
-      { type: 'delete_bullet', id: bulletId },
-      { type: 'restore_bullet', id: bulletId }
-    );
-  });
-
-  return updated ?? null;
+  return updateWithUndo(
+    dbInstance, userId, bulletId,
+    { deletedAt: new Date() },
+    'delete_bullet',
+    { type: 'delete_bullet', id: bulletId },
+    { type: 'restore_bullet', id: bulletId }
+  );
 }
 
 /**
  * Mark or unmark a bullet complete.
- * Records an undo event so Ctrl+Z restores the previous completion state.
  */
 export async function markComplete(
   userId: string,
@@ -423,36 +383,20 @@ export async function markComplete(
   isComplete: boolean,
   dbInstance: DB = defaultDb
 ): Promise<Bullet | null> {
-  const bullet = await dbInstance.query.bullets.findFirst({
-    where: and(eq(bullets.id, bulletId), eq(bullets.userId, userId)),
-  });
+  const bullet = await loadBullet(dbInstance, bulletId, userId);
   if (!bullet) return null;
 
-  let updated: Bullet | undefined;
-
-  await dbInstance.transaction(async (tx) => {
-    const rows = await tx
-      .update(bullets)
-      .set({ isComplete })
-      .where(eq(bullets.id, bulletId))
-      .returning();
-    updated = rows[0] as Bullet;
-
-    await recordUndoEvent(
-      tx,
-      userId,
-      'mark_complete',
-      { type: 'update_bullet', id: bulletId, fields: { isComplete } },
-      { type: 'update_bullet', id: bulletId, fields: { isComplete: bullet.isComplete } }
-    );
-  });
-
-  return updated ?? null;
+  return updateWithUndo(
+    dbInstance, userId, bulletId,
+    { isComplete },
+    'mark_complete',
+    { type: 'update_bullet', id: bulletId, fields: { isComplete } },
+    { type: 'update_bullet', id: bulletId, fields: { isComplete: bullet.isComplete } }
+  );
 }
 
 /**
  * Collapse or expand a bullet.
- * Records undo event — collapse toggle is a structural operation per CONTEXT.md.
  */
 export async function setCollapsed(
   userId: string,
@@ -460,37 +404,20 @@ export async function setCollapsed(
   isCollapsed: boolean,
   dbInstance: DB = defaultDb
 ): Promise<Bullet | null> {
-  const bullet = await dbInstance.query.bullets.findFirst({
-    where: and(eq(bullets.id, bulletId), eq(bullets.userId, userId)),
-  });
+  const bullet = await loadBullet(dbInstance, bulletId, userId);
   if (!bullet) return null;
 
-  let updated: Bullet | undefined;
-
-  await dbInstance.transaction(async (tx) => {
-    const rows = await tx
-      .update(bullets)
-      .set({ isCollapsed })
-      .where(eq(bullets.id, bulletId))
-      .returning();
-    updated = rows[0] as Bullet;
-
-    await recordUndoEvent(
-      tx,
-      userId,
-      'set_collapsed',
-      { type: 'update_bullet', id: bulletId, fields: { isCollapsed } },
-      { type: 'update_bullet', id: bulletId, fields: { isCollapsed: bullet.isCollapsed } }
-    );
-  });
-
-  return updated ?? null;
+  return updateWithUndo(
+    dbInstance, userId, bulletId,
+    { isCollapsed },
+    'set_collapsed',
+    { type: 'update_bullet', id: bulletId, fields: { isCollapsed } },
+    { type: 'update_bullet', id: bulletId, fields: { isCollapsed: bullet.isCollapsed } }
+  );
 }
 
 /**
  * Patch a bullet's note field.
- * Accepts note: string | null. Empty string should be normalized to null before calling.
- * Records an undo event for note changes so Ctrl+Z restores previous note content.
  */
 export async function patchBullet(
   userId: string,
@@ -498,37 +425,17 @@ export async function patchBullet(
   fields: { note?: string | null },
   dbInstance: DB = defaultDb
 ): Promise<Bullet | null> {
-  const bullet = await dbInstance.query.bullets.findFirst({
-    where: and(eq(bullets.id, bulletId), eq(bullets.userId, userId)),
-  });
+  const bullet = await loadBullet(dbInstance, bulletId, userId);
   if (!bullet) return null;
 
-  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  const note = fields.note !== undefined ? (fields.note ?? null) : undefined;
+  if (note === undefined) return bullet; // nothing to update
 
-  if (fields.note !== undefined) {
-    updates.note = fields.note ?? null;
-  }
-
-  let updated: Bullet | undefined;
-
-  await dbInstance.transaction(async (tx) => {
-    const rows = await tx
-      .update(bullets)
-      .set(updates)
-      .where(eq(bullets.id, bulletId))
-      .returning();
-    updated = rows[0] as Bullet;
-
-    if (fields.note !== undefined) {
-      await recordUndoEvent(
-        tx,
-        userId,
-        'update_note',
-        { type: 'update_bullet', id: bulletId, fields: { note: fields.note ?? null } as unknown as Partial<BulletRow> },
-        { type: 'update_bullet', id: bulletId, fields: { note: bullet.note ?? null } as unknown as Partial<BulletRow> }
-      );
-    }
-  });
-
-  return updated ?? null;
+  return updateWithUndo(
+    dbInstance, userId, bulletId,
+    { note, updatedAt: new Date() },
+    'update_note',
+    { type: 'update_bullet', id: bulletId, fields: { note } as unknown as Partial<BulletRow> },
+    { type: 'update_bullet', id: bulletId, fields: { note: bullet.note ?? null } as unknown as Partial<BulletRow> }
+  );
 }

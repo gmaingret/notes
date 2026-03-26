@@ -3,6 +3,8 @@ package com.gmaingret.notes.data.local
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import androidx.datastore.preferences.preferencesDataStore
 import com.google.crypto.tink.Aead
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -33,6 +35,7 @@ class TokenStore @Inject constructor(
         private val KEY_ACCESS_TOKEN = stringPreferencesKey("access_token")
         private val KEY_USER_EMAIL = stringPreferencesKey("user_email")
         private val KEY_LAST_DOC_ID = stringPreferencesKey("last_doc_id")
+        private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
 
         private const val AD_ACCESS_TOKEN = "access_token"
         private const val AD_USER_EMAIL = "user_email"
@@ -100,6 +103,21 @@ class TokenStore @Inject constructor(
      */
     suspend fun getLastDocId(): String? =
         context.authTokenDataStore.data.firstOrNull()?.get(KEY_LAST_DOC_ID)
+
+    // ---------------------------------------------------------------------------
+    // Theme Mode
+    // ---------------------------------------------------------------------------
+
+    suspend fun saveThemeMode(mode: String) {
+        context.authTokenDataStore.edit { prefs -> prefs[KEY_THEME_MODE] = mode }
+    }
+
+    suspend fun getThemeMode(): String =
+        context.authTokenDataStore.data.firstOrNull()?.get(KEY_THEME_MODE) ?: "system"
+
+    fun themeModeFlow() = context.authTokenDataStore.data.map { prefs ->
+        prefs[KEY_THEME_MODE] ?: "system"
+    }
 
     // ---------------------------------------------------------------------------
     // Clear

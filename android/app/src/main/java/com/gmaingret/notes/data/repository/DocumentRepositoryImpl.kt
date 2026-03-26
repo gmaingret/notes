@@ -3,6 +3,7 @@ package com.gmaingret.notes.data.repository
 import com.gmaingret.notes.data.api.DocumentApi
 import com.gmaingret.notes.data.local.TokenStore
 import com.gmaingret.notes.data.model.CreateDocumentRequest
+import com.gmaingret.notes.data.model.ImportDocumentRequest
 import com.gmaingret.notes.data.model.RenameDocumentRequest
 import com.gmaingret.notes.data.model.ReorderDocumentRequest
 import com.gmaingret.notes.domain.model.Document
@@ -71,6 +72,38 @@ class DocumentRepositoryImpl @Inject constructor(
         val response = documentApi.openDocument(id)
         if (response.isSuccessful) {
             Result.success(Unit)
+        } else {
+            Result.failure(HttpException(response))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun importDocument(markdown: String): Result<Document> = try {
+        val dto = documentApi.importDocument(ImportDocumentRequest(markdown))
+        Result.success(dto.toDomain())
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun exportDocument(id: String): Result<Pair<String, ByteArray>> = try {
+        val response = documentApi.exportDocument(id)
+        if (response.isSuccessful) {
+            val body = response.body()?.bytes() ?: ByteArray(0)
+            val disposition = response.headers()["Content-Disposition"] ?: ""
+            val filename = Regex("""filename="(.+?)"""").find(disposition)?.groupValues?.get(1) ?: "export.md"
+            Result.success(filename to body)
+        } else {
+            Result.failure(HttpException(response))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun exportAll(): Result<ByteArray> = try {
+        val response = documentApi.exportAll()
+        if (response.isSuccessful) {
+            Result.success(response.body()?.bytes() ?: ByteArray(0))
         } else {
             Result.failure(HttpException(response))
         }

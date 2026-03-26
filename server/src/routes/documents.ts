@@ -9,6 +9,7 @@ import {
   getDocumentWithBullets,
   getAllDocumentsWithBullets,
   renderDocumentAsMarkdown,
+  importDocument,
 } from '../services/documentService.js';
 import archiver from 'archiver';
 
@@ -159,4 +160,17 @@ documentsRouter.get('/:id/export', async (req, res) => {
   res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}.md"`);
   return res.send(markdown);
+});
+
+// DOC-08: Import a markdown file as a new document
+documentsRouter.post('/import', async (req, res) => {
+  const user = req.user as { id: string };
+  const markdown = z.string().min(1).max(5_000_000).parse(req.body.markdown);
+
+  try {
+    const doc = await importDocument(db, user.id, markdown);
+    return res.status(201).json(doc);
+  } catch (err) {
+    return res.status(400).json({ error: 'Failed to import document', message: (err as Error).message });
+  }
 });

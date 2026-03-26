@@ -38,6 +38,7 @@ vi.mock('../hooks/useDocuments', () => ({
   useDocuments: vi.fn().mockReturnValue({ data: [], isLoading: false }),
   useCreateDocument: vi.fn().mockReturnValue({ mutate: vi.fn() }),
   useExportAllDocuments: vi.fn().mockReturnValue({ mutate: vi.fn() }),
+  useImportDocument: vi.fn().mockReturnValue({ mutate: vi.fn() }),
   useOpenDocument: vi.fn().mockReturnValue({ mutate: vi.fn() }),
   useRenameDocument: vi.fn().mockReturnValue({ mutate: vi.fn() }),
   useDeleteDocument: vi.fn().mockReturnValue({ mutate: vi.fn() }),

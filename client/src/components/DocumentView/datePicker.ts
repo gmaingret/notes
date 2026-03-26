@@ -13,14 +13,27 @@
 export function triggerDatePicker(onDate: (date: string) => void): void {
   const input = document.createElement('input');
   input.type = 'date';
-  input.style.cssText = 'position:fixed;opacity:0;pointer-events:none;top:0;left:0;';
+  // On mobile/PWA, the input must be visible and interactable for the native
+  // picker to open. Use a small off-screen-ish but technically visible element.
+  input.style.cssText = 'position:fixed;top:50%;left:50%;opacity:0.01;width:1px;height:1px;z-index:9999;';
   document.body.appendChild(input);
+
+  function cleanup() {
+    if (document.body.contains(input)) document.body.removeChild(input);
+  }
+
   input.addEventListener('change', () => {
     onDate(input.value);
-    document.body.removeChild(input);
+    cleanup();
   });
   input.addEventListener('blur', () => {
-    if (document.body.contains(input)) document.body.removeChild(input);
+    // Delay cleanup so 'change' can fire first on some browsers
+    setTimeout(cleanup, 200);
   });
+
+  // Focus then click — required sequence for mobile browsers to honour the user gesture
+  input.focus();
   input.click();
+  // Fallback: some mobile browsers need showPicker() (Chrome 99+, Safari 16+)
+  try { input.showPicker(); } catch { /* not supported — click() is the fallback */ }
 }

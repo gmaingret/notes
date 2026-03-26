@@ -21,6 +21,10 @@ import {
   findDeepestVisibleChild,
 } from './bulletOps';
 
+// Module-level state: survives re-renders caused by optimistic cache updates.
+let createInFlight = false;
+let pendingAction: ((newBulletId: string, docId: string) => void) | null = null;
+
 export function useKeyboardHandlers(params: {
   bullet: FlatBullet;
   bulletMap: BulletMap;
@@ -99,20 +103,79 @@ export function useKeyboardHandlers(params: {
     }, 1000);
   }
 
-  /** Focus a newly created bullet element after a short delay. */
+  /**
+   * Focus a bullet element by ID, polling via rAF until it appears.
+   */
   function focusNewBullet(id: string) {
-    setTimeout(() => {
+    const maxAttempts = 20;
+    let attempts = 0;
+    function tryFocus() {
       const newEl = document.getElementById(`bullet-${id}`) as HTMLDivElement | null;
       if (newEl) {
         newEl.contentEditable = 'true';
         newEl.focus();
+        return;
       }
-    }, 50);
+      if (++attempts < maxAttempts) {
+        requestAnimationFrame(tryFocus);
+      }
+    }
+    requestAnimationFrame(tryFocus);
+  }
+
+  /**
+   * Focus the new bullet that appears after the current one in DOM order.
+   * Polls via rAF because the optimistic update from onMutate is async —
+   * React may not have committed the new element by the first frame.
+   */
+  function focusNextBullet() {
+    const elsBefore = getAllBulletElements();
+    const myIdx = elsBefore.indexOf(divRef.current!);
+    const oldNext = elsBefore[myIdx + 1] ?? null;
+
+    let attempts = 0;
+    function tryFocus() {
+      const els = getAllBulletElements();
+      const myNewIdx = els.indexOf(divRef.current!);
+      const candidate = els[myNewIdx + 1];
+      // A new element appeared at myIdx+1 (different from what was there before)
+      if (candidate && candidate !== oldNext) {
+        candidate.contentEditable = 'true';
+        candidate.focus();
+        return;
+      }
+      if (++attempts < 30) { // ~500ms max
+        requestAnimationFrame(tryFocus);
+      }
+    }
+    requestAnimationFrame(tryFocus);
+  }
+
+  /** Create a bullet, focus it immediately via DOM position, execute queued actions on success. */
+  function createAndFocus(vars: Parameters<typeof createBullet.mutate>[0]) {
+    createInFlight = true;
+    pendingAction = null;
+    createBullet.mutate(vars, {
+      onSuccess: (data) => {
+        // Focus the real bullet (replaces optimistic in DOM)
+        focusNewBullet(data.id);
+        // Execute queued action (e.g. Tab→indent) that fired while create was in-flight
+        if (pendingAction) {
+          const action = pendingAction;
+          pendingAction = null;
+          action(data.id, data.documentId);
+        }
+      },
+      onSettled: () => { createInFlight = false; },
+    });
+    // Focus optimistic bullet immediately (appears after React commits on next frame)
+    focusNextBullet();
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     const el = e.currentTarget;
     const isMeta = e.ctrlKey || e.metaKey;
+    const isOptimistic = bullet.id.startsWith('optimistic-');
 
     // ── Escape: exit edit mode
     if (e.key === 'Escape') {
@@ -121,7 +184,7 @@ export function useKeyboardHandlers(params: {
       return;
     }
 
-    // ── ArrowUp/Down: navigate between bullets
+    // ── ArrowUp/Down: navigate between bullets (works on optimistic too — DOM only)
     if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !isMeta) {
       const allEls = getAllBulletElements();
       const myIdx = allEls.indexOf(divRef.current!);
@@ -143,6 +206,18 @@ export function useKeyboardHandlers(params: {
     // ── Tab: indent / outdent
     if (e.key === 'Tab') {
       e.preventDefault();
+
+      // If a create is in-flight (Enter just pressed), queue the indent/outdent
+      // to run when the server responds with the real bullet ID.
+      if (isOptimistic || createInFlight) {
+        if (e.shiftKey) {
+          pendingAction = (id, docId) => outdentBullet.mutate({ id, documentId: docId });
+        } else {
+          pendingAction = (id, docId) => indentBullet.mutate({ id, documentId: docId });
+        }
+        return;
+      }
+
       if (e.shiftKey) {
         if (bullet.parentId === null) return;
         outdentBullet.mutate({ id: bullet.id, documentId: bullet.documentId });
@@ -155,6 +230,10 @@ export function useKeyboardHandlers(params: {
 
     // All keys below only apply in edit mode
     if (!isEditing) return;
+
+    // Block server mutations on optimistic bullets (waiting for real ID)
+    // Arrow navigation and Escape still work above.
+    if (isOptimistic) return;
 
     // ── Ctrl/Cmd+B: bold
     if (isMeta && e.key === 'b') { e.preventDefault(); wrapSelection('**'); return; }
@@ -207,10 +286,7 @@ export function useKeyboardHandlers(params: {
       }
 
       if (currentContent === '' && bullet.parentId === null) {
-        createBullet.mutate(
-          { documentId: bullet.documentId, parentId: null, afterId: bullet.id, content: '' },
-          { onSuccess: (data) => focusNewBullet(data.id) }
-        );
+        createAndFocus({ documentId: bullet.documentId, parentId: null, afterId: bullet.id, content: '' });
         return;
       }
 
@@ -222,15 +298,9 @@ export function useKeyboardHandlers(params: {
       setLocalContent(before);
 
       if (children.length > 0) {
-        createBullet.mutate(
-          { documentId: bullet.documentId, parentId: bullet.id, afterId: null, content: after },
-          { onSuccess: (data) => focusNewBullet(data.id) }
-        );
+        createAndFocus({ documentId: bullet.documentId, parentId: bullet.id, afterId: null, content: after });
       } else {
-        createBullet.mutate(
-          { documentId: bullet.documentId, parentId: bullet.parentId, afterId: bullet.id, content: after },
-          { onSuccess: (data) => focusNewBullet(data.id) }
-        );
+        createAndFocus({ documentId: bullet.documentId, parentId: bullet.parentId, afterId: bullet.id, content: after });
       }
       return;
     }

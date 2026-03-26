@@ -28,6 +28,7 @@ import {
   useDocumentBullets,
 } from '../../hooks/useBullets';
 import { useBookmarks, useAddBookmark, useRemoveBookmark } from '../../hooks/useBookmarks';
+import { useUndoStatus, useInvalidateUndoStatus } from '../../hooks/useUndoStatus';
 import { getChildren, buildBulletMap } from './BulletTree';
 import { computeMoveUpAfterId, computeMoveDownAfterId, canIndent } from './bulletOps';
 
@@ -125,6 +126,9 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
   const addBookmark = useAddBookmark();
   const removeBookmark = useRemoveBookmark();
 
+  const { data: undoStatus } = useUndoStatus();
+  const invalidateUndoStatus = useInvalidateUndoStatus();
+
   if (!bullet) return null;
 
   const siblings = getChildren(bulletMap, bullet.parentId);
@@ -159,11 +163,13 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
   async function handleUndo() {
     await apiClient.post('/api/undo', {});
     await queryClient.invalidateQueries({ queryKey: ['bullets'] });
+    invalidateUndoStatus();
   }
 
   async function handleRedo() {
     await apiClient.post('/api/redo', {});
     await queryClient.invalidateQueries({ queryKey: ['bullets'] });
+    invalidateUndoStatus();
   }
 
   function handleAttach() {
@@ -240,10 +246,10 @@ export function FocusToolbar({ bulletId, documentId }: Props) {
       >
         <ArrowDown size={20} strokeWidth={1.5} />
       </button>
-      <button className="focus-toolbar-btn" style={btnStyle} onClick={() => void handleUndo()} title="Undo">
+      <button className="focus-toolbar-btn" style={{ ...btnStyle, opacity: undoStatus?.canUndo ? 1 : 0.3 }} onClick={() => void handleUndo()} title="Undo">
         <Undo2 size={20} strokeWidth={1.5} />
       </button>
-      <button className="focus-toolbar-btn" style={btnStyle} onClick={() => void handleRedo()} title="Redo">
+      <button className="focus-toolbar-btn" style={{ ...btnStyle, opacity: undoStatus?.canRedo ? 1 : 0.3 }} onClick={() => void handleRedo()} title="Redo">
         <Redo2 size={20} strokeWidth={1.5} />
       </button>
       <button className="focus-toolbar-btn" style={btnStyle} onClick={handleAttach} title="Attach file">

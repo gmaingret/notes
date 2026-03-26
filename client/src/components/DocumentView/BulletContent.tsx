@@ -3,6 +3,7 @@ import { useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react
 import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
 import type { FlatBullet, BulletMap } from './BulletTree';
+import { useInvalidateUndoStatus } from '../../hooks/useUndoStatus';
 import {
   useCreateBullet,
   usePatchBullet,
@@ -55,18 +56,18 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
   const lastSavedContentRef = useRef(bullet.content);
 
   const { setSidebarTab, setCanvasView, setFocusedBulletId } = useUiStore();
+  const invalidateUndoStatus = useInvalidateUndoStatus();
 
   const handleUndo = useCallback(async () => {
-    // Cancel any pending save — we're about to undo
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
     }
     await apiClient.post('/api/undo', {});
     await queryClient.invalidateQueries({ queryKey: ['bullets'] });
-    // Exit edit mode so the refetched content is displayed
+    invalidateUndoStatus();
     setIsEditing(false);
-  }, [queryClient]);
+  }, [queryClient, invalidateUndoStatus]);
 
   const handleRedo = useCallback(async () => {
     if (saveTimerRef.current) {
@@ -75,8 +76,9 @@ export function BulletContent({ bullet, bulletMap, onFocus, isDragOverlay = fals
     }
     await apiClient.post('/api/redo', {});
     await queryClient.invalidateQueries({ queryKey: ['bullets'] });
+    invalidateUndoStatus();
     setIsEditing(false);
-  }, [queryClient]);
+  }, [queryClient, invalidateUndoStatus]);
 
   // Sync content from server when bullet.content changes and we're not editing.
   // Intentionally excludes isEditing from deps: on blur, handleBlur already sets localContent

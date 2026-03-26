@@ -173,8 +173,10 @@ export async function createBullet(
       tx,
       userId,
       'create_bullet',
+      // forwardOp: re-create (restore) the bullet on redo
       { type: 'restore_bullet', id },
-      { type: 'restore_bullet_delete', id }
+      // inverseOp: soft-delete the bullet on undo
+      { type: 'delete_bullet', id }
     );
   });
 

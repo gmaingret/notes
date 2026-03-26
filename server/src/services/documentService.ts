@@ -39,6 +39,7 @@ export type BulletRow = {
   parentId: string | null;
   content: string;
   position: number;
+  isComplete: boolean;
   deletedAt: Date | null;
 };
 
@@ -64,6 +65,7 @@ export async function getDocumentWithBullets(
       parentId: bullets.parentId,
       content: bullets.content,
       position: bullets.position,
+      isComplete: bullets.isComplete,
       deletedAt: bullets.deletedAt,
     })
     .from(bullets)
@@ -99,11 +101,104 @@ export function renderDocumentAsMarkdown(doc: DocWithBullets): string {
 
     for (const bullet of children) {
       const indent = '  '.repeat(depth); // 2-space per level — locked UX decision from CONTEXT.md
-      lines.push(`${indent}- ${bullet.content}`);
+      const text = bullet.isComplete ? `~~${bullet.content}~~` : bullet.content;
+      lines.push(`${indent}- ${text}`);
       renderBullets(bullet.id, depth + 1);
     }
   }
 
   renderBullets(null, 0);
   return lines.join('\n');
+}
+
+type ParsedBullet = { content: string; depth: number; isComplete: boolean };
+
+/**
+ * Parse a markdown string (exported by renderDocumentAsMarkdown) back into
+ * a title and a flat list of bullets with depth info.
+ */
+export function parseMarkdownImport(markdown: string): { title: string; bullets: ParsedBullet[] } {
+  const lines = markdown.split(/\r?\n/);
+  let title = 'Imported';
+
+  // First non-empty line starting with # is the title
+  const titleIdx = lines.findIndex(l => /^#\s+/.test(l));
+  if (titleIdx !== -1) {
+    title = lines[titleIdx].replace(/^#\s+/, '').trim() || 'Imported';
+  }
+
+  const bulletLines = lines.filter(l => /^\s*- /.test(l));
+  const parsedBullets: ParsedBullet[] = bulletLines.map(line => {
+    const match = line.match(/^(\s*)- (.*)$/);
+    if (!match) return { content: '', depth: 0, isComplete: false };
+    const spaces = match[1].length;
+    const depth = Math.floor(spaces / 2); // 2-space indent per level
+    let content = match[2];
+    // Detect ~~strikethrough~~ for completed bullets
+    const isComplete = /^~~.*~~$/.test(content);
+    if (isComplete) {
+      content = content.slice(2, -2); // strip ~~ wrapper
+    }
+    return { content, depth, isComplete };
+  });
+
+  return { title, bullets: parsedBullets };
+}
+
+/**
+ * Import a markdown document: create a document and its bullet tree.
+ */
+export async function importDocument(
+  dbInstance: DB,
+  userId: string,
+  markdown: string
+): Promise<{ id: string; title: string }> {
+  const { title, bullets: parsed } = parseMarkdownImport(markdown);
+
+  // Compute position at end of document list
+  const existing = await dbInstance
+    .select({ position: documents.position })
+    .from(documents)
+    .where(eq(documents.userId, userId))
+    .orderBy(asc(documents.position));
+  const position = existing.length === 0 ? 1.0 : existing[existing.length - 1].position + 1.0;
+
+  const { randomUUID } = await import('node:crypto');
+  const docId = randomUUID();
+
+  await dbInstance.transaction(async (tx) => {
+    await tx.insert(documents).values({ id: docId, userId, title, position });
+
+    if (parsed.length === 0) return;
+
+    // Walk parsed bullets and maintain a parent stack by depth
+    const parentStack: { id: string; depth: number }[] = [];
+    let posCounter = 0;
+
+    for (const item of parsed) {
+      // Pop stack to find the parent at depth - 1
+      while (parentStack.length > 0 && parentStack[parentStack.length - 1].depth >= item.depth) {
+        parentStack.pop();
+      }
+      const parentId = parentStack.length > 0 ? parentStack[parentStack.length - 1].id : null;
+
+      const bulletId = randomUUID();
+      posCounter += 1;
+
+      await tx.insert(bullets).values({
+        id: bulletId,
+        userId,
+        documentId: docId,
+        parentId,
+        content: item.content,
+        position: posCounter,
+        isComplete: item.isComplete,
+        isCollapsed: false,
+      });
+
+      parentStack.push({ id: bulletId, depth: item.depth });
+    }
+  });
+
+  return { id: docId, title };
 }

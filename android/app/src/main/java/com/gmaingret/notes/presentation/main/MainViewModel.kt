@@ -6,7 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.gmaingret.notes.data.local.TokenStore
 import com.gmaingret.notes.domain.usecase.CreateDocumentUseCase
 import com.gmaingret.notes.domain.usecase.DeleteDocumentUseCase
+import com.gmaingret.notes.domain.usecase.ExportAllDocumentsUseCase
+import com.gmaingret.notes.domain.usecase.ExportDocumentUseCase
 import com.gmaingret.notes.domain.usecase.GetDocumentsUseCase
+import com.gmaingret.notes.domain.usecase.ImportDocumentUseCase
 import com.gmaingret.notes.domain.usecase.LogoutUseCase
 import com.gmaingret.notes.domain.usecase.OpenDocumentUseCase
 import com.gmaingret.notes.domain.usecase.RenameDocumentUseCase
@@ -37,7 +40,10 @@ class MainViewModel @Inject constructor(
     private val renameDocumentUseCase: RenameDocumentUseCase,
     private val deleteDocumentUseCase: DeleteDocumentUseCase,
     private val reorderDocumentUseCase: ReorderDocumentUseCase,
-    private val openDocumentUseCase: OpenDocumentUseCase
+    private val openDocumentUseCase: OpenDocumentUseCase,
+    private val importDocumentUseCase: ImportDocumentUseCase,
+    private val exportDocumentUseCase: ExportDocumentUseCase,
+    private val exportAllDocumentsUseCase: ExportAllDocumentsUseCase
 ) : ViewModel() {
 
     // -----------------------------------------------------------------------
@@ -59,6 +65,11 @@ class MainViewModel @Inject constructor(
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    /** Emits (filename, bytes) when a file is ready to be saved/shared. */
+    data class FileExport(val filename: String, val bytes: ByteArray)
+    private val _fileExport = MutableSharedFlow<FileExport>()
+    val fileExport: SharedFlow<FileExport> = _fileExport.asSharedFlow()
 
     /** Timestamp of last successful document fetch — used to debounce rapid refreshes. */
     private var lastFetchMillis = 0L
@@ -370,6 +381,44 @@ class MainViewModel @Inject constructor(
                 },
                 onFailure = {
                     _isRefreshing.value = false
+                }
+            )
+        }
+    }
+
+    fun importDocument(markdown: String) {
+        viewModelScope.launch {
+            importDocumentUseCase(markdown).fold(
+                onSuccess = { doc ->
+                    loadDocuments()
+                    openDocument(doc.id)
+                },
+                onFailure = { /* silently fail — could add snackbar later */ }
+            )
+        }
+    }
+
+    fun exportDocument(id: String) {
+        viewModelScope.launch {
+            exportDocumentUseCase(id).fold(
+                onSuccess = { (filename, bytes) ->
+                    _fileExport.emit(FileExport(filename, bytes))
+                },
+                onFailure = {
+                    _snackbarMessage.emit("Export failed")
+                }
+            )
+        }
+    }
+
+    fun exportAllDocuments() {
+        viewModelScope.launch {
+            exportAllDocumentsUseCase().fold(
+                onSuccess = { bytes ->
+                    _fileExport.emit(FileExport("notes-export.zip", bytes))
+                },
+                onFailure = {
+                    _snackbarMessage.emit("Export failed")
                 }
             )
         }

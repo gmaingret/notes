@@ -15,6 +15,9 @@ interface DocumentRepository {
     suspend fun deleteDocument(id: String): Result<Unit>
     suspend fun reorderDocument(id: String, afterId: String?): Result<Document>
     suspend fun openDocument(id: String): Result<Unit>
+    suspend fun importDocument(markdown: String): Result<Document>
+    suspend fun exportDocument(id: String): Result<Pair<String, ByteArray>> // filename, content
+    suspend fun exportAll(): Result<ByteArray>
     suspend fun getLastDocId(): String?
     suspend fun saveLastDocId(docId: String)
 }

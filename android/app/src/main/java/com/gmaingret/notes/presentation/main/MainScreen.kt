@@ -75,6 +75,7 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var deleteConfirmation by remember { mutableStateOf<Document?>(null) }
+    val themeMode by viewModel.themeMode.collectAsState()
 
     // File picker for import
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -252,6 +253,11 @@ fun MainScreen(
                     onExportAll = {
                         viewModel.exportAllDocuments()
                     },
+                    onThemeToggle = {
+                        val next = when(themeMode) { "system" -> "light"; "light" -> "dark"; else -> "system" }
+                        viewModel.setThemeMode(next)
+                    },
+                    themeMode = themeMode,
                     onLogout = {
                         viewModel.logout(onComplete = onLogout)
                     },

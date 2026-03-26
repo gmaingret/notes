@@ -4,9 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="color-scheme" content="light dark" />
     <script>
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.documentElement.classList.add('dark');
-      }
+      // FOUC prevention: apply theme before first paint
+      (function() {
+        try {
+          var stored = JSON.parse(localStorage.getItem('notes-ui') || '{}');
+          var mode = (stored.state && stored.state.themeMode) || 'system';
+          var isDark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) document.documentElement.classList.add('dark');
+          else document.documentElement.classList.add('light');
+        } catch(e) {
+          if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+          }
+        }
+      })();
     </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />

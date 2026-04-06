@@ -210,8 +210,26 @@ export function useSetCollapsed() {
 export function useMarkComplete() {
   return useOptimisticBulletMutation<{ id: string; documentId: string; isComplete: boolean }>({
     mutationFn: (vars) => apiClient.patch<Bullet>(`/api/bullets/${vars.id}`, { isComplete: vars.isComplete }),
-    optimisticUpdate: (old, vars) =>
-      old.map(b => b.id === vars.id ? { ...b, isComplete: vars.isComplete } : b),
+    optimisticUpdate: (old, vars) => {
+      // Collect all descendant IDs via BFS
+      const descendantIds = new Set<string>();
+      const queue = [vars.id];
+      while (queue.length > 0) {
+        const parentId = queue.shift()!;
+        for (const b of old) {
+          if (b.parentId === parentId && !b.deletedAt && !descendantIds.has(b.id)) {
+            descendantIds.add(b.id);
+            queue.push(b.id);
+          }
+        }
+      }
+      return old.map(b => {
+        if (b.id === vars.id || descendantIds.has(b.id)) {
+          return { ...b, isComplete: vars.isComplete };
+        }
+        return b;
+      });
+    },
     errorMessage: 'Failed to mark bullet complete',
   });
 }

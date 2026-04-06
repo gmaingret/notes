@@ -707,10 +707,10 @@ class BulletTreeViewModel @Inject constructor(
     }
 
     /**
-     * Toggles the complete state of [bulletId].
+     * Toggles the complete state of [bulletId] and cascades to all descendants.
      *
-     * Optimistic: flips isComplete in the local bullet list immediately.
-     * PATCHes the new isComplete value to the server.
+     * Optimistic: flips isComplete on the target and all its descendants.
+     * PATCHes the new isComplete value to the server (which also cascades server-side).
      * On failure: emits snackbar and reloads from server to revert.
      */
     fun toggleComplete(bulletId: String) {
@@ -718,9 +718,23 @@ class BulletTreeViewModel @Inject constructor(
         val target = bullets.find { it.id == bulletId } ?: return
         val newComplete = !target.isComplete
 
-        // Optimistic update
+        // Collect all descendant IDs via BFS
+        val descendantIds = mutableSetOf<String>()
+        val queue = ArrayDeque<String>()
+        queue.add(bulletId)
+        while (queue.isNotEmpty()) {
+            val parentId = queue.removeFirst()
+            for (b in bullets) {
+                if (b.parentId == parentId && b.id !in descendantIds && b.id != bulletId) {
+                    descendantIds.add(b.id)
+                    queue.add(b.id)
+                }
+            }
+        }
+
+        // Optimistic update — target + all descendants
         val optimisticBullets = bullets.map { b ->
-            if (b.id == bulletId) b.copy(isComplete = newComplete) else b
+            if (b.id == bulletId || b.id in descendantIds) b.copy(isComplete = newComplete) else b
         }
         updateState(optimisticBullets)
 

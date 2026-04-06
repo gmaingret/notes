@@ -1,10 +1,11 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { Menu, X, Search } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
 import type { Document } from '../../hooks/useDocuments';
 import { BulletTree, buildBulletMap } from './BulletTree';
 import { Breadcrumb } from './Breadcrumb';
+import { DocumentToolbar } from './DocumentToolbar';
 import { useDocumentBullets } from '../../hooks/useBullets';
 import { useUiStore } from '../../store/uiStore';
 import { useTagBullets } from '../../hooks/useTags';
@@ -20,6 +21,7 @@ export function DocumentView({ document }: Props) {
   const { canvasView, setCanvasView, sidebarOpen, setSidebarOpen, setQuickOpenOpen } = useUiStore();
   const { data: flatBullets = [] } = useDocumentBullets(document.id);
   const bulletMap = useMemo(() => buildBulletMap(flatBullets), [flatBullets]);
+  const [hideCompleted, setHideCompleted] = useState(false);
 
   const { data: bookmarkedBullets = [], isLoading: bookmarksLoading } = useBookmarks();
   const removeBookmark = useRemoveBookmark();
@@ -133,6 +135,11 @@ export function DocumentView({ document }: Props) {
           >
             <Search size={20} strokeWidth={1.5} />
           </button>
+          <DocumentToolbar
+            documentId={document.id}
+            hideCompleted={hideCompleted}
+            onToggleHideCompleted={() => setHideCompleted(h => !h)}
+          />
           {zoomedBulletId ? (
             <Breadcrumb
               documentTitle={document.title}
@@ -146,7 +153,7 @@ export function DocumentView({ document }: Props) {
           )}
         </div>
         <div style={{ marginTop: '1.5rem' }}>
-          <BulletTree documentId={document.id} zoomedBulletId={zoomedBulletId} />
+          <BulletTree documentId={document.id} zoomedBulletId={zoomedBulletId} hideCompleted={hideCompleted} />
         </div>
       </div>
     </ErrorBoundary>

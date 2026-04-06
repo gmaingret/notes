@@ -33,11 +33,13 @@ class TokenStore @Inject constructor(
 
     companion object {
         private val KEY_ACCESS_TOKEN = stringPreferencesKey("access_token")
+        private val KEY_REFRESH_TOKEN = stringPreferencesKey("refresh_token")
         private val KEY_USER_EMAIL = stringPreferencesKey("user_email")
         private val KEY_LAST_DOC_ID = stringPreferencesKey("last_doc_id")
         private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
 
         private const val AD_ACCESS_TOKEN = "access_token"
+        private const val AD_REFRESH_TOKEN = "refresh_token"
         private const val AD_USER_EMAIL = "user_email"
     }
 
@@ -55,6 +57,23 @@ class TokenStore @Inject constructor(
         val encrypted = EncryptedDataStoreFactory.encrypt(aead, token, AD_ACCESS_TOKEN)
         context.authTokenDataStore.edit { prefs ->
             prefs[KEY_ACCESS_TOKEN] = encrypted
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Refresh Token
+    // ---------------------------------------------------------------------------
+
+    suspend fun getRefreshToken(): String? {
+        val encrypted = context.authTokenDataStore.data.firstOrNull()
+            ?.get(KEY_REFRESH_TOKEN) ?: return null
+        return EncryptedDataStoreFactory.decrypt(aead, encrypted, AD_REFRESH_TOKEN)
+    }
+
+    suspend fun saveRefreshToken(token: String) {
+        val encrypted = EncryptedDataStoreFactory.encrypt(aead, token, AD_REFRESH_TOKEN)
+        context.authTokenDataStore.edit { prefs ->
+            prefs[KEY_REFRESH_TOKEN] = encrypted
         }
     }
 

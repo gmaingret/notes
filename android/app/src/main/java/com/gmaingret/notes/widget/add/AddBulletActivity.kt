@@ -249,6 +249,9 @@ internal suspend fun performAddBullet(
         isComplete = false
     )
 
+    // Mark mutation in-flight so concurrent widget refreshes don't overwrite
+    store.markMutationStarted()
+
     // Optimistic insert at position 0 (top of list)
     val optimisticList = listOf(tempBullet) + original
 
@@ -279,6 +282,7 @@ internal suspend fun performAddBullet(
         // Replace temp bullet with real server bullet at the top
         store.saveBullets(listOf(realBullet) + original)
         store.saveDisplayState(DisplayState.CONTENT)
+        store.clearMutation()
         NotesWidget.pushStateToGlance(context)
         AddBulletResult.Success
     } else {
@@ -286,6 +290,7 @@ internal suspend fun performAddBullet(
         if (isAuthError(ex)) {
             store.saveBullets(original)
             store.saveDisplayState(DisplayState.SESSION_EXPIRED)
+            store.clearMutation()
             NotesWidget.pushStateToGlance(context)
             AddBulletResult.AuthError
         } else {
@@ -293,6 +298,7 @@ internal suspend fun performAddBullet(
             store.saveDisplayState(
                 if (original.isEmpty()) DisplayState.EMPTY else DisplayState.CONTENT
             )
+            store.clearMutation()
             NotesWidget.pushStateToGlance(context)
             AddBulletResult.Failure("Couldn't add bullet")
         }

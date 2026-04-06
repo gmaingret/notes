@@ -1,5 +1,6 @@
 package com.gmaingret.notes.widget
 
+import android.util.Log
 import android.content.Context
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -110,6 +111,7 @@ class NotesWidget : GlanceAppWidget() {
             val bullets = store.getBullets()
             val docId = store.getFirstDocumentId()
             val docTitle = store.getDocumentTitle()
+            WidgetDebugLog.log(context, "WidgetGlance", "pushStateToGlance: state=$displayState bullets=${bullets.size} ids=${bullets.map { it.id }}")
             pushToGlanceDirect(context, displayState, bullets, docId, docTitle)
         }
 
@@ -125,6 +127,7 @@ class NotesWidget : GlanceAppWidget() {
             docId: String? = null,
             docTitle: String? = null
         ) {
+            WidgetDebugLog.log(context, "WidgetGlance", "pushToGlanceDirect: state=$displayState bullets=${bullets.size} ids=${bullets.map { it.id }}")
             val manager = GlanceAppWidgetManager(context)
             val glanceIds = manager.getGlanceIds(NotesWidget::class.java)
             val widget = NotesWidget()

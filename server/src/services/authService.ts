@@ -23,20 +23,31 @@ function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
-export async function setRefreshCookie(res: Response, userId: string): Promise<void> {
+/**
+ * Issues a new refresh token, stores its hash in DB, returns the raw token.
+ * Callers decide how to deliver it (cookie for web, JSON body for mobile).
+ */
+export async function issueAndStoreRefreshToken(userId: string): Promise<string> {
   const token = issueRefreshToken(userId);
-  res.cookie('refreshToken', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: REFRESH_COOKIE_MAX_AGE,
-  });
-  // Store hash of token in DB for revocation support
   const tokenHash = hashToken(token);
   await db.insert(refreshTokens).values({
     userId,
     tokenHash,
     expiresAt: new Date(Date.now() + REFRESH_COOKIE_MAX_AGE),
+  });
+  return token;
+}
+
+/**
+ * Sets a refresh token as an httpOnly cookie on the response.
+ * Pass an existing token (from issueAndStoreRefreshToken) to avoid double-issuing.
+ */
+export function setRefreshCookieFromToken(res: Response, token: string): void {
+  res.cookie('refreshToken', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: REFRESH_COOKIE_MAX_AGE,
   });
 }
 

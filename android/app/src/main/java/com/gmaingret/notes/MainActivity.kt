@@ -8,14 +8,18 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.gmaingret.notes.domain.model.AuthState
-import com.gmaingret.notes.domain.repository.AuthRepository
 import com.gmaingret.notes.presentation.navigation.AuthRoute
 import com.gmaingret.notes.presentation.navigation.MainRoute
 import com.gmaingret.notes.presentation.navigation.NotesApp
 import com.gmaingret.notes.presentation.splash.SplashViewModel
 import com.gmaingret.notes.presentation.theme.NotesTheme
+import com.gmaingret.notes.widget.DisplayState
 import com.gmaingret.notes.widget.NotesWidget
 import com.gmaingret.notes.widget.OPEN_DOCUMENT_ID
+import com.gmaingret.notes.widget.WidgetDebugLog
+import com.gmaingret.notes.widget.WidgetEntryPoint
+import com.gmaingret.notes.widget.WidgetStateStore
+import com.gmaingret.notes.widget.WidgetUiState
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
@@ -31,7 +35,6 @@ class MainActivity : ComponentActivity() {
 
     private val splashViewModel: SplashViewModel by viewModels()
 
-    @Inject lateinit var authRepository: AuthRepository
     @Inject lateinit var tokenStore: com.gmaingret.notes.data.local.TokenStore
 
     /**
@@ -94,23 +97,39 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
-            // Proactively refresh the access token whenever the app comes to foreground.
-            // This mirrors what SplashViewModel does on cold start and ensures the token
-            // is fresh before any data requests fire — avoiding the "network not ready yet"
-            // race that causes bullets to fail on warm start after 15+ min in background.
-            // Silent: result is ignored; TokenRefresher's retry logic handles any failure.
-            authRepository.refresh()
-        }
-        // Trigger a widget re-render on every app resume so the widget stays in sync:
-        // - Cold start: widget refreshes when app opens
-        // - Resume from background: widget reflects any background sync that ran while paused
-        // - Post-login: auth completes, activity resumes, widget recovers from SESSION_EXPIRED
-        // provideGlance reads from WidgetStateStore cache, so this is instant with no network call
-        CoroutineScope(Dispatchers.Main + SupervisorJob()).launch {
             try {
+                val store = WidgetStateStore.getInstance(this@MainActivity)
+                val currentState = store.getDisplayState()
+
+                WidgetDebugLog.log(applicationContext, "WidgetMainActivity", "onResume: currentState=$currentState")
+
+                if (currentState != DisplayState.SESSION_EXPIRED) return@launch
+
+                val manager = androidx.glance.appwidget.GlanceAppWidgetManager(this@MainActivity)
+                val glanceIds = manager.getGlanceIds(NotesWidget::class.java)
+                if (glanceIds.isEmpty()) return@launch
+
+                val docId = store.getFirstDocumentId() ?: return@launch
+
+                val entryPoint = dagger.hilt.android.EntryPointAccessors.fromApplication(
+                    applicationContext, WidgetEntryPoint::class.java
+                )
+                val widget = NotesWidget()
+                when (val result = widget.fetchWidgetData(entryPoint, docId)) {
+                    is WidgetUiState.Content -> {
+                        store.saveBullets(result.bullets)
+                        store.saveDisplayState(DisplayState.CONTENT)
+                        store.saveDocumentTitle(result.documentTitle)
+                    }
+                    is WidgetUiState.Empty -> {
+                        store.saveBullets(emptyList())
+                        store.saveDisplayState(DisplayState.EMPTY)
+                    }
+                    else -> { /* Don't overwrite with errors on resume */ }
+                }
                 NotesWidget.pushStateToGlance(this@MainActivity)
             } catch (_: Exception) {
-                // Can throw if no widget instances exist — safe to ignore
+                // Safe to ignore — widget may not exist
             }
         }
     }

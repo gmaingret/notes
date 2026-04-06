@@ -6,7 +6,6 @@ import com.google.gson.annotations.SerializedName
 import retrofit2.http.Body
 import retrofit2.http.POST
 
-// Request body data classes
 data class RegisterRequest(
     val email: String,
     val password: String
@@ -22,52 +21,47 @@ data class GoogleTokenRequest(
     val idToken: String
 )
 
+data class RefreshTokenRequest(
+    @SerializedName("refreshToken")
+    val refreshToken: String
+)
+
+data class LogoutTokenRequest(
+    @SerializedName("refreshToken")
+    val refreshToken: String
+)
+
 /**
  * Retrofit service interface for backend auth API.
- * All endpoints match the existing server/src/routes/auth.ts contracts.
+ * Base URL: https://notes.gregorymaingret.fr/
  *
- * Base URL: https://notes.gregorymaingret.fr
- * Refresh token is stored as httpOnly cookie named "refreshToken" — managed by CookieJar.
+ * Auth endpoints return refreshToken in the JSON body (register/login/google).
+ * The client stores it in encrypted DataStore and sends it explicitly
+ * on refresh/logout — no cookies involved.
  */
 interface AuthApi {
 
-    /**
-     * POST /api/auth/register
-     * Body: {email, password}
-     * Response: 201 {accessToken, user: {id, email}} | 400 {errors} | 409 {field, message}
-     */
     @POST("api/auth/register")
     suspend fun register(@Body request: RegisterRequest): AuthResponse
 
-    /**
-     * POST /api/auth/login
-     * Body: {email, password}
-     * Response: 200 {accessToken, user: {id, email}} | 401 {error}
-     */
     @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): AuthResponse
 
-    /**
-     * POST /api/auth/google/token
-     * Body: {idToken}
-     * Response: 200 {accessToken, user: {id, email}} | 401 {error}
-     * Note: New endpoint added in Phase 9 backend work (Plan 02).
-     */
     @POST("api/auth/google/token")
     suspend fun googleToken(@Body request: GoogleTokenRequest): AuthResponse
 
     /**
-     * POST /api/auth/refresh
-     * Uses httpOnly refreshToken cookie (sent automatically via CookieJar)
-     * Response: 200 {accessToken} | 401 {error}
+     * POST /api/auth/refresh/token
+     * Sends refresh token in body, returns new access token.
+     * Refresh token is NOT rotated — it stays valid for its full 7-day lifetime.
      */
-    @POST("api/auth/refresh")
-    suspend fun refresh(): RefreshResponse
+    @POST("api/auth/refresh/token")
+    suspend fun refresh(@Body request: RefreshTokenRequest): RefreshResponse
 
     /**
-     * POST /api/auth/logout
-     * Response: 200 {message}
+     * POST /api/auth/logout/token
+     * Sends refresh token in body so server can revoke it.
      */
-    @POST("api/auth/logout")
-    suspend fun logout()
+    @POST("api/auth/logout/token")
+    suspend fun logout(@Body request: LogoutTokenRequest)
 }

@@ -271,6 +271,7 @@ class BulletTreeViewModel @Inject constructor(
                 onSuccess = { bullets ->
                     updateState(bullets)
                     loadUndoStatus()
+                    triggerWidgetRefreshIfNeeded()
                     // Load bookmarks in parallel after bullets are shown
                     getBookmarksUseCase().onSuccess { bookmarks ->
                         _bookmarkedBulletIds.value = bookmarks.map { it.bulletId }.toSet()
@@ -356,6 +357,7 @@ class BulletTreeViewModel @Inject constructor(
         viewModelScope.launch {
             getBulletsUseCase(docId).onSuccess { bullets ->
                 updateState(bullets)
+                triggerWidgetRefreshIfNeeded()
             }
         }
     }

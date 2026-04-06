@@ -377,7 +377,7 @@ export async function softDeleteBullet(
 }
 
 /**
- * Mark or unmark a bullet complete.
+ * Mark or unmark a bullet complete, cascading to all descendants.
  */
 export async function markComplete(
   userId: string,
@@ -388,13 +388,56 @@ export async function markComplete(
   const bullet = await loadBullet(dbInstance, bulletId, userId);
   if (!bullet) return null;
 
-  return updateWithUndo(
-    dbInstance, userId, bulletId,
-    { isComplete },
-    'mark_complete',
-    { type: 'update_bullet', id: bulletId, fields: { isComplete } },
-    { type: 'update_bullet', id: bulletId, fields: { isComplete: bullet.isComplete } }
-  );
+  // Get all descendant IDs to cascade the completion state
+  const descendantIds = await getDescendantIds(dbInstance, bulletId, bullet.documentId);
+
+  // Build forward and inverse ops for undo support
+  const forwardOps: UndoOp[] = [{ type: 'update_bullet', id: bulletId, fields: { isComplete } }];
+  const inverseOps: UndoOp[] = [{ type: 'update_bullet', id: bulletId, fields: { isComplete: bullet.isComplete } }];
+
+  // Snapshot descendants' current state for undo, and add forward ops
+  const descendantSnapshots: { id: string; wasComplete: boolean }[] = [];
+  if (descendantIds.size > 0) {
+    const allBullets = await dbInstance
+      .select({ id: bullets.id, isComplete: bullets.isComplete })
+      .from(bullets)
+      .where(and(eq(bullets.documentId, bullet.documentId), isNull(bullets.deletedAt)));
+
+    for (const b of allBullets) {
+      if (descendantIds.has(b.id)) {
+        descendantSnapshots.push({ id: b.id, wasComplete: b.isComplete });
+        forwardOps.push({ type: 'update_bullet', id: b.id, fields: { isComplete } });
+        inverseOps.push({ type: 'update_bullet', id: b.id, fields: { isComplete: b.isComplete } });
+      }
+    }
+  }
+
+  let updated: Bullet | undefined;
+  await dbInstance.transaction(async (tx) => {
+    // Update the target bullet
+    const rows = await tx
+      .update(bullets)
+      .set({ isComplete } as Parameters<ReturnType<typeof tx.update>['set']>[0])
+      .where(eq(bullets.id, bulletId))
+      .returning();
+    updated = rows[0] as Bullet;
+
+    // Cascade to all descendants
+    for (const desc of descendantSnapshots) {
+      await tx
+        .update(bullets)
+        .set({ isComplete } as Parameters<ReturnType<typeof tx.update>['set']>[0])
+        .where(eq(bullets.id, desc.id));
+    }
+
+    await recordUndoEvent(
+      tx, userId, 'mark_complete',
+      forwardOps.length === 1 ? forwardOps[0] : { type: 'batch', ops: forwardOps },
+      inverseOps.length === 1 ? inverseOps[0] : { type: 'batch', ops: inverseOps }
+    );
+  });
+
+  return updated!;
 }
 
 /**

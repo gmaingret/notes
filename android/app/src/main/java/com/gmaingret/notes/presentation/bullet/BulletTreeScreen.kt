@@ -223,16 +223,29 @@ fun BulletTreeScreen(
                     }
 
                     is BulletTreeUiState.Success -> {
-                        // Auto-create empty bullet if document has no bullets
-                        LaunchedEffect(state.flatList.isEmpty()) {
-                            if (state.flatList.isEmpty()) {
-                                viewModel.createBullet(null, zoomRootId)
-                            }
-                        }
-
                         val focusedBulletId = state.focusedBulletId
                         val flatList = state.flatList
 
+                        // Empty state — show placeholder instead of auto-creating a bullet
+                        if (flatList.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .pointerInput(Unit) {
+                                        detectTapGestures {
+                                            viewModel.createBullet(null, zoomRootId)
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Tap to add a bullet",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                        else {
 
 
                         // Scroll to focused bullet when it changes.
@@ -744,30 +757,6 @@ fun BulletTreeScreen(
                             }
                             } // end PullToRefreshBox
 
-                            // Completed bullets toolbar — shown when any bullet is completed
-                            val hasCompleted = state.bullets.any { it.isComplete }
-                            androidx.compose.animation.AnimatedVisibility(visible = hasCompleted && focusedBulletId == null) {
-                                Column {
-                                    HorizontalDivider()
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        TextButton(onClick = { viewModel.toggleHideCompleted() }) {
-                                            Text(if (hideCompleted) "Show completed" else "Hide completed")
-                                        }
-                                        TextButton(onClick = { viewModel.deleteAllCompleted() }) {
-                                            Text(
-                                                "Delete completed",
-                                                color = MaterialTheme.colorScheme.error
-                                            )
-                                        }
-                                    }
-                                }
-                            }
 
                             // Editing toolbar — overlaid at bottom so it doesn't shrink
                             // the LazyColumn and cause layout shifts when the keyboard opens.
@@ -817,6 +806,7 @@ fun BulletTreeScreen(
                             }
 
                         }
+                        } // end else (non-empty flatList)
                     }
 
                     is BulletTreeUiState.Error -> {

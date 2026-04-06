@@ -12,8 +12,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -135,6 +138,7 @@ fun MainScreen(
     // Used to call setScrollTarget() directly when a search result or bookmark is tapped,
     // bypassing the Crossfade parameter path which was found unreliable across 3 user reports.
     val bulletTreeViewModel: BulletTreeViewModel = hiltViewModel()
+    val hideCompleted by bulletTreeViewModel.hideCompleted.collectAsState()
 
     // Refresh tags whenever the tags view becomes visible
     val showTags = (uiState as? MainUiState.Success)?.showTags == true
@@ -343,6 +347,22 @@ fun MainScreen(
                                 Icon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = "Search"
+                                )
+                            }
+                            IconButton(onClick = { bulletTreeViewModel.toggleHideCompleted() }) {
+                                Icon(
+                                    imageVector = if (hideCompleted)
+                                        Icons.Default.Visibility
+                                    else
+                                        Icons.Default.VisibilityOff,
+                                    contentDescription = if (hideCompleted) "Show completed" else "Hide completed"
+                                )
+                            }
+                            IconButton(onClick = { bulletTreeViewModel.deleteAllCompleted() }) {
+                                Icon(
+                                    imageVector = Icons.Default.DeleteSweep,
+                                    contentDescription = "Delete completed",
+                                    tint = MaterialTheme.colorScheme.error
                                 )
                             }
                         }

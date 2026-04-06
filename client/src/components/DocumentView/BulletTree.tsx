@@ -5,7 +5,6 @@ import { useDocumentBullets, useMoveBullet, useCreateBullet } from '../../hooks/
 import type { Bullet } from '../../hooks/useBullets';
 import { BulletNode } from './BulletNode';
 import { ContextMenu } from './ContextMenu';
-import { DocumentToolbar } from './DocumentToolbar';
 import { FocusToolbar } from './FocusToolbar';
 import { useUiStore } from '../../store/uiStore';
 
@@ -102,16 +101,17 @@ function computeDragProjection(
 export function BulletTree({
   documentId,
   zoomedBulletId,
+  hideCompleted,
 }: {
   documentId: string;
   zoomedBulletId?: string | null;
+  hideCompleted: boolean;
 }) {
   const { data: flatBullets = [], isLoading } = useDocumentBullets(documentId);
   const moveBullet = useMoveBullet();
   const createBullet = useCreateBullet();
   const { focusedBulletId } = useUiStore();
 
-  const [hideCompleted, setHideCompleted] = useState(false);
   const [treeContextMenu, setTreeContextMenu] = useState<{ x: number; y: number; bulletId: string } | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
 
@@ -237,11 +237,6 @@ export function BulletTree({
 
   return (
     <>
-      <DocumentToolbar
-        documentId={documentId}
-        hideCompleted={hideCompleted}
-        onToggleHideCompleted={() => setHideCompleted(h => !h)}
-      />
       {focusedBulletId && (
         <FocusToolbar bulletId={focusedBulletId} documentId={documentId} />
       )}

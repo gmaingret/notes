@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Eye, EyeOff, Trash2 } from 'lucide-react';
 import { apiClient } from '../../api/client';
 
 type Props = {
@@ -26,40 +27,24 @@ export function DocumentToolbar({ documentId, hideCompleted, onToggleHideComplet
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        gap: 8,
-        alignItems: 'center',
-        padding: '4px 0',
-        borderBottom: '1px solid var(--color-border-subtle)',
-        marginBottom: 8,
-      }}
-    >
+    <>
       <button
+        className="header-search-btn"
         onClick={onToggleHideCompleted}
-        className={hideCompleted ? 'toolbar-btn--active' : 'toolbar-btn--inactive'}
-        style={{
-          fontSize: '0.8rem',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-        }}
+        aria-label={hideCompleted ? 'Show completed' : 'Hide completed'}
+        title={hideCompleted ? 'Show completed' : 'Hide completed'}
       >
-        {hideCompleted ? 'Show completed' : 'Hide completed'}
+        {hideCompleted ? <Eye size={20} strokeWidth={1.5} /> : <EyeOff size={20} strokeWidth={1.5} />}
       </button>
       <button
+        className="header-search-btn"
         onClick={handleDeleteCompleted}
-        className="toolbar-btn--destructive"
-        style={{
-          fontSize: '0.8rem',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-        }}
+        aria-label="Delete completed"
+        title="Delete completed"
+        style={{ color: 'var(--color-accent-danger)' }}
       >
-        Delete completed
+        <Trash2 size={20} strokeWidth={1.5} />
       </button>
-    </div>
+    </>
   );
 }

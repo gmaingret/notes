@@ -3,23 +3,13 @@ package com.gmaingret.notes.widget.sync
 import android.content.Context
 import com.gmaingret.notes.widget.DisplayState
 import com.gmaingret.notes.widget.NotesWidget
+import com.gmaingret.notes.widget.WidgetDebugLog
 import com.gmaingret.notes.widget.WidgetEntryPoint
 import com.gmaingret.notes.widget.WidgetStateStore
 import com.gmaingret.notes.widget.WidgetUiState
 
-/**
- * Testable helper for the widget refresh trigger logic extracted from BulletTreeViewModel.
- *
- * Determines whether the given document is the one pinned to the widget, and if so,
- * fetches fresh data, writes it to WidgetStateStore cache, and pushes to Glance preferences
- * so the widget recomposes.
- *
- * @param currentDocId The document currently open in the app.
- * @param widgetStateStore The WidgetStateStore to read the pinned doc ID from and write cache to.
- * @param entryPoint The Hilt entry point providing repository access.
- * @param context Application context needed to push state to Glance preferences.
- * @return true if the widget was refreshed, false if docId didn't match or no widget is configured.
- */
+private const val TAG = "WidgetRefresh"
+
 internal suspend fun refreshWidgetIfDocMatches(
     currentDocId: String,
     widgetStateStore: WidgetStateStore,
@@ -29,25 +19,43 @@ internal suspend fun refreshWidgetIfDocMatches(
     val pinnedDocId = widgetStateStore.getFirstDocumentId()
     if (pinnedDocId == null || pinnedDocId != currentDocId) return false
 
+    if (widgetStateStore.isMutationInFlight()) {
+        WidgetDebugLog.log(context, TAG, "refreshWidgetIfDocMatches SKIPPED — mutation in flight")
+        return false
+    }
+
+    WidgetDebugLog.log(context, TAG, "refreshWidgetIfDocMatches RUNNING for doc=$currentDocId")
     val widget = NotesWidget()
     val uiState = widget.fetchWidgetData(entryPoint, currentDocId)
+    WidgetDebugLog.log(context, TAG, "fetchWidgetData returned ${uiState::class.simpleName}")
 
     when (uiState) {
         is WidgetUiState.Content -> {
+            WidgetDebugLog.log(context, TAG, "writing ${uiState.bullets.size} bullets, ids=${uiState.bullets.map { it.id }}")
             widgetStateStore.saveBullets(uiState.bullets)
             widgetStateStore.saveDisplayState(DisplayState.CONTENT)
         }
         is WidgetUiState.Empty -> {
+            WidgetDebugLog.log(context, TAG, "writing EMPTY (0 bullets)")
             widgetStateStore.saveBullets(emptyList())
             widgetStateStore.saveDisplayState(DisplayState.EMPTY)
         }
-        is WidgetUiState.SessionExpired -> widgetStateStore.saveDisplayState(DisplayState.SESSION_EXPIRED)
-        is WidgetUiState.DocumentNotFound -> widgetStateStore.saveDisplayState(DisplayState.DOCUMENT_NOT_FOUND)
-        is WidgetUiState.Error -> widgetStateStore.saveDisplayState(DisplayState.ERROR)
+        is WidgetUiState.SessionExpired -> {
+            WidgetDebugLog.warn(context, TAG, "SESSION_EXPIRED from fetchWidgetData")
+            widgetStateStore.saveDisplayState(DisplayState.SESSION_EXPIRED)
+        }
+        is WidgetUiState.DocumentNotFound -> {
+            WidgetDebugLog.warn(context, TAG, "DOCUMENT_NOT_FOUND from fetchWidgetData")
+            widgetStateStore.saveDisplayState(DisplayState.DOCUMENT_NOT_FOUND)
+        }
+        is WidgetUiState.Error -> {
+            WidgetDebugLog.error(context, TAG, "ERROR from fetchWidgetData: ${(uiState as? WidgetUiState.Error)}")
+            widgetStateStore.saveDisplayState(DisplayState.ERROR)
+        }
         else -> { /* Loading, NotConfigured — ignore */ }
     }
 
-    // Push to Glance preferences so provideContent recomposes
+    WidgetDebugLog.log(context, TAG, "pushing state to Glance")
     NotesWidget.pushStateToGlance(context)
 
     return true

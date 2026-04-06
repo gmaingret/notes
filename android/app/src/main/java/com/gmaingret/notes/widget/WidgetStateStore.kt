@@ -9,6 +9,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.gmaingret.notes.data.local.EncryptedDataStoreFactory
 import kotlinx.coroutines.flow.firstOrNull
+import java.util.concurrent.atomic.AtomicLong
 
 private val Context.widgetStateDataStore by preferencesDataStore(name = "widget_state")
 
@@ -75,6 +76,16 @@ class WidgetStateStore private constructor(
                 }
             }
         }
+
+        /**
+         * In-memory timestamp of the last widget mutation (delete/add) start.
+         * Used by [isMutationInFlight] to prevent refresh-from-server from
+         * overwriting an optimistic update that hasn't completed yet.
+         */
+        private val mutationStartedAt = AtomicLong(0L)
+
+        /** Guard window in milliseconds — refreshes are skipped within this window. */
+        private const val MUTATION_GUARD_MS = 5_000L
 
         /**
          * Test-only factory that accepts an injected Aead (e.g. identity mock).
@@ -222,6 +233,38 @@ class WidgetStateStore private constructor(
         } catch (e: IllegalArgumentException) {
             DisplayState.NOT_CONFIGURED
         }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Mutation guard (in-memory, not persisted)
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Marks that a widget mutation (optimistic delete/add) has started.
+     * Call before the optimistic UI update. [isMutationInFlight] will return
+     * true for [MUTATION_GUARD_MS] after this call, preventing concurrent
+     * server-refresh from overwriting the optimistic state.
+     */
+    fun markMutationStarted() {
+        mutationStartedAt.set(System.currentTimeMillis())
+    }
+
+    /**
+     * Clears the mutation-in-flight flag. Call after the API call completes
+     * (success or failure) and the final state has been pushed to Glance.
+     */
+    fun clearMutation() {
+        mutationStartedAt.set(0L)
+    }
+
+    /**
+     * Returns true if a widget mutation started recently (within [MUTATION_GUARD_MS]).
+     * Used by [refreshWidgetIfDocMatches] to skip server-refresh during optimistic updates.
+     */
+    fun isMutationInFlight(): Boolean {
+        val started = mutationStartedAt.get()
+        if (started == 0L) return false
+        return System.currentTimeMillis() - started < MUTATION_GUARD_MS
     }
 
     // ---------------------------------------------------------------------------

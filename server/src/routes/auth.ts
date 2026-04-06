@@ -9,7 +9,8 @@ import { users } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import {
   issueAccessToken,
-  setRefreshCookie,
+  issueAndStoreRefreshToken,
+  setRefreshCookieFromToken,
   clearRefreshCookie,
   hashPassword,
   createInboxIfNotExists,
@@ -61,9 +62,10 @@ authRouter.post('/register', async (req, res) => {
   await createInboxIfNotExists(user.id);
 
   const accessToken = issueAccessToken(user.id);
-  await setRefreshCookie(res, user.id);
+  const refreshToken = await issueAndStoreRefreshToken(user.id);
+  setRefreshCookieFromToken(res, refreshToken);
 
-  return res.status(201).json({ accessToken, user: { id: user.id, email: user.email } });
+  return res.status(201).json({ accessToken, refreshToken, user: { id: user.id, email: user.email } });
 });
 
 // AUTH-02: Login
@@ -86,9 +88,10 @@ authRouter.post('/login', async (req, res) => {
   }
 
   const accessToken = issueAccessToken(user.id);
-  await setRefreshCookie(res, user.id);
+  const refreshToken = await issueAndStoreRefreshToken(user.id);
+  setRefreshCookieFromToken(res, refreshToken);
 
-  return res.json({ accessToken, user: { id: user.id, email: user.email } });
+  return res.json({ accessToken, refreshToken, user: { id: user.id, email: user.email } });
 });
 
 // AUTH-02: Refresh token
@@ -101,12 +104,6 @@ authRouter.post('/refresh', async (req, res) => {
     if (await isRefreshTokenRevoked(token)) {
       return res.status(401).json({ error: 'Token has been revoked' });
     }
-    // Rotate refresh token: revoke the old one and issue a fresh 7-day cookie.
-    // Without this, sessions silently die after REFRESH_TOKEN_TTL even for
-    // active users — the access token gets proactively refreshed, but the
-    // refresh token itself was never renewed.
-    await revokeRefreshToken(token);
-    await setRefreshCookie(res, payload.sub);
 
     const accessToken = issueAccessToken(payload.sub);
     return res.json({ accessToken });
@@ -115,13 +112,42 @@ authRouter.post('/refresh', async (req, res) => {
   }
 });
 
-// AUTH-04: Logout
+// AUTH-04: Logout (cookie-based — web client)
 authRouter.post('/logout', async (req, res) => {
   const token = req.cookies?.refreshToken;
   if (token) {
     try { await revokeRefreshToken(token); } catch { /* ignore — best effort */ }
   }
   clearRefreshCookie(res);
+  return res.json({ message: 'Logged out' });
+});
+
+// Token-based refresh — for native clients (Android) that manage tokens explicitly
+// instead of relying on httpOnly cookies. Accepts refresh token in request body,
+// returns new access token as JSON. Refresh token is NOT rotated — it stays valid
+// for its full 7-day lifetime to avoid race conditions on mobile.
+authRouter.post('/refresh/token', async (req, res) => {
+  const { refreshToken: token } = req.body ?? {};
+  if (!token) return res.status(401).json({ error: 'No refresh token' });
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as { sub: string };
+    if (await isRefreshTokenRevoked(token)) {
+      return res.status(401).json({ error: 'Token has been revoked' });
+    }
+    const accessToken = issueAccessToken(payload.sub);
+    return res.json({ accessToken });
+  } catch {
+    return res.status(401).json({ error: 'Invalid or expired refresh token' });
+  }
+});
+
+// Token-based logout — for native clients (Android)
+authRouter.post('/logout/token', async (req, res) => {
+  const { refreshToken: token } = req.body ?? {};
+  if (token) {
+    try { await revokeRefreshToken(token); } catch { /* ignore — best effort */ }
+  }
   return res.json({ message: 'Logged out' });
 });
 
@@ -165,7 +191,8 @@ authRouter.post('/change-password', requireAuth, async (req, res) => {
   if (currentToken) {
     await revokeAllUserTokensExcept(userId, currentToken);
   }
-  await setRefreshCookie(res, userId);
+  const newRefreshToken = await issueAndStoreRefreshToken(userId);
+  setRefreshCookieFromToken(res, newRefreshToken);
 
   return res.json({ message: 'Password changed successfully' });
 });
@@ -205,8 +232,9 @@ authRouter.post('/google/token', async (req, res) => {
     }
 
     const accessToken = issueAccessToken(user.id);
-    await setRefreshCookie(res, user.id);
-    return res.json({ accessToken, user: { id: user.id, email: user.email } });
+    const refreshToken = await issueAndStoreRefreshToken(user.id);
+    setRefreshCookieFromToken(res, refreshToken);
+    return res.json({ accessToken, refreshToken, user: { id: user.id, email: user.email } });
   } catch (e) {
     console.error('Google token verification failed:', e);
     return res.status(401).json({ error: 'Google token verification failed' });
@@ -230,7 +258,8 @@ authRouter.get(
     await createInboxIfNotExists(user.id);
 
     const accessToken = issueAccessToken(user.id);
-    await setRefreshCookie(res, user.id);
+    const refreshToken = await issueAndStoreRefreshToken(user.id);
+    setRefreshCookieFromToken(res, refreshToken);
 
     // Redirect to app root with token in hash fragment (never sent to server)
     // SESS-01: use #token= not ?token= so the JWT is never in the URL query string

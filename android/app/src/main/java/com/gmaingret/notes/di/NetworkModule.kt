@@ -9,7 +9,6 @@ import com.gmaingret.notes.data.api.AuthInterceptor
 import com.gmaingret.notes.data.api.SearchApi
 import com.gmaingret.notes.data.api.TagApi
 import com.gmaingret.notes.data.api.TokenAuthenticator
-import com.gmaingret.notes.data.local.DataStoreCookieJar
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -39,12 +38,10 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(
         authInterceptor: AuthInterceptor,
-        tokenAuthenticator: TokenAuthenticator,
-        cookieJar: DataStoreCookieJar
+        tokenAuthenticator: TokenAuthenticator
     ): OkHttpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
         .authenticator(tokenAuthenticator)
-        .cookieJar(cookieJar)
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)

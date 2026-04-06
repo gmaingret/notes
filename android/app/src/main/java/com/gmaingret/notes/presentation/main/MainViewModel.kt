@@ -98,7 +98,7 @@ class MainViewModel @Inject constructor(
 
     /**
      * Logs the user out:
-     * 1. Calls LogoutUseCase which hits POST /api/auth/logout (clears server cookie)
+     * 1. Calls LogoutUseCase which hits POST /api/auth/logout/token (revokes server token)
      *    and then clears local DataStore tokens via TokenStore.clearAll().
      * 2. Writes SESSION_EXPIRED to WidgetStateStore so the widget reflects auth state immediately.
      * 3. Triggers updateAll() to cause provideGlance to re-render from the updated cache.

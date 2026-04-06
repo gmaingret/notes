@@ -6,9 +6,9 @@ import javax.inject.Inject
 /**
  * Validates the user's session on cold start by calling the refresh endpoint.
  *
- * A successful refresh proves both that the refreshToken cookie is still valid
- * (not expired, not revoked) and that the backend is reachable. The new access
- * token is automatically saved by AuthRepositoryImpl.
+ * A successful refresh proves the stored refresh token is still valid
+ * (not expired, not revoked) and that the backend is reachable. The new
+ * tokens are automatically saved by AuthRepositoryImpl.
  *
  * Used by the splash / SplashViewModel to determine the initial navigation destination.
  */

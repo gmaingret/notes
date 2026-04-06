@@ -23,8 +23,8 @@ import javax.inject.Singleton
 /**
  * Hilt module that binds repository interfaces to their implementations.
  *
- * TokenStore and DataStoreCookieJar are already @Singleton with @Inject constructors,
- * so Hilt constructs them automatically — no explicit @Provides needed.
+ * TokenStore is already @Singleton with @Inject constructor,
+ * so Hilt constructs it automatically — no explicit @Provides needed.
  * AuthRepositoryImpl is similarly @Singleton with @Inject constructor; this module
  * provides the @Binds binding so injection sites can use the AuthRepository interface.
  */

@@ -12,9 +12,13 @@ import com.gmaingret.notes.widget.NotesWidget
 import com.gmaingret.notes.widget.WidgetBullet
 import com.gmaingret.notes.widget.WidgetStateStore
 import com.gmaingret.notes.widget.stripMarkdownSyntax
+import com.gmaingret.notes.widget.WidgetDebugLog
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import android.util.Log
 import retrofit2.HttpException
+
+private const val TAG = "WidgetSync"
 
 /**
  * Background sync worker that keeps the home screen widget current.
@@ -52,6 +56,14 @@ class WidgetSyncWorker @AssistedInject constructor(
         // Step 1: Find the configured document ID (returns first entry found)
         val docId = widgetStateStore.getFirstDocumentId()
             ?: return Result.success() // Widget not configured — nothing to do
+
+        // Skip sync if a widget mutation (delete/add) is in flight
+        if (widgetStateStore.isMutationInFlight()) {
+            WidgetDebugLog.log(applicationContext, TAG, "doWork SKIPPED — mutation in flight")
+            return Result.success()
+        }
+
+        WidgetDebugLog.log(applicationContext, TAG, "doWork RUNNING for doc=$docId")
 
         // Step 2: Fetch document list to validate docId and get title
         val documents = try {
@@ -123,6 +135,7 @@ class WidgetSyncWorker @AssistedInject constructor(
             }
 
         // Step 6: Persist title, bullets, and display state
+        WidgetDebugLog.log(applicationContext, TAG, "writing ${rootBullets.size} bullets to store, ids=${rootBullets.map { it.id }}")
         widgetStateStore.saveDocumentTitle(document.title)
         widgetStateStore.saveBullets(rootBullets)
         widgetStateStore.saveDisplayState(

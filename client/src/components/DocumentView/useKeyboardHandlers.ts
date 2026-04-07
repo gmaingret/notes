@@ -297,7 +297,7 @@ export function useKeyboardHandlers(params: {
       patchBullet.mutate({ id: bullet.id, documentId: bullet.documentId, content: before });
       setLocalContent(before);
 
-      if (children.length > 0) {
+      if (children.length > 0 && !bullet.isCollapsed) {
         createAndFocus({ documentId: bullet.documentId, parentId: bullet.id, afterId: null, content: after });
       } else {
         createAndFocus({ documentId: bullet.documentId, parentId: bullet.parentId, afterId: bullet.id, content: after });

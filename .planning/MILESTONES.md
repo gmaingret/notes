@@ -1,4 +1,40 @@
 # Milestones
+
+## v2.3 Robustness & Quality (Shipped: 2026-05-14)
+
+**Phases completed:** 5 phases (19–23), 9 plans
+**Requirements:** 13/13 satisfied (CICD-01/02, ERR-01/02/03, RES-01/02, UNDO-01/02/03, CONF-01, QUAL-01/02)
+
+**Key accomplishments:**
+1. Server: global Express error handler returning `{ error: 'Internal server error' }` JSON for any unhandled route; undo/redo routes return 422 with friendly message on empty stack; `UPLOAD_PATH` / `UPLOAD_MAX_SIZE_MB` env vars wired into multer with sensible fallbacks
+2. CI/CD: `server-ci.yml` (typecheck + tests + build) and `client-ci.yml` (lint + typecheck + tests + build) trigger on PRs to `main` and pushes to `phase-*`; no SSH deploy steps per security/disk policy
+3. Web client: 401 interceptor with shared-promise refresh lock + `_isRetry` guard, declarative ErrorBoundary at DocumentView level with `resetKeys` on document.id, sonner toast notifications on every mutation failure
+4. Undo coverage: mark-complete (cascading to descendants), note edits, and bulk-delete-completed wrapped in transactions with `recordUndoEvent`; new `batch` UndoOp variant enables atomic compound operations
+5. Refactoring: `BulletContent.tsx` 767→279 lines (cursorUtils, datePicker, useKeyboardHandlers extracted, 17 standalone unit tests for cursorUtils); `BulletNode.tsx` 486→189 lines (useSwipeGesture + useDotDrag hooks)
+6. Cross-cut fixes: server accepts Google ID tokens for both Web and Android OAuth audiences (`/api/auth/google/token` validates against `[GOOGLE_CLIENT_ID, GOOGLE_ANDROID_CLIENT_ID]`); committed project-shared Android debug keystore so every machine signs debug builds identically (eliminates `INSTALL_FAILED_UPDATE_INCOMPATIBLE` and stabilizes the SHA-1 trusted in Google Cloud)
+
+**Known tech debt:** `DeleteBulletWorker` (Android widget) has no unit tests after the stale `performDelete` test was removed; `TagApi.getBulletsByTag` (Android) still defined but unused; `clearAll()` on single widget deletion clobbers all widgets
+
+**Archive:** `.planning/phases/19-server-foundation/` through `.planning/phases/23-component-refactoring/`
+
+---
+
+## v2.2 Security Hardening (Shipped: 2026-03-15)
+
+**Phases completed:** 3 phases (16–18), 5 plans
+**Requirements:** 10/10 satisfied — all HIGH/MEDIUM vulnerabilities fixed
+
+**Key accomplishments:**
+1. Injection: ILIKE wildcard escaping in search and tag queries (no more user-controlled `%` / `_`)
+2. JWT: token no longer passed via URL query string for the Google OAuth callback (uses hash fragment instead — keeps token out of server logs and browser history)
+3. Upload hardening: allowlisted file extensions, sanitized filenames in `Content-Disposition`, SVG forced to `attachment` disposition (prevents stored XSS), bullet ownership check on upload
+4. Session: rate limiting on data endpoints, strengthened password policy beyond minimum length, server-side refresh token revocation (active sessions cleared on password change)
+5. CSRF: resolved-by-design via Bearer-auth header pattern (no cookie-only auth surface)
+
+**Archive:** `.planning/milestones/v2.2-ROADMAP.md`
+
+---
+
 ## v2.1 Android Home Screen Widget (Shipped: 2026-03-15)
 
 **Phases completed:** 3 phases (13-15), 8 plans

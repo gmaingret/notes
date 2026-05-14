@@ -52,23 +52,24 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - ✓ Strengthen password policy beyond minimum length — v2.2
 - ✓ Implement server-side refresh token revocation — v2.2
 - ✓ Add CSRF protection beyond SameSite cookie (resolved-by-design: Bearer auth) — v2.2
-
-### Active
-
-- [ ] Add CI/CD workflows for server and client (lint, test, build validation on PRs)
-- [ ] Add 401 interceptor with automatic token refresh in web client
-- [ ] Standardize API error response format across all endpoints
-- [ ] Add undo/redo error handling with user-friendly responses
-- [ ] Add React error boundary and toast notification system for mutation failures
-- [ ] Extend undo coverage to mark-complete, note edits, and bulk delete
-- [ ] Wire up UPLOAD_MAX_SIZE_MB and UPLOAD_PATH env vars (currently hardcoded)
-- [ ] Refactor BulletContent and BulletNode into smaller, testable components
+- ✓ CI/CD workflows for server and client (typecheck, tests, build validation on PRs) — v2.3
+- ✓ 401 interceptor with automatic token refresh in web client (shared promise lock + retry guard) — v2.3
+- ✓ Standardized API error response format (`{ error: string }`) with global Express error handler — v2.3
+- ✓ Undo/redo routes return 422 with friendly message on empty stack — v2.3
+- ✓ React error boundary at DocumentView level + sonner toast notifications for mutation failures — v2.3
+- ✓ Extended undo coverage to mark-complete, note edits, and bulk delete of completed bullets — v2.3
+- ✓ UPLOAD_MAX_SIZE_MB and UPLOAD_PATH env vars wired into multer config — v2.3
+- ✓ BulletContent and BulletNode decomposed into focused, testable sub-components — v2.3
+- ✓ Manual light/dark/system theme toggle on web and Android — v2.3 (PR #60)
+- ✓ Server accepts Google ID tokens for both Web and Android OAuth audiences — v2.3 (PR #64)
+- ✓ Project-shared Android debug keystore committed so all builds sign identically — v2.3 (PR #63)
 
 ### Deferred
 
-- Manual dark mode toggle (requires three-state settings UI — defer to v1.2)
 - PWA richer install prompt on Android (requires service worker — defer)
 - Quick-open action commands beyond navigation (full VS Code-style palette — defer)
+- Documents list pagination (PAG-01 — low severity, only matters at hundreds of docs)
+- Client-side Zod validation of API responses (VAL-01 — defensive only, no current failures)
 
 ### Out of Scope
 
@@ -86,29 +87,19 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 - AI features — out of scope for focused outliner clone
 - Real-time sync / collaboration — privacy-first means no sync
 
-## Current Milestone: v2.3 Robustness & Quality
+## Current Milestone
 
-**Goal:** Improve reliability, error handling, developer experience, and code quality across the full stack.
-
-**Target improvements:**
-- CI/CD pipelines for server and client (HIGH)
-- Web client 401 interceptor with automatic token refresh (HIGH)
-- React error boundary and toast notifications for mutation failures (HIGH)
-- Standardized API error response format (MEDIUM)
-- Undo route error handling with user-friendly responses (MEDIUM)
-- Extended undo coverage for mark-complete, note edits, bulk delete (MEDIUM)
-- Environment variable wiring for upload config (LOW)
-- BulletContent/BulletNode refactor with test coverage (MEDIUM)
+None active. v2.3 shipped 2026-05-14; the project is in maintenance mode. See **Deferred** above for the natural next-milestone candidates.
 
 ## Current State
 
-**Shipped:** v2.2 Security Hardening (2026-03-15) — 3 phases, 5 plans, all HIGH/MEDIUM vulnerabilities fixed
+**Shipped:** v2.3 Robustness & Quality (2026-05-14) — 5 phases (19–23), 9 plans, all v2.3 requirements satisfied
 **Live at:** https://notes.gregorymaingret.fr (web) + Android debug APK on device
-**All milestones:** v1.0 MVP, v1.1 Mobile & UI Polish, v2.0 Native Android, v2.1 Widget, v2.2 Security — 18 phases, 85 plans total
+**All milestones:** v1.0 MVP, v1.1 Mobile & UI Polish, v2.0 Native Android, v2.1 Widget, v2.2 Security, v2.3 Robustness & Quality — 23 phases, 94 plans total
 
 ## Context
 
-- **Shipped:** v2.2 (2026-03-15) — five milestones complete; ~65k+ LOC (44k web + 15k Android + 4k widget)
+- **Shipped:** v2.3 (2026-05-14) — six milestones complete; ~65k+ LOC (44k web + 15k Android + 4k widget)
 - **Live at:** https://notes.gregorymaingret.fr
 - **Tech stack:** React + Vite + TypeScript (client), Express + Drizzle ORM + PostgreSQL (server), Docker (deployment), Nginx reverse proxy
 - **UI libraries:** lucide-react (icons), @fontsource-variable/inter + jetbrains-mono (fonts), @dnd-kit (drag-and-drop), zustand (state)
@@ -158,4 +149,4 @@ Users can capture and organize personal knowledge in an infinitely nested bullet
 | AddBulletActivity as transparent overlay (not Dialog fragment) | Activity context needed for Hilt injection + setFinishOnTouchOutside | ✓ Good — lightweight feel, keyboard auto-shows |
 
 ---
-*Last updated: 2026-03-19 after Phase 23 (Component Refactoring) complete — v2.3 milestone complete*
+*Last updated: 2026-05-14 after v2.3 shipped (PRs #63, #64) — no active milestone*

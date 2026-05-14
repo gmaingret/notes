@@ -203,9 +203,17 @@ authRouter.post('/google/token', async (req, res) => {
   if (!idToken) return res.status(400).json({ error: 'Missing idToken' });
 
   try {
+    // Accept ID tokens issued for either the Web client (browser flow) or the
+    // Android client (Credential Manager flow). Each surface uses its own
+    // OAuth client by design; the token's `aud` claim differs accordingly.
+    const allowedAudiences = [
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_ANDROID_CLIENT_ID,
+    ].filter((id): id is string => Boolean(id));
+
     const ticket = await googleClient.verifyIdToken({
       idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: allowedAudiences,
     });
     const payload = ticket.getPayload();
     if (!payload?.email || !payload?.sub) {

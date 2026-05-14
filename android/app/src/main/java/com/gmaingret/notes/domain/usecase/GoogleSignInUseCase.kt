@@ -21,8 +21,12 @@ import javax.inject.Inject
  * On success, extracts the Google ID token and delegates to [LoginWithGoogleUseCase] to
  * exchange it with the backend.
  *
- * IMPORTANT: Uses the Web client ID (not Android client ID) per Credential Manager requirements.
- * The Web client ID is read from BuildConfig.GOOGLE_WEB_CLIENT_ID which comes from local.properties.
+ * Uses the Web OAuth client ID per Credential Manager requirements — only Web/
+ * iOS/Desktop OAuth clients can be ID token audiences. The Android OAuth client
+ * still exists in Google Cloud Console with this app's package + SHA-1; that
+ * registration is what makes Play Services trust the call. The server's
+ * /api/auth/google/token endpoint also accepts tokens for GOOGLE_ANDROID_CLIENT_ID
+ * (left in place for future flows but unused in practice).
  */
 class GoogleSignInUseCase @Inject constructor(
     private val loginWithGoogleUseCase: LoginWithGoogleUseCase

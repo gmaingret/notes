@@ -29,6 +29,13 @@ app.use('/api/tags', tagsRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/attachments', attachmentsRouter);
 
+// Global error handler — catches unhandled errors from all routes.
+// Must have 4 parameters for Express to recognize it as error middleware.
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
 // Serve React static files in production
 if (process.env.NODE_ENV === 'production') {
   const publicPath = path.join(__dirname, '../../../public');

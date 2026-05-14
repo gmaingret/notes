@@ -561,6 +561,10 @@ describe('bulletService.markComplete', () => {
     (db.query as Record<string, unknown>).bullets = {
       findFirst: vi.fn().mockResolvedValue(bulletA),
     };
+    // getDescendantIds queries all bullets in the doc; no descendants for this test
+    (db._selectWhere as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: BULLET_A, parentId: null },
+    ]);
     const completedBullet = makeBulletRow({ id: BULLET_A, isComplete: true });
     (db._updateReturning as ReturnType<typeof vi.fn>).mockResolvedValue([completedBullet]);
 
@@ -578,6 +582,9 @@ describe('bulletService.markComplete', () => {
     (db.query as Record<string, unknown>).bullets = {
       findFirst: vi.fn().mockResolvedValue(bulletA),
     };
+    (db._selectWhere as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: BULLET_A, parentId: null },
+    ]);
     const updatedBullet = makeBulletRow({ id: BULLET_A, isComplete: false });
     (db._updateReturning as ReturnType<typeof vi.fn>).mockResolvedValue([updatedBullet]);
 

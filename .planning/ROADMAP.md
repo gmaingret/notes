@@ -7,7 +7,7 @@
 - ✅ **v2.0 Native Android Client** — Phases 9-12 (shipped 2026-03-14)
 - ✅ **v2.1 Android Home Screen Widget** — Phases 13-15 (shipped 2026-03-15)
 - ✅ **v2.2 Security Hardening** — Phases 16-18 (shipped 2026-03-15)
-- ✅ **v2.3 Robustness & Quality** — Phases 19-23 (all plans complete; Phase 19 awaiting prod deploy)
+- ✅ **v2.3 Robustness & Quality** — Phases 19-23 (shipped 2026-05-14)
 
 ## Phases
 
@@ -70,7 +70,7 @@ Full details: [`.planning/milestones/v2.2-ROADMAP.md`](milestones/v2.2-ROADMAP.m
 
 </details>
 
-### 🚧 v2.3 Robustness & Quality (In Progress)
+### ✅ v2.3 Robustness & Quality (Shipped 2026-05-14)
 
 **Milestone Goal:** Improve reliability, error handling, developer experience, and code quality across the full stack — CI/CD pipelines, automatic token refresh, error boundaries, toast notifications, undo coverage extension, and component refactoring.
 

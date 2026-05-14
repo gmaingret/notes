@@ -7,7 +7,7 @@
 - ✅ **v2.0 Native Android Client** — Phases 9-12 (shipped 2026-03-14)
 - ✅ **v2.1 Android Home Screen Widget** — Phases 13-15 (shipped 2026-03-15)
 - ✅ **v2.2 Security Hardening** — Phases 16-18 (shipped 2026-03-15)
-- 🚧 **v2.3 Robustness & Quality** — Phases 19-23 (in progress)
+- ✅ **v2.3 Robustness & Quality** — Phases 19-23 (all plans complete; Phase 19 awaiting prod deploy)
 
 ## Phases
 
@@ -74,11 +74,11 @@ Full details: [`.planning/milestones/v2.2-ROADMAP.md`](milestones/v2.2-ROADMAP.m
 
 **Milestone Goal:** Improve reliability, error handling, developer experience, and code quality across the full stack — CI/CD pipelines, automatic token refresh, error boundaries, toast notifications, undo coverage extension, and component refactoring.
 
-- [ ] **Phase 19: Server Foundation** — Standardize API error format, fix undo route error handling, add CI/CD workflows, wire upload env vars
+- [x] **Phase 19: Server Foundation** — Standardize API error format, fix undo route error handling, add CI/CD workflows, wire upload env vars (completed 2026-05-14)
 - [x] **Phase 20: Client Infrastructure** — Add React error boundary at document level and global toast notifications for mutation failures (completed 2026-03-19)
 - [x] **Phase 21: Token Refresh Interceptor** — Automatic silent token refresh on 401 with race condition prevention and retry guard (completed 2026-03-19)
 - [x] **Phase 22: Undo Coverage Extension** — Extend undo/redo to cover mark-complete, note edits, and bulk delete of completed bullets (completed 2026-03-19)
-- [ ] **Phase 23: Component Refactoring** — Decompose BulletContent and BulletNode into focused, testable sub-components
+- [x] **Phase 23: Component Refactoring** — Decompose BulletContent and BulletNode into focused, testable sub-components (completed 2026-03-19, merged via PR #47)
 
 ## Phase Details
 
@@ -94,8 +94,8 @@ Full details: [`.planning/milestones/v2.2-ROADMAP.md`](milestones/v2.2-ROADMAP.m
   5. Changing UPLOAD_MAX_SIZE_MB or UPLOAD_PATH in .env changes the actual upload behavior without a code change
 **Plans**: 2 plans
 Plans:
-- [ ] 19-01-PLAN.md — Error handling, undo fix, upload env var wiring
-- [ ] 19-02-PLAN.md — CI/CD workflows (server-ci.yml, client-ci.yml)
+- [x] 19-01-PLAN.md — Error handling, undo fix, upload env var wiring
+- [x] 19-02-PLAN.md — CI/CD workflows (server-ci.yml, client-ci.yml)
 
 ### Phase 20: Client Infrastructure
 **Goal**: The web client has a global error boundary that prevents full-screen crashes and a toast notification layer that surfaces mutation failures to the user
@@ -149,8 +149,8 @@ Plans:
   4. At least one extracted module (e.g., cursorUtils) has standalone unit tests that pass without mounting a React component
 **Plans**: 2 plans
 Plans:
-- [ ] 23-01-PLAN.md — Extract cursorUtils, datePicker, useKeyboardHandlers from BulletContent + unit tests
-- [ ] 23-02-PLAN.md — Extract useSwipeGesture hook from BulletNode
+- [x] 23-01-PLAN.md — Extract cursorUtils, datePicker, useKeyboardHandlers from BulletContent + unit tests
+- [x] 23-02-PLAN.md — Extract useSwipeGesture hook from BulletNode
 
 ## Progress
 
@@ -175,8 +175,8 @@ Plans:
 | 16. Injection and Upload Hardening | v2.2 | 2/2 | Complete | 2026-03-15 |
 | 17. Auth and Session Security | v2.2 | 2/2 | Complete | 2026-03-15 |
 | 18. API Protection | v2.2 | 1/1 | Complete | 2026-03-15 |
-| 19. Server Foundation | v2.3 | 0/2 | Planning | - |
+| 19. Server Foundation | v2.3 | 2/2 | Complete | 2026-05-14 |
 | 20. Client Infrastructure | v2.3 | 2/2 | Complete | 2026-03-19 |
-| 21. Token Refresh Interceptor | 1/1 | Complete    | 2026-03-19 | - |
-| 22. Undo Coverage Extension | 2/2 | Complete    | 2026-03-19 | - |
-| 23. Component Refactoring | v2.3 | 0/2 | Planning | - |
+| 21. Token Refresh Interceptor | v2.3 | 1/1 | Complete | 2026-03-19 |
+| 22. Undo Coverage Extension | v2.3 | 2/2 | Complete | 2026-03-19 |
+| 23. Component Refactoring | v2.3 | 2/2 | Complete | 2026-03-19 |

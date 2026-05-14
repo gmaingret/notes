@@ -277,6 +277,7 @@ describe('DELETE /api/bullets/:id', () => {
 
 describe('POST /api/undo', () => {
   it('returns 200 with { canUndo, canRedo, affectedBullets }', async () => {
+    vi.mocked(undoService.getStatus).mockResolvedValue({ canUndo: true, canRedo: false });
     vi.mocked(undoService.undo).mockResolvedValue(mockUndoStatus);
     const app = buildApp();
     const res = await request(app).post('/api/undo');
@@ -298,6 +299,7 @@ describe('POST /api/undo', () => {
 
 describe('POST /api/redo', () => {
   it('returns 200 with { canUndo, canRedo, affectedBullets }', async () => {
+    vi.mocked(undoService.getStatus).mockResolvedValue({ canUndo: false, canRedo: true });
     vi.mocked(undoService.redo).mockResolvedValue(mockUndoStatus);
     const app = buildApp();
     const res = await request(app).post('/api/redo');

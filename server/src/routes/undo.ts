@@ -10,34 +10,30 @@ undoRouter.use(requireAuth);
 // POST /api/undo
 undoRouter.post('/undo', async (req, res) => {
   const user = req.user as { id: string };
-  try {
-    const result = await undo(db, user.id);
-    return res.json(result);
-  } catch (err) {
-    throw err;
+  const status = await getStatus(db, user.id);
+  if (!status.canUndo) {
+    return res.status(422).json({ error: 'Nothing to undo' });
   }
+  const result = await undo(db, user.id);
+  return res.json(result);
 });
 
 // UNDO-02: Redo the most recently undone action
 // POST /api/redo
 undoRouter.post('/redo', async (req, res) => {
   const user = req.user as { id: string };
-  try {
-    const result = await redo(db, user.id);
-    return res.json(result);
-  } catch (err) {
-    throw err;
+  const status = await getStatus(db, user.id);
+  if (!status.canRedo) {
+    return res.status(422).json({ error: 'Nothing to redo' });
   }
+  const result = await redo(db, user.id);
+  return res.json(result);
 });
 
 // UNDO-03: Get undo/redo availability status
 // GET /api/undo/status
 undoRouter.get('/undo/status', async (req, res) => {
   const user = req.user as { id: string };
-  try {
-    const status = await getStatus(db, user.id);
-    return res.json(status);
-  } catch (err) {
-    throw err;
-  }
+  const status = await getStatus(db, user.id);
+  return res.json(status);
 });

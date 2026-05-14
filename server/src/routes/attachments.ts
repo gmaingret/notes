@@ -31,8 +31,11 @@ const ALLOWED_EXTENSIONS = new Set([
   '.zip', '.gz', '.tar',
 ]);
 
+const UPLOAD_PATH = process.env.UPLOAD_PATH || '/data/attachments';
+const UPLOAD_MAX_SIZE_MB = Number(process.env.UPLOAD_MAX_SIZE_MB) || 100;
+
 const storage = multer.diskStorage({
-  destination: '/data/attachments',
+  destination: UPLOAD_PATH,
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname);
     cb(null, `${randomUUID()}${ext}`);
@@ -41,7 +44,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+  limits: { fileSize: UPLOAD_MAX_SIZE_MB * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (ALLOWED_EXTENSIONS.has(ext)) {
@@ -61,7 +64,7 @@ attachmentsRouter.post(
   (req, res, next) => {
     upload.single('file')(req, res, (err) => {
       if (err instanceof MulterError && err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(413).json({ error: 'File too large (max 100MB)' });
+        return res.status(413).json({ error: `File too large (max ${UPLOAD_MAX_SIZE_MB}MB)` });
       }
       if (err) {
         // fileFilter rejection comes as a plain Error with our message

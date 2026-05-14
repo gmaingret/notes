@@ -37,7 +37,24 @@ android {
         )
     }
 
+    signingConfigs {
+        // Project-shared debug keystore so every machine (dev laptop, sandbox, CI)
+        // signs the debug APK with the same certificate. This avoids
+        // INSTALL_FAILED_UPDATE_INCOMPATIBLE when installing over a build from a
+        // different machine, and keeps the Google Sign-In SHA-1 fingerprint stable.
+        // SHA-1: 6A:A7:AE:83:56:E3:CC:47:68:0F:F4:55:2C:A6:4B:7A:BE:E8:21:E5
+        getByName("debug") {
+            storeFile = rootProject.file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -64,6 +81,10 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            // Stub Android framework methods (e.g. android.util.Log.e called from
+            // WidgetDebugLog) so plain JVM unit tests don't crash when those
+            // methods are invoked. Robolectric-based tests are unaffected.
+            isReturnDefaultValues = true
         }
     }
 }

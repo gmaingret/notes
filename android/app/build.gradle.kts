@@ -64,6 +64,10 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            // Stub Android framework methods (e.g. android.util.Log.e called from
+            // WidgetDebugLog) so plain JVM unit tests don't crash when those
+            // methods are invoked. Robolectric-based tests are unaffected.
+            isReturnDefaultValues = true
         }
     }
 }

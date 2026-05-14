@@ -9,13 +9,13 @@ Requirements for the Robustness & Quality milestone. Each maps to roadmap phases
 
 ### CI/CD
 
-- [ ] **CICD-01**: Server CI workflow runs lint and tests on every PR to main
-- [ ] **CICD-02**: Client CI workflow runs lint and build validation on every PR to main
+- [x] **CICD-01**: Server CI workflow runs lint and tests on every PR to main
+- [x] **CICD-02**: Client CI workflow runs lint and build validation on every PR to main
 
 ### Error Handling
 
-- [ ] **ERR-01**: All API endpoints return errors in a consistent format (`{ error, code?, details? }`)
-- [ ] **ERR-02**: Undo/redo routes return user-friendly error responses (e.g., 422 "nothing to undo") instead of raw 500s
+- [x] **ERR-01**: All API endpoints return errors in a consistent format (`{ error, code?, details? }`)
+- [x] **ERR-02**: Undo/redo routes return user-friendly error responses (e.g., 422 "nothing to undo") instead of raw 500s
 - [x] **ERR-03**: React error boundary at DocumentView level catches rendering crashes and auto-resets on document navigation
 
 ### Client Resilience
@@ -31,12 +31,12 @@ Requirements for the Robustness & Quality milestone. Each maps to roadmap phases
 
 ### Configuration
 
-- [ ] **CONF-01**: UPLOAD_MAX_SIZE_MB and UPLOAD_PATH environment variables are wired to actual upload logic (not hardcoded)
+- [x] **CONF-01**: UPLOAD_MAX_SIZE_MB and UPLOAD_PATH environment variables are wired to actual upload logic (not hardcoded)
 
 ### Code Quality
 
-- [ ] **QUAL-01**: BulletContent component (768 lines) decomposed into focused, testable sub-components
-- [ ] **QUAL-02**: BulletNode component (487 lines) decomposed into focused, testable sub-components
+- [x] **QUAL-01**: BulletContent component (768 lines) decomposed into focused, testable sub-components
+- [x] **QUAL-02**: BulletNode component (487 lines) decomposed into focused, testable sub-components
 
 ## Future Requirements
 
@@ -67,19 +67,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CICD-01 | Phase 19 | Pending |
-| CICD-02 | Phase 19 | Pending |
-| ERR-01 | Phase 19 | Pending |
-| ERR-02 | Phase 19 | Pending |
-| CONF-01 | Phase 19 | Pending |
+| CICD-01 | Phase 19 | Complete |
+| CICD-02 | Phase 19 | Complete |
+| ERR-01 | Phase 19 | Complete |
+| ERR-02 | Phase 19 | Complete |
+| CONF-01 | Phase 19 | Complete |
 | ERR-03 | Phase 20 | Complete |
 | RES-02 | Phase 20 | Complete |
 | RES-01 | Phase 21 | Complete |
 | UNDO-01 | Phase 22 | Complete |
 | UNDO-02 | Phase 22 | Complete |
 | UNDO-03 | Phase 22 | Complete |
-| QUAL-01 | Phase 23 | Pending |
-| QUAL-02 | Phase 23 | Pending |
+| QUAL-01 | Phase 23 | Complete |
+| QUAL-02 | Phase 23 | Complete |
 
 **Coverage:**
 - v2.3 requirements: 13 total

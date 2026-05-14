@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.3
 milestone_name: Robustness & Quality
-status: unknown
-stopped_at: Phase 23 context gathered
-last_updated: "2026-03-19T17:32:59.560Z"
+status: ready_to_deploy
+stopped_at: Phase 19 + 23 complete, awaiting prod deploy
+last_updated: "2026-05-14T11:36:00Z"
 progress:
   total_phases: 5
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  completed_phases: 5
+  total_plans: 9
+  completed_plans: 9
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** Users can capture and organize personal knowledge in an infinitely nested bullet outline that works seamlessly on both desktop and mobile, with all data staying private on their own server.
-**Current focus:** Phase 22 — undo-coverage-extension
+**Current focus:** v2.3 milestone — all phases complete locally, awaiting prod deploy of Phase 19 (Phase 23 already merged to `main` via PR #47).
 
 ## Current Position
 
-Phase: 22 (undo-coverage-extension) — EXECUTING
-Plan: 2 of 2
+Phase: 19 (server-foundation) — READY TO DEPLOY (branch `phase-19/server-foundation`)
+Phase: 23 (component-refactoring) — ALREADY MERGED to main via PR #47 (planning state updated 2026-05-14)
 
 ## Performance Metrics
 
@@ -37,13 +37,8 @@ Plan: 2 of 2
 | v2.0 Native Android | 4 | 17 | 3 | 5.7 |
 | v2.1 Widget | 3 | 8 | 1 | 8 |
 | v2.2 Security Hardening | 3 | 5 | 1 | 5 |
-| **Total** | **19** | **85** | **9** | **9.4** |
-| Phase 19 P01 | 5 | 2 tasks | 4 files |
-| Phase 20 P01 | 2 | 2 tasks | 5 files |
-| Phase 20 P02 | 5 | 2 tasks | 3 files |
-| Phase 21 P01 | 5 | 2 tasks | 2 files |
-| Phase 22-undo-coverage-extension P01 | 10 | 2 tasks | 2 files |
-| Phase 22-undo-coverage-extension P02 | 2 | 2 tasks | 2 files |
+| v2.3 Robustness & Quality | 5 | 9 | — | — |
+| **Total** | **24** | **94** | — | — |
 
 ## Accumulated Context
 
@@ -61,6 +56,7 @@ Recent decisions affecting current work:
 - [Phase 19]: Pre-check undo/redo availability with getStatus() before calling service - service returns status silently on empty stack
 - [Phase 19]: Global Express 4-arg error handler added after all routes in index.ts catches unhandled exceptions as JSON 500
 - [Phase 19]: UPLOAD_PATH and UPLOAD_MAX_SIZE_MB env vars wired into multer config with sensible defaults
+- [Phase 19]: vitest setup file sets UPLOAD_PATH to mkdtempSync dir so local tests don't require /data/attachments
 - [Phase 20]: Toaster at bottom-right to avoid overlap with UndoToast at bottom-center
 - [Phase 20]: ErrorBoundary wraps only main document return block, not early-return overlay views
 - [Phase 20]: resetKeys on document.id for automatic error boundary reset on document navigation
@@ -73,18 +69,26 @@ Recent decisions affecting current work:
 - [Phase 22-01]: patchBullet uses 'as unknown as Partial<BulletRow>' cast because BulletRow type omits note but applyOp accesses fields generically
 - [Phase 22-02]: Batch UndoOp variant is recursive (UndoOp[]) enabling arbitrary compound operations in a single undo step
 - [Phase 22-02]: Bulk delete snapshots IDs before soft delete and wraps both operations in db.transaction for atomicity
+- [Phase 23]: Extracted cursorUtils, datePicker, useKeyboardHandlers, useSwipeGesture, useDotDrag modules — merged to main via PR #47 before /goal run
 
 ### Pending Todos
 
-None.
+None — Phase 19 ready to deploy.
 
 ### Blockers/Concerns
 
 - Server disk reached 100% during Phase 8 deploy — run `docker builder prune` before building if disk is tight
-- Server tests may need a live PostgreSQL connection for CI — server-ci.yml now uses Postgres 17-alpine service container (resolved)
+
+## Next Step
+
+Per CLAUDE.md deploy workflow:
+
+1. `scp -r server/src .env.example root@192.168.1.50:/root/notes/` (copy changed files)
+2. `ssh root@192.168.1.50 "cd /root/notes && docker compose up -d --build"` (rebuild)
+3. Confirm `https://notes.gregorymaingret.fr` works
+4. Open PR from `phase-19/server-foundation` → `main`, wait for CI, merge.
 
 ## Session Continuity
 
-Last session: 2026-03-19T17:32:59.556Z
-Stopped at: Phase 23 context gathered
-Resume file: .planning/phases/23-component-refactoring/23-CONTEXT.md
+Last session: 2026-05-14T11:36:00Z
+Stopped at: Phase 19 + 23 ready to deploy (autonomous /goal run)

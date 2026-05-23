@@ -125,7 +125,7 @@ authRouter.post('/logout', async (req, res) => {
 // Token-based refresh — for native clients (Android) that manage tokens explicitly
 // instead of relying on httpOnly cookies. Accepts refresh token in request body,
 // returns new access token as JSON. Refresh token is NOT rotated — it stays valid
-// for its full 7-day lifetime to avoid race conditions on mobile.
+// for its full 90-day lifetime to avoid race conditions on mobile.
 authRouter.post('/refresh/token', async (req, res) => {
   const { refreshToken: token } = req.body ?? {};
   if (!token) return res.status(401).json({ error: 'No refresh token' });

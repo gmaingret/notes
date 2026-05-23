@@ -28,7 +28,7 @@ private val Context.cookieDataStore by preferencesDataStore(name = "cookie_jar")
  * encrypts each cookie as a JSON string and persists it to DataStore.
  *
  * Handles the production server's Set-Cookie format:
- *   refreshToken=...; Path=/; HttpOnly; Secure; SameSite=Strict (maxAge=7 days)
+ *   refreshToken=...; Path=/; HttpOnly; Secure; SameSite=Strict (maxAge=90 days)
  *
  * runBlocking is used intentionally — OkHttp calls CookieJar on its own
  * thread pool, never on the main thread.
@@ -63,7 +63,7 @@ class DataStoreCookieJar @Inject constructor(
         // Only persist session/persistent cookies (not purely session cookies
         // with expiresAt == Long.MIN_VALUE indicate no Max-Age/Expires header).
         // We persist everything that has an expiry OR httpOnly cookies that carry
-        // the refresh token (the server always sets maxAge=7 days).
+        // the refresh token (the server always sets maxAge=90 days).
         Log.d(TAG, "saveFromResponse url=${url.host} cookies=${cookies.size}")
         for (c in cookies) {
             Log.d(TAG, "  cookie: name=${c.name} persistent=${c.persistent} expiresAt=${c.expiresAt} domain=${c.domain} httpOnly=${c.httpOnly}")

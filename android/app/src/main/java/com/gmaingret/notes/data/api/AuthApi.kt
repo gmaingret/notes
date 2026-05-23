@@ -53,7 +53,7 @@ interface AuthApi {
     /**
      * POST /api/auth/refresh/token
      * Sends refresh token in body, returns new access token.
-     * Refresh token is NOT rotated — it stays valid for its full 7-day lifetime.
+     * Refresh token is NOT rotated — it stays valid for its full 90-day lifetime.
      */
     @POST("api/auth/refresh/token")
     suspend fun refresh(@Body request: RefreshTokenRequest): RefreshResponse

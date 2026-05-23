@@ -8,8 +8,8 @@ import { and, eq, isNull, ne } from 'drizzle-orm';
 
 const BCRYPT_ROUNDS = 12;
 const ACCESS_TOKEN_TTL = '15m';
-const REFRESH_TOKEN_TTL = '7d';
-const REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+const REFRESH_TOKEN_TTL = '90d';
+const REFRESH_COOKIE_MAX_AGE = 90 * 24 * 60 * 60 * 1000;
 
 export function issueAccessToken(userId: string): string {
   return jwt.sign({ sub: userId }, process.env.JWT_SECRET!, { expiresIn: ACCESS_TOKEN_TTL });

@@ -6,7 +6,7 @@ import com.google.gson.annotations.SerializedName
  * Response from POST /api/auth/refresh/token.
  * Shape: { accessToken }
  *
- * The refresh token is NOT rotated — it stays valid for its full 7-day lifetime.
+ * The refresh token is NOT rotated — it stays valid for its full 90-day lifetime.
  * Only a new access token is returned.
  */
 data class RefreshResponse(

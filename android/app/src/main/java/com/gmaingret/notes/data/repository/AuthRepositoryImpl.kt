@@ -60,6 +60,7 @@ class AuthRepositoryImpl @Inject constructor(
                 ?: return Result.failure(Exception("No refresh token"))
             val response = authApi.refresh(RefreshTokenRequest(refreshToken))
             tokenStore.saveAccessToken(response.accessToken)
+            tokenStore.saveRefreshToken(response.refreshToken)
             Result.success(response.accessToken)
         } catch (e: Exception) {
             Result.failure(e)

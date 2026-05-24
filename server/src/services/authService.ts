@@ -11,6 +11,13 @@ const ACCESS_TOKEN_TTL = '15m';
 const REFRESH_TOKEN_TTL = '90d';
 const REFRESH_COOKIE_MAX_AGE = 90 * 24 * 60 * 60 * 1000;
 
+// Refresh tokens rotate on every use, with a short grace window so two concurrent
+// refresh requests from the same client both succeed (b5503ea race). The newly
+// issued token is cached against the old token's hash for ROTATION_GRACE_MS so
+// the racing request can be served the same successor.
+const ROTATION_GRACE_MS = 30 * 1000;
+const rotationGraceCache = new Map<string, { newToken: string; expiresAt: number }>();
+
 export function issueAccessToken(userId: string): string {
   return jwt.sign({ sub: userId }, process.env.JWT_SECRET!, { expiresIn: ACCESS_TOKEN_TTL });
 }
@@ -69,6 +76,64 @@ export async function isRefreshTokenRevoked(token: string): Promise<boolean> {
     where: and(eq(refreshTokens.tokenHash, hash), isNull(refreshTokens.revokedAt)),
   });
   return !row; // If no active row found, it's revoked (or never stored)
+}
+
+export type RefreshAttempt =
+  | { kind: 'invalid' }
+  | { kind: 'rotated'; userId: string; newToken: string }
+  | { kind: 'graced'; userId: string; newToken: string };
+
+/**
+ * Verifies, rotates, or grace-serves a refresh token.
+ *
+ *  - active token (revokedAt IS NULL) → rotate: issue T', mark old revoked,
+ *    cache T' for grace window, return kind='rotated'.
+ *  - just-revoked token within grace window → return cached successor T',
+ *    return kind='graced'.
+ *  - anything else (missing, expired, revoked past grace, bad signature) →
+ *    kind='invalid'.
+ */
+export async function rotateOrGraceRefreshToken(rawToken: string): Promise<RefreshAttempt> {
+  let payload: { sub: string };
+  try {
+    payload = jwt.verify(rawToken, process.env.JWT_REFRESH_SECRET!) as { sub: string };
+  } catch {
+    return { kind: 'invalid' };
+  }
+
+  const tokenHash = hashToken(rawToken);
+  const row = await db.query.refreshTokens.findFirst({
+    where: eq(refreshTokens.tokenHash, tokenHash),
+  });
+  if (!row) return { kind: 'invalid' };
+  if (row.expiresAt && row.expiresAt.getTime() < Date.now()) return { kind: 'invalid' };
+
+  if (row.revokedAt === null) {
+    const newToken = await issueAndStoreRefreshToken(payload.sub);
+    await db.update(refreshTokens)
+      .set({ revokedAt: new Date() })
+      .where(eq(refreshTokens.tokenHash, tokenHash));
+    setRotationGrace(tokenHash, newToken);
+    return { kind: 'rotated', userId: payload.sub, newToken };
+  }
+
+  const graced = getRotationGrace(tokenHash);
+  if (graced) return { kind: 'graced', userId: payload.sub, newToken: graced };
+  return { kind: 'invalid' };
+}
+
+function setRotationGrace(oldHash: string, newToken: string): void {
+  rotationGraceCache.set(oldHash, { newToken, expiresAt: Date.now() + ROTATION_GRACE_MS });
+}
+
+function getRotationGrace(oldHash: string): string | null {
+  const entry = rotationGraceCache.get(oldHash);
+  if (!entry) return null;
+  if (entry.expiresAt < Date.now()) {
+    rotationGraceCache.delete(oldHash);
+    return null;
+  }
+  return entry.newToken;
 }
 
 export async function revokeRefreshToken(token: string): Promise<void> {

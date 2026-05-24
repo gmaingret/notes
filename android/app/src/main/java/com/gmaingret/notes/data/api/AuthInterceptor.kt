@@ -80,6 +80,7 @@ class AuthInterceptor @Inject constructor(
             try {
                 val response = authApi.get().refresh(RefreshTokenRequest(refreshToken))
                 tokenStore.saveAccessToken(response.accessToken)
+                tokenStore.saveRefreshToken(response.refreshToken)
                 response.accessToken
             } catch (e: Exception) {
                 // Proactive refresh failed — return the current token anyway.

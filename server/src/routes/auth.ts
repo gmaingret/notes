@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import passport from 'passport';
-import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import { db } from '../../db/index.js';
@@ -14,7 +13,7 @@ import {
   clearRefreshCookie,
   hashPassword,
   createInboxIfNotExists,
-  isRefreshTokenRevoked,
+  rotateOrGraceRefreshToken,
   revokeRefreshToken,
   revokeAllUserTokensExcept,
 } from '../services/authService.js';
@@ -94,22 +93,19 @@ authRouter.post('/login', async (req, res) => {
   return res.json({ accessToken, refreshToken, user: { id: user.id, email: user.email } });
 });
 
-// AUTH-02: Refresh token
+// AUTH-02: Refresh token (web — cookie-based, rotating)
 authRouter.post('/refresh', async (req, res) => {
   const token = req.cookies?.refreshToken;
   if (!token) return res.status(401).json({ error: 'No refresh token' });
 
-  try {
-    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as { sub: string };
-    if (await isRefreshTokenRevoked(token)) {
-      return res.status(401).json({ error: 'Token has been revoked' });
-    }
-
-    const accessToken = issueAccessToken(payload.sub);
-    return res.json({ accessToken });
-  } catch {
-    return res.status(401).json({ error: 'Invalid or expired refresh token' });
+  const attempt = await rotateOrGraceRefreshToken(token);
+  if (attempt.kind === 'invalid') {
+    return res.status(401).json({ error: 'Refresh token has been revoked or expired' });
   }
+
+  setRefreshCookieFromToken(res, attempt.newToken);
+  const accessToken = issueAccessToken(attempt.userId);
+  return res.json({ accessToken });
 });
 
 // AUTH-04: Logout (cookie-based — web client)
@@ -124,22 +120,20 @@ authRouter.post('/logout', async (req, res) => {
 
 // Token-based refresh — for native clients (Android) that manage tokens explicitly
 // instead of relying on httpOnly cookies. Accepts refresh token in request body,
-// returns new access token as JSON. Refresh token is NOT rotated — it stays valid
-// for its full 90-day lifetime to avoid race conditions on mobile.
+// returns the new access token AND the rotated refresh token. A short grace
+// window (ROTATION_GRACE_MS) lets a racing concurrent request receive the same
+// successor token instead of failing.
 authRouter.post('/refresh/token', async (req, res) => {
   const { refreshToken: token } = req.body ?? {};
   if (!token) return res.status(401).json({ error: 'No refresh token' });
 
-  try {
-    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as { sub: string };
-    if (await isRefreshTokenRevoked(token)) {
-      return res.status(401).json({ error: 'Token has been revoked' });
-    }
-    const accessToken = issueAccessToken(payload.sub);
-    return res.json({ accessToken });
-  } catch {
-    return res.status(401).json({ error: 'Invalid or expired refresh token' });
+  const attempt = await rotateOrGraceRefreshToken(token);
+  if (attempt.kind === 'invalid') {
+    return res.status(401).json({ error: 'Refresh token has been revoked or expired' });
   }
+
+  const accessToken = issueAccessToken(attempt.userId);
+  return res.json({ accessToken, refreshToken: attempt.newToken });
 });
 
 // Token-based logout — for native clients (Android)

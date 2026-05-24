@@ -66,6 +66,7 @@ class TokenAuthenticator @Inject constructor(
 
                     val refreshResponse = authApi.get().refresh(RefreshTokenRequest(refreshToken))
                     tokenStore.saveAccessToken(refreshResponse.accessToken)
+                    tokenStore.saveRefreshToken(refreshResponse.refreshToken)
 
                     response.request.newBuilder()
                         .header("Authorization", "Bearer ${refreshResponse.accessToken}")
